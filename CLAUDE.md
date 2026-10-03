@@ -13,7 +13,11 @@ Product context, personas, and priorities: [docs/product/context.md](docs/produc
 
 ## Development
 
-Greenfield — no code yet. Package manager is pnpm; local backend is the Firebase Emulator Suite. Add commands here as the app is scaffolded.
+Package manager is pnpm; local backend is the Firebase Emulator Suite.
+
+- `pnpm dev` — Vite dev server
+- `pnpm build` — type-check and production build (PWA)
+- `pnpm test` — type-check and the full test suite
 
 ## Technical Patterns and Standards
 

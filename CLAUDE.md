@@ -19,6 +19,7 @@ Greenfield — no code yet. Package manager is pnpm; local backend is the Fireba
 
 - [docs/system/stack.md](docs/system/stack.md) — technology stack
 - [docs/system/standards/standards.md](docs/system/standards/standards.md) — project decisions, prohibitions, budgets
+- [docs/system/design-system.md](docs/system/design-system.md) — design system rules; tokens in `src/styles/globals.css`
 
 ## In-flight decision stubs
 

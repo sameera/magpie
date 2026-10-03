@@ -13,7 +13,7 @@ Greenfield. Choices below were made at setup (2026-10-03), not detected from cod
 - **Framework**: React (latest stable)
 - **Language**: TypeScript, `strict` mode
 - **App form**: Installable PWA (service worker via `vite-plugin-pwa`); camera through the browser (`<input type="file" capture>` / `getUserMedia`)
-- **Styling**: Tailwind CSS + shadcn/ui (Radix-based components copied into the repo)
+- **Styling**: Tailwind CSS v4 + shadcn/ui (Radix-based components copied into the repo). Theme and tokens in `src/styles/globals.css`; rules in [design-system.md](design-system.md)
 - **Store-map rendering**: Hand-rolled SVG (no canvas/drawing library)
 - **Build Tool**: Vite
 

@@ -1,0 +1,311 @@
+/*
+ * Magpie design tokens and Tailwind v4 theme.
+ * Rules for using them: docs/system/design-system.md
+ *
+ * Theme: follows the OS setting by default. data-theme="light" or "dark"
+ * on <html> overrides it.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=DM+Mono:wght@500&family=Figtree:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark {
+    @media (prefers-color-scheme: dark) {
+        &:where(:root:not([data-theme="light"]), :root:not([data-theme="light"]) *) {
+            @slot;
+        }
+    }
+    &:where([data-theme="dark"], [data-theme="dark"] *) {
+        @slot;
+    }
+}
+
+/* ---------- Magpie tokens: light ---------- */
+:root {
+    color-scheme: light;
+
+    --paper: #f3f5fa;
+    --surface: #ffffff;
+    --surface-sunken: #e6eaf3;
+    --ink: #121521;
+    --ink-muted: #505870;
+    --line: #d9dee9;
+    --line-strong: #757e97;
+    --sheen: #00a88f;
+    --on-sheen: #03211c;
+    --sheen-ink: #00705f;
+    --trinket: #ffc21a;
+    --on-trinket: #241a00;
+    --berry: #d61f69;
+    --on-berry: #ffffff;
+    --missing: #ae3a0a;
+    --danger: #c81e1e;
+    --focus: var(--sheen-ink);
+    --scrim: rgba(14, 17, 26, 0.5);
+
+    --zone-produce: #c6f1dc;
+    --zone-dairy: #cde2ff;
+    --zone-bakery: #ffe6a3;
+    --zone-meat: #ffd0dd;
+    --zone-frozen: #e0d6ff;
+    --zone-pantry: #ffd9bd;
+    --zone-edge: rgba(18, 21, 33, 0.35);
+
+    --shadow-sticker: 0 3px 0 rgba(18, 21, 33, 0.14);
+    --shadow-press: 0 4px 0 #03211c;
+    --shadow-float: 0 10px 28px rgba(18, 21, 33, 0.18);
+
+    --font-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --font-body: Figtree, "Segoe UI", system-ui, sans-serif;
+    --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+
+    --tap-min: 48px;
+    --tap-cart: 56px;
+    --fab: 64px;
+    --nav-height: 68px;
+    --thumb: 48px;
+
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+    --radius-pill: 999px;
+
+    --duration-tap: 90ms;
+    --duration-pop: 180ms;
+    --duration-sheet: 240ms;
+
+    /* shadcn/ui variables, mapped onto Magpie tokens */
+    --background: var(--paper);
+    --foreground: var(--ink);
+    --card: var(--surface);
+    --card-foreground: var(--ink);
+    --popover: var(--surface);
+    --popover-foreground: var(--ink);
+    --primary: var(--sheen);
+    --primary-foreground: var(--on-sheen);
+    --secondary: var(--surface-sunken);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface-sunken);
+    --muted-foreground: var(--ink-muted);
+    --accent: var(--trinket);
+    --accent-foreground: var(--on-trinket);
+    --destructive: var(--danger);
+    --border: var(--line);
+    --input: var(--line-strong);
+    --ring: var(--focus);
+    --radius: var(--radius-md);
+}
+
+/* ---------- Magpie tokens: dark (same values in both blocks) ---------- */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+
+        --paper: #0e111a;
+        --surface: #191e2b;
+        --surface-sunken: #080a10;
+        --ink: #f1f3f9;
+        --ink-muted: #a3abc2;
+        --line: #2a3144;
+        --line-strong: #687190;
+        --sheen: #2ee6c5;
+        --sheen-ink: #5cf0d4;
+        --trinket: #ffcf4d;
+        --berry: #ff6fa6;
+        --on-berry: #2a0014;
+        --missing: #ff9259;
+        --danger: #ff7a70;
+        --scrim: rgba(0, 0, 0, 0.62);
+
+        --zone-produce: #1c4a3a;
+        --zone-dairy: #1d3556;
+        --zone-bakery: #4a3b0f;
+        --zone-meat: #4f2233;
+        --zone-frozen: #352a5e;
+        --zone-pantry: #4f2f1a;
+        --zone-edge: rgba(241, 243, 249, 0.35);
+
+        --shadow-sticker: 0 3px 0 rgba(0, 0, 0, 0.55);
+        --shadow-press: 0 4px 0 #04463b;
+        --shadow-float: 0 10px 28px rgba(0, 0, 0, 0.6);
+    }
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --paper: #0e111a;
+    --surface: #191e2b;
+    --surface-sunken: #080a10;
+    --ink: #f1f3f9;
+    --ink-muted: #a3abc2;
+    --line: #2a3144;
+    --line-strong: #687190;
+    --sheen: #2ee6c5;
+    --sheen-ink: #5cf0d4;
+    --trinket: #ffcf4d;
+    --berry: #ff6fa6;
+    --on-berry: #2a0014;
+    --missing: #ff9259;
+    --danger: #ff7a70;
+    --scrim: rgba(0, 0, 0, 0.62);
+
+    --zone-produce: #1c4a3a;
+    --zone-dairy: #1d3556;
+    --zone-bakery: #4a3b0f;
+    --zone-meat: #4f2233;
+    --zone-frozen: #352a5e;
+    --zone-pantry: #4f2f1a;
+    --zone-edge: rgba(241, 243, 249, 0.35);
+
+    --shadow-sticker: 0 3px 0 rgba(0, 0, 0, 0.55);
+    --shadow-press: 0 4px 0 #04463b;
+    --shadow-float: 0 10px 28px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Tailwind theme: utilities read the tokens above ---------- */
+@theme inline {
+    --color-paper: var(--paper);
+    --color-surface: var(--surface);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-ink: var(--ink);
+    --color-ink-muted: var(--ink-muted);
+    --color-line: var(--line);
+    --color-line-strong: var(--line-strong);
+    --color-sheen: var(--sheen);
+    --color-on-sheen: var(--on-sheen);
+    --color-sheen-ink: var(--sheen-ink);
+    --color-trinket: var(--trinket);
+    --color-on-trinket: var(--on-trinket);
+    --color-berry: var(--berry);
+    --color-on-berry: var(--on-berry);
+    --color-missing: var(--missing);
+    --color-danger: var(--danger);
+    --color-focus: var(--focus);
+    --color-scrim: var(--scrim);
+    --color-zone-produce: var(--zone-produce);
+    --color-zone-dairy: var(--zone-dairy);
+    --color-zone-bakery: var(--zone-bakery);
+    --color-zone-meat: var(--zone-meat);
+    --color-zone-frozen: var(--zone-frozen);
+    --color-zone-pantry: var(--zone-pantry);
+    --color-zone-edge: var(--zone-edge);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --font-display: var(--font-display);
+    --font-sans: var(--font-body);
+    --font-mono: var(--font-mono);
+
+    --radius-sm: var(--radius-sm);
+    --radius-md: var(--radius-md);
+    --radius-lg: var(--radius-lg);
+    --radius-pill: var(--radius-pill);
+
+    --shadow-sticker: var(--shadow-sticker);
+    --shadow-press: var(--shadow-press);
+    --shadow-float: var(--shadow-float);
+
+    --spacing-tap: var(--tap-min);
+    --spacing-tap-cart: var(--tap-cart);
+    --spacing-fab: var(--fab);
+    --spacing-nav: var(--nav-height);
+    --spacing-thumb: var(--thumb);
+
+    --text-display: 34px;
+    --text-display--line-height: 36px;
+    --text-display--letter-spacing: -0.02em;
+    --text-display--font-weight: 800;
+    --text-title: 24px;
+    --text-title--line-height: 28px;
+    --text-title--letter-spacing: -0.01em;
+    --text-title--font-weight: 700;
+    --text-heading: 19px;
+    --text-heading--line-height: 24px;
+    --text-heading--font-weight: 700;
+    --text-zone-label: 12px;
+    --text-zone-label--line-height: 14px;
+    --text-zone-label--font-weight: 700;
+    --text-item: 18px;
+    --text-item--line-height: 24px;
+    --text-item--font-weight: 600;
+    --text-body: 16px;
+    --text-body--line-height: 24px;
+    --text-caption: 13px;
+    --text-caption--line-height: 18px;
+    --text-caption--font-weight: 500;
+    --text-label: 12px;
+    --text-label--line-height: 16px;
+    --text-label--letter-spacing: 0.06em;
+    --text-label--font-weight: 700;
+    --text-button: 16px;
+    --text-button--line-height: 20px;
+    --text-button--font-weight: 700;
+    --text-price: 16px;
+    --text-price--line-height: 20px;
+    --text-price--font-weight: 500;
+    --text-price-small: 13px;
+    --text-price-small--line-height: 16px;
+    --text-price-small--font-weight: 500;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 24px;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-display);
+        text-wrap: balance;
+    }
+
+    :focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition-duration: 0ms !important;
+            animation-duration: 0ms !important;
+        }
+    }
+}

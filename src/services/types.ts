@@ -1,4 +1,4 @@
-import type { Item } from "../data/model";
+import type { Item, Store } from "../data/model";
 
 export interface AuthUser {
     uid: string;
@@ -24,6 +24,8 @@ export type Unsubscribe = () => void;
 // Read-only access to one household's data. No page in this epic saves.
 export interface DataService {
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
+    watchStores(householdId: string, listener: (stores: Watched<Store[]>) => void): Unsubscribe;
+    watchStore(householdId: string, storeId: string, listener: (store: Watched<Store>) => void): Unsubscribe;
 }
 
 export interface Services {

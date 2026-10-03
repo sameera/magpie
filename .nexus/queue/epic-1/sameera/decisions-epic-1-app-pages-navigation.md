@@ -22,3 +22,13 @@
 - **Choice:** `setup:household` looks a member up by email and, if absent, creates a verified-email account that Google sign-in then signs into.
 - **Why:** Lets the household be set up before either member has signed in once.
 - **Refuted alternative:** Require each member to sign in first and pass UIDs — needs a failed sign-in round before set-up.
+
+## 2026-10-03 — "Change store" replaces the in-store entry with the store choice
+- **Choice:** "Change store" replaces `/shop/<id>` with `/shop` (state `switching`), and a pick made while switching replaces again.
+- **Why:** Satisfies G26 (back to the store choice) and G27 (a new pick adds no back step) with the one existing store-choice page.
+- **Refuted alternative:** An in-page store sheet inside the in-store view — no extra history handling, but a second store-choice UI to keep in step.
+
+## 2026-10-03 — Walking order from zone order
+- **Choice:** Each zone carries an `order`; the in-store list sorts by the order of the item's zone in that store, unplaced items last, and the first is "next".
+- **Why:** The smallest data that gives the in-store view a next item before routing exists.
+- **Refuted alternative:** Derive order from zone geometry (distance from the entrance) — needs an entrance and a route model this epic does not have.

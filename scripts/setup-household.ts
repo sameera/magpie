@@ -53,6 +53,13 @@ async function writeTestData(db: Firestore, householdId: string): Promise<void> 
         onList: true,
         places: { "test-store": "dairy" },
     });
+    await household.collection("prices").doc("test-milk-costco").set({
+        itemId: "test-milk",
+        chain: "Costco",
+        amount: 4.29,
+        unit: "2 L",
+        observedAt: new Date("2026-09-01T10:00:00Z"),
+    });
     await household.collection("stores").doc("test-store").set({
         name: "Costco Kirkland",
         chain: "Costco",

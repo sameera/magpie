@@ -127,3 +127,28 @@ export function walkingOrder(items: Item[], store: Store): Item[] {
 export function zoneOf(item: Item, store: Store): Zone | undefined {
     return store.map?.zones.find((zone) => zone.id === item.places[store.id]);
 }
+
+// households/{householdId}/prices/{priceId}: one observation, append-only, per chain.
+export interface Price {
+    id: string;
+    itemId: string;
+    chain: string;
+    amount: number;
+    unit: string;
+    observedAt: Date;
+}
+
+export const priceConverter: FirestoreDataConverter<Price> = {
+    toFirestore: ({ id: _id, ...price }: Price) => price,
+    fromFirestore: (snap: QueryDocumentSnapshot) => {
+        const observedAt = snap.get("observedAt") as { toDate?: () => Date } | undefined;
+        return {
+            id: snap.id,
+            itemId: String(snap.get("itemId") ?? ""),
+            chain: String(snap.get("chain") ?? ""),
+            amount: Number(snap.get("amount") ?? 0),
+            unit: String(snap.get("unit") ?? ""),
+            observedAt: observedAt?.toDate ? observedAt.toDate() : new Date(0),
+        };
+    },
+};

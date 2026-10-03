@@ -32,3 +32,8 @@
 - **Choice:** Each zone carries an `order`; the in-store list sorts by the order of the item's zone in that store, unplaced items last, and the first is "next".
 - **Why:** The smallest data that gives the in-store view a next item before routing exists.
 - **Refuted alternative:** Derive order from zone geometry (distance from the entrance) — needs an entrance and a route model this epic does not have.
+
+## 2026-10-03 — Map editor drafts in place
+- **Choice:** The editor's sketch, scan and labels live in component state, with a "Saving maps is coming soon" note; nothing is written.
+- **Why:** D9 forbids saving in this epic, and the story needs the three tasks to be startable.
+- **Refuted alternative:** Read-only editor with disabled tools — no way to show that sketching, scanning and labelling are where they will live.

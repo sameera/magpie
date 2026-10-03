@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie Map editor mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root { --paper: #f3f5fa; --surface: #ffffff; --ink: #121521; --muted: #505870; --line: #d9dee9; --sheen-ink: #00705f; }
+@media (prefers-color-scheme: dark) {
+    :root { --paper: #0e111a; --surface: #191e2b; --ink: #f1f3f9; --muted: #a3abc2; --line: #2a3144; --sheen-ink: #5cf0d4; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: Figtree, "Segoe UI", system-ui, sans-serif; }
+.wrap { max-width: 1760px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { margin: 0 0 8px; font: 800 34px/40px "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; letter-spacing: -0.02em; }
+h2 { margin: 40px 0 16px; font: 700 24px/28px "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; }
+p { margin: 0; max-width: 720px; font-size: 16px; line-height: 24px; color: var(--muted); }
+a { color: var(--sheen-ink); font-weight: 700; }
+.grid { display: flex; flex-wrap: wrap; gap: 32px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+figcaption { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+iframe { width: 390px; max-width: calc(100vw - 32px); height: 844px; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Magpie · Map editor</h1>
+<p>Mockups for <a href="https://github.com/sameera/magpie/issues/8">#8 Map editor page</a>: sketch a store map or draw zones over a map photo, then name each zone. The editor takes the whole screen, with no main navigation; Back returns to the Store page. Each frame below is live. Open the <a href="prototype.html">interactive prototype</a> to try it: with Zone on, drag on the canvas to draw a box. Store and zone names are sample data.</p>
+
+<h2>Main flow</h2>
+<div class="grid">
+<figure><figcaption>1 · Store page, no map yet <a href="prototype.html?scenario=store">Open</a></figcaption><iframe src="prototype.html?scenario=store" title="1 · Store page, no map yet" loading="lazy"></iframe></figure>
+<figure><figcaption>2 · Pick how to start <a href="prototype.html?scenario=start">Open</a></figcaption><iframe src="prototype.html?scenario=start" title="2 · Pick how to start" loading="lazy"></iframe></figure>
+<figure><figcaption>3 · Use a store map <a href="prototype.html?scenario=source">Open</a></figcaption><iframe src="prototype.html?scenario=source" title="3 · Use a store map" loading="lazy"></iframe></figure>
+<figure><figcaption>4 · Drawing a zone <a href="prototype.html?scenario=sketch">Open</a></figcaption><iframe src="prototype.html?scenario=sketch" title="4 · Drawing a zone" loading="lazy"></iframe></figure>
+</div>
+
+<h2>Naming zones, map photo, done</h2>
+<div class="grid">
+<figure><figcaption>5 · Name a zone <a href="prototype.html?scenario=label">Open</a></figcaption><iframe src="prototype.html?scenario=label" title="5 · Name a zone" loading="lazy"></iframe></figure>
+<figure><figcaption>6 · Zones over a map photo <a href="prototype.html?scenario=scan">Open</a></figcaption><iframe src="prototype.html?scenario=scan" title="6 · Zones over a map photo" loading="lazy"></iframe></figure>
+<figure><figcaption>7 · Map photo options <a href="prototype.html?scenario=photo">Open</a></figcaption><iframe src="prototype.html?scenario=photo" title="7 · Map photo options" loading="lazy"></iframe></figure>
+<figure><figcaption>8 · Back on the store page <a href="prototype.html?scenario=after">Open</a></figcaption><iframe src="prototype.html?scenario=after" title="8 · Back on the store page" loading="lazy"></iframe></figure>
+</div>
+
+<h2>Dark</h2>
+<div class="grid">
+<figure><figcaption>Name a zone · dark <a href="prototype.html?scenario=label&amp;theme=dark">Open</a></figcaption><iframe src="prototype.html?scenario=label&amp;theme=dark" title="Name a zone · dark" loading="lazy"></iframe></figure>
+</div>
+</div>
+</body>
+</html>

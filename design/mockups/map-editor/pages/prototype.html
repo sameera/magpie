@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie Map editor prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=DM+Mono:wght@500&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root {
+    --paper: #f3f5fa; --surface: #ffffff; --sunken: #e6eaf3; --ink: #121521; --muted: #505870;
+    --line: #d9dee9; --line-strong: #757e97; --sheen: #00a88f; --on-sheen: #03211c; --sheen-ink: #00705f;
+    --danger: #c81e1e; --edge: rgba(18, 21, 33, 0.35); --scrim: rgba(14, 17, 26, 0.5);
+    --dot: rgba(117, 126, 151, 0.4); --draft: rgba(0, 168, 143, 0.14);
+    --sticker: 0 3px 0 rgba(18, 21, 33, 0.14); --press: 0 4px 0 #03211c; --float: 0 10px 28px rgba(18, 21, 33, 0.18);
+    --z-produce: #c6f1dc; --z-dairy: #cde2ff; --z-bakery: #ffe6a3; --z-meat: #ffd0dd; --z-frozen: #e0d6ff; --z-pantry: #ffd9bd;
+    --f-body: Figtree, "Segoe UI", system-ui, sans-serif;
+    --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --f-mono: "DM Mono", ui-monospace, monospace;
+}
+:root[data-theme="dark"] {
+    --paper: #0e111a; --surface: #191e2b; --sunken: #080a10; --ink: #f1f3f9; --muted: #a3abc2;
+    --line: #2a3144; --line-strong: #687190; --sheen: #2ee6c5; --sheen-ink: #5cf0d4;
+    --danger: #ff7a70; --edge: rgba(241, 243, 249, 0.35); --scrim: rgba(0, 0, 0, 0.62);
+    --dot: rgba(104, 113, 144, 0.5); --draft: rgba(46, 230, 197, 0.14);
+    --sticker: 0 3px 0 rgba(0, 0, 0, 0.55); --press: 0 4px 0 #04463b; --float: 0 10px 28px rgba(0, 0, 0, 0.6);
+    --z-produce: #1c4a3a; --z-dairy: #1d3556; --z-bakery: #4a3b0f; --z-meat: #4f2233; --z-frozen: #352a5e; --z-pantry: #4f2f1a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); display: flex; justify-content: center; }
+button, a, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--sheen-ink); outline-offset: 2px; }
+svg.i { display: block; flex: none; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.25; }
+.app { position: relative; width: 100%; max-width: 430px; height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: var(--paper); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.eyebrow { font: 700 12px/16px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sheen-ink); }
+.display { margin: 0; font: 800 34px/36px var(--f-display); letter-spacing: -0.02em; }
+.title { margin: 0; font: 700 24px/28px var(--f-display); letter-spacing: -0.01em; }
+.heading { margin: 0; font: 700 19px/24px var(--f-display); }
+.item { font: 600 18px/24px var(--f-body); }
+.caption { margin: 0; font: 500 13px/18px var(--f-body); color: var(--muted); }
+.body { margin: 0; font: 400 16px/24px var(--f-body); color: var(--muted); }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.icon-btn { width: 48px; height: 48px; flex: none; padding: 0; border: 0; border-radius: 14px; background: transparent; display: grid; place-items: center; }
+.icon-btn:disabled { color: var(--line); cursor: default; }
+.ghost { display: inline-flex; align-items: center; gap: 2px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: var(--sheen-ink); text-decoration: none; font: 700 16px/20px var(--f-body); }
+.secondary { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); font: 700 16px/20px var(--f-body); }
+.danger { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 14px; border: 2px solid var(--danger); border-radius: 14px; background: transparent; color: var(--danger); font: 700 16px/20px var(--f-body); }
+.primary { height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: var(--sheen); color: var(--on-sheen); box-shadow: var(--press); font: 700 16px/20px var(--f-body); }
+.primary.sm { height: 48px; }
+.primary:active { transform: translateY(4px); box-shadow: none; }
+.store-head { padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.store-body { display: flex; flex-direction: column; gap: 24px; padding: 0 16px 40px; }
+.mini { position: relative; height: 300px; border-radius: 22px; background: var(--sunken); overflow: hidden; }
+.mini .inner { position: absolute; left: 50%; top: 12px; width: 179px; margin-left: -89.5px; }
+.mini .z { position: absolute; padding: 4px 5px; border-radius: 6px; border: 1.5px solid var(--edge); overflow: hidden; font: 700 10px/12px var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.door { position: absolute; padding: 2px 9px; border-radius: 999px; background: var(--ink); color: var(--paper); font: 700 11px/16px var(--f-body); letter-spacing: 0.06em; pointer-events: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: flex; align-items: center; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--edge); font: 700 13px/18px var(--f-body); }
+.empty-card { padding: 24px 20px; border-radius: 22px; border: 2px dashed var(--line-strong); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.tile { width: 56px; height: 56px; border-radius: 14px; background: var(--sunken); color: var(--muted); display: grid; place-items: center; }
+.ed-head { flex: none; display: flex; align-items: center; gap: 4px; padding: 10px 8px 10px 4px; }
+.dots { background-color: var(--sunken); background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.6px); background-size: 20px 20px; border-radius: 22px; }
+.start { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 0 16px 28px; }
+.start .dots { flex: 1; min-height: 0; display: grid; place-items: center; padding: 24px; }
+.start .intro { max-width: 270px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.start .intro .tile { background: var(--surface); box-shadow: var(--sticker); color: var(--sheen-ink); }
+.opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 84px; padding: 12px 12px 12px 14px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); text-align: left; }
+.opt .tile { width: 48px; height: 48px; border-radius: 8px; color: var(--sheen-ink); flex: none; }
+.ed-main { flex: 1; min-height: 0; display: flex; padding: 0 16px 12px; }
+.canvas { position: relative; flex: 1; min-width: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.canvas.grab { cursor: grab; }
+.canvas.cross { cursor: crosshair; }
+.canvas > * { pointer-events: none; }
+.zone { position: absolute; padding: 6px 7px; border-radius: 8px; overflow: hidden; font: 700 12px/14px var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.draft { position: absolute; border-radius: 8px; background: var(--draft); border: 2.5px dashed var(--sheen-ink); display: grid; place-items: center; }
+.draft span { padding: 2px 8px; border-radius: 999px; background: var(--surface); font: 500 12px/16px var(--f-mono); }
+.handle { position: absolute; width: 18px; height: 18px; border-radius: 999px; background: var(--surface); border: 3px solid var(--sheen-ink); }
+.pill-msg { position: absolute; left: 0; right: 0; top: 12px; display: flex; justify-content: center; }
+.pill-msg span { padding: 6px 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--sticker); font: 600 13px/18px var(--f-body); }
+.empty-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 32px; }
+.empty-msg p { max-width: 220px; text-align: center; }
+.tools { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); }
+.tool { min-height: 56px; padding: 0; border: 0; border-radius: 14px; background: transparent; display: grid; justify-items: center; align-content: center; gap: 3px; color: var(--muted); font: 700 12px/16px var(--f-body); letter-spacing: 0.02em; }
+.tool .pill { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+.tool[aria-pressed="true"] { color: var(--ink); }
+.tool[aria-pressed="true"] .pill { background: var(--sheen); color: var(--on-sheen); }
+nav { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); }
+nav .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-height: 56px; }
+nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 48px; border-radius: 14px; text-decoration: none; color: var(--muted); font: 700 12px/16px var(--f-body); letter-spacing: 0.02em; }
+nav a .pill { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+nav a[aria-current="page"] { color: var(--ink); }
+nav a[aria-current="page"] .pill { background: var(--sheen); color: var(--on-sheen); }
+.toast { position: absolute; left: 16px; right: 16px; bottom: 104px; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--surface); box-shadow: var(--float); }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 16px 30px; border-radius: 22px 22px 0 0; background: var(--surface); box-shadow: var(--float); display: flex; flex-direction: column; gap: 12px; }
+.grabber { align-self: center; width: 40px; height: 5px; border-radius: 999px; background: var(--line); }
+.sheet-head { display: flex; align-items: center; gap: 8px; margin-top: -8px; }
+.sheet-head .icon-btn { margin-right: -8px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input { width: 100%; height: 48px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--sunken); font: 400 16px/24px var(--f-body); }
+.kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kind { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); text-align: left; font: 600 14px/18px var(--f-body); }
+.kind[aria-pressed="true"] { border-color: var(--ink); }
+.kind .sw { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 1.5px solid var(--edge); }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) { .primary { transition: none; } .primary:active { transform: none; } }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const ICONS = {
+    map: "M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20",
+    list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+    menu: "M4 7h16M4 12h16M4 17h16",
+    chevron: "M9 6l6 6-6 6",
+    back: "M15 6l-6 6 6 6",
+    pencil: "M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4",
+    camera: "M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z",
+    photo: "M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zM4 16l5-5 4 4 2-2 5 5M15.5 9h.01",
+    check: "M5 12.5l4.5 4.5L19 7.5",
+    close: "M6 6l12 12M18 6L6 18",
+    undo: "M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 010 11H11",
+    redo: "M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 000 11H13",
+    trash: "M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3",
+    move: "M12 3v18M3 12h18M12 3L9 6M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3",
+    zone: "M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2zM12 8.5v7M8.5 12h7",
+    door: "M14 4h4a2 2 0 012 2v12a2 2 0 01-2 2h-4M9 16l4-4-4-4M13 12H3"
+};
+const icon = (name, size = 22, width = 2.25) =>
+    `<svg class="i" width="${size}" height="${size}" viewBox="0 0 24 24" style="stroke-width:${width}" aria-hidden="true"><path d="${ICONS[name]}"></path></svg>`;
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const KIND_NAMES = { produce: "Produce", dairy: "Dairy", bakery: "Bakery", meat: "Meat & fish", frozen: "Frozen", pantry: "Pantry" };
+const KIND_ORDER = ["produce", "dairy", "bakery", "meat", "frozen", "pantry"];
+const Z = {
+    dairy: { id: "z1", kind: "dairy", name: "Dairy", x: 16, y: 24, w: 170, h: 70 },
+    bakery: { id: "z2", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 110 },
+    meat: { id: "z3", kind: "meat", name: "Meat & fish", x: 16, y: 104, w: 80, h: 220 },
+    frozen: { id: "z4", kind: "frozen", name: "Frozen", x: 106, y: 104, w: 80, h: 220 },
+    produce: { id: "z5", kind: "produce", name: "Produce", x: 16, y: 336, w: 170, h: 120 },
+    snacks: { id: "z6", kind: "pantry", name: "Snacks & drinks", x: 200, y: 146, w: 142, h: 220 }
+};
+const FIVE = [Z.dairy, Z.bakery, Z.meat, Z.frozen, Z.produce];
+const FULL = FIVE.concat([Z.snacks]);
+const THREE = [Z.bakery, Z.dairy, Z.produce];
+const DOOR = { x: 296, y: 540 };
+const SCAN_TOAST = "Map photo added. Draw a zone over each area.";
+const SCENARIOS = {
+    store: { screen: "store", zones: [], door: null },
+    start: { screen: "start", zones: [], door: null },
+    source: { screen: "start", zones: [], door: null, sheet: "source" },
+    sketch: { screen: "edit", zones: FIVE, door: DOOR, tool: "zone", draft: { x: 200, y: 146, w: 142, h: 220 } },
+    label: { screen: "edit", zones: FULL, door: DOOR, tool: "zone", sel: "z6", sheet: "label" },
+    scan: { screen: "edit", zones: THREE, door: DOOR, tool: "zone", scan: true, toast: SCAN_TOAST },
+    photo: { screen: "edit", zones: THREE, door: DOOR, tool: "zone", scan: true, sheet: "photo" },
+    after: { screen: "store", zones: FULL, door: DOOR }
+};
+
+const params = new URLSearchParams(location.search);
+if (params.get("theme") === "dark") document.documentElement.dataset.theme = "dark";
+const base = SCENARIOS[params.get("scenario")] || SCENARIOS.store;
+let state = {
+    screen: base.screen, zones: base.zones.map((z) => ({ ...z })), door: base.door,
+    tool: base.tool || "zone", scan: !!base.scan, sel: base.sel || null, sheet: base.sheet || null,
+    draft: base.draft || null, drag: null, toast: base.toast || null, past: [], future: []
+};
+
+const snap = () => ({ zones: state.zones, door: state.door, scan: state.scan });
+function set(patch) { state = { ...state, ...patch }; render(); }
+function commit(patch) { set({ past: state.past.concat([snap()]).slice(-30), future: [], ...patch }); }
+const zoneFill = (z) => (z.kind ? `var(--z-${z.kind})` : "var(--surface)");
+
+const SCAN_SVG = `<svg width="358" height="600" viewBox="0 0 358 600" aria-hidden="true" style="position:absolute;left:0;top:0;opacity:.35">
+<rect x="4" y="8" width="350" height="566" rx="4" fill="#ffffff"></rect>
+<g fill="none" stroke="#121521" stroke-width="2"><rect x="10" y="16" width="338" height="548"></rect><rect x="16" y="24" width="170" height="70"></rect><rect x="200" y="24" width="142" height="110"></rect><rect x="16" y="104" width="80" height="220"></rect><rect x="106" y="104" width="80" height="220"></rect>
+<path d="M106 134h80M106 164h80M106 194h80M106 224h80M106 254h80M106 284h80"></path><path d="M206 152h130M206 176h130M206 200h130M206 224h130M206 248h130M206 272h130M206 296h130M206 320h130M206 344h130"></path>
+<circle cx="56" cy="380" r="16"></circle><circle cx="104" cy="380" r="16"></circle><circle cx="152" cy="380" r="16"></circle><circle cx="56" cy="424" r="16"></circle><circle cx="104" cy="424" r="16"></circle><circle cx="152" cy="424" r="16"></circle>
+<path d="M214 400v60M238 400v60M262 400v60M286 400v60M310 400v60M334 400v60"></path><path d="M270 564v-20h56v20"></path></g>
+<g fill="#121521" font-family="Figtree, sans-serif" font-size="10" font-weight="700" letter-spacing="1"><text x="70" y="64">DAIRY · EGGS</text><text x="246" y="84">BAKERY</text><text x="34" y="218">MEAT</text><text x="124" y="122">FROZEN</text><text x="246" y="166">AISLES 1–9</text><text x="70" y="476">PRODUCE</text><text x="244" y="484">CHECKOUTS</text><text x="274" y="538">ENTRANCE</text></g></svg>`;
+
+const HINTS = { zone: "Drag to draw a zone", move: "Drag to move · Tap to name", door: "Tap where you walk in" };
+
+function canvasHtml() {
+    const s = state;
+    const d = s.draft;
+    const sel = s.zones.find((z) => z.id === s.sel);
+    const zones = s.zones.map((z) => {
+        const border = z.kind ? "1.5px solid var(--edge)" : "2px dashed var(--line-strong)";
+        const ring = z.id === s.sel ? "0 0 0 3px var(--sheen-ink)" : "none";
+        return `<div class="zone" style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;background:${zoneFill(z)};border:${border};box-shadow:${ring};color:${z.name ? "var(--ink)" : "var(--muted)"}">${esc(z.name || "New zone")}</div>`;
+    }).join("");
+    const handles = sel && s.tool === "move" && !s.sheet
+        ? [[sel.x, sel.y], [sel.x + sel.w, sel.y], [sel.x, sel.y + sel.h], [sel.x + sel.w, sel.y + sel.h]]
+            .map((q) => `<span class="handle" style="left:${q[0] - 9}px;top:${q[1] - 9}px"></span>`).join("")
+        : "";
+    const draft = d ? `<div class="draft" style="left:${d.x}px;top:${d.y}px;width:${d.w}px;height:${d.h}px"><span>${Math.round(d.w / 4)} × ${Math.round(d.h / 4)}</span></div>` : "";
+    const door = s.door ? `<span class="door" style="left:${s.door.x - 15}px;top:${s.door.y - 10}px">IN</span>` : "";
+    const empty = s.zones.length === 0 && !s.scan && !d;
+    const emptyMsg = empty ? `<div class="empty-msg"><p class="body">Drag anywhere to draw your first zone. Start with the one by the entrance.</p></div>` : "";
+    const hint = !s.sheet && !s.toast && !empty ? `<div class="pill-msg"><span>${HINTS[s.tool]}</span></div>` : "";
+    return (s.scan ? SCAN_SVG : "") + zones + draft + handles + door + emptyMsg + hint;
+}
+function renderCanvas() {
+    const el = document.querySelector(".canvas");
+    if (el) el.innerHTML = canvasHtml();
+}
+
+const NAV = `<nav aria-label="Main"><div class="tabs">
+    <a href="#"><span class="pill">${icon("list", 24)}</span>List</a>
+    <a href="#"><span class="pill">${icon("map", 24)}</span>Shop</a>
+    <a href="#" aria-current="page"><span class="pill">${icon("menu", 24)}</span>More</a></div></nav>`;
+
+function sheetHead(title) {
+    return `<span class="grabber" aria-hidden="true"></span><div class="sheet-head"><h2 class="heading" style="flex:1">${title}</h2>
+        <button type="button" class="icon-btn" aria-label="Close" data-action="close">${icon("close", 24)}</button></div>`;
+}
+
+function render() {
+    const s = state;
+    const named = s.zones.filter((z) => z.name);
+    const n = s.zones.length;
+    const sel = s.zones.find((z) => z.id === s.sel);
+    const isEdit = s.screen === "edit";
+    let out = "";
+
+    if (s.screen === "store") {
+        const k = 0.5;
+        const mini = s.zones.map((z) => `<div class="z" style="left:${z.x * k}px;top:${z.y * k}px;width:${z.w * k}px;height:${z.h * k}px;background:${zoneFill(z)}">${esc(z.name || "Zone")}</div>`).join("");
+        const miniDoor = s.door ? `<span class="door" style="left:${s.door.x * k - 12}px;top:${s.door.y * k - 8}px;font-size:10px;line-height:14px;padding:1px 7px">IN</span>` : "";
+        const body = n > 0
+            ? `<div class="store-body"><div class="mini" role="img" aria-label="Map of Costco"><div class="inner">${mini}${miniDoor}</div></div>
+                <section aria-label="Zones" style="display:flex;flex-direction:column;gap:8px"><h2 class="heading" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1">Zones</span><span class="caption">${named.length} named</span></h2>
+                <div class="chips">${named.map((z) => `<span class="chip" style="background:${zoneFill(z)}">${esc(z.name)}</span>`).join("")}</div></section>
+                <button type="button" class="secondary" data-action="edit">${icon("pencil", 20)}Edit map</button></div>`
+            : `<div class="store-body" style="gap:16px"><div class="empty-card"><span class="tile">${icon("map", 28, 2)}</span>
+                <h2 class="heading" style="margin-top:4px">No map yet</h2><p class="body" style="max-width:280px">Draw a rough map once. Then the list lays out here in walking order.</p></div>
+                <button type="button" class="primary" data-action="start">${icon("pencil", 20)}Draw the map</button></div>`;
+        out = `<main class="scroll"><header class="store-head">
+            <a href="#" class="ghost" style="align-self:flex-start;margin-left:-8px;padding:0 10px 0 4px">${icon("back")}Stores</a>
+            <span class="eyebrow">Store</span><h1 class="display">Costco</h1>
+            <p class="caption">Chain: Costco · ${n > 0 ? named.length + " zones" : "No map yet"}</p></header>${body}</main>${NAV}`;
+    } else {
+        const caption = s.screen === "start" ? "Nothing drawn yet" : `${n} ${n === 1 ? "zone" : "zones"} · Saved on this phone`;
+        const head = `<header class="ed-head"><button type="button" class="icon-btn" aria-label="Back to Costco" data-action="back">${icon("back", 24)}</button>
+            <div class="col" style="gap:0"><span class="eyebrow">Costco map</span><h1 class="title">${s.screen === "start" ? "New map" : "Edit map"}</h1><span class="caption">${caption}</span></div>
+            ${isEdit ? `<button type="button" class="icon-btn" aria-label="Undo" data-action="undo" ${s.past.length ? "" : "disabled"}>${icon("undo", 24)}</button>
+            <button type="button" class="icon-btn" aria-label="Redo" data-action="redo" ${s.future.length ? "" : "disabled"}>${icon("redo", 24)}</button>` : ""}</header>`;
+        if (s.screen === "start") {
+            out = head + `<main class="start"><div class="dots"><div class="intro"><span class="tile">${icon("map", 28, 2)}</span>
+                <h2 class="heading" style="margin-top:4px">Rough is fine</h2><p class="body">A few boxes in about the right places is enough to put the list in walking order. You can fix it next trip.</p></div></div>
+                <span class="eyebrow" style="color:var(--muted);padding:8px 0 0">How do you want to start?</span>
+                <button type="button" class="opt" data-action="sketch"><span class="tile">${icon("pencil", 24)}</span><span class="col"><span class="item">Sketch it</span><span class="caption">Draw a box for each part of the store on a blank canvas.</span></span><span style="color:var(--muted)">${icon("chevron")}</span></button>
+                <button type="button" class="opt" aria-haspopup="dialog" data-action="source"><span class="tile">${icon("camera", 24, 2)}</span><span class="col"><span class="item">Use a store map</span><span class="caption">Photo the map by the door, or pick one you saved. Draw zones on top.</span></span><span style="color:var(--muted)">${icon("chevron")}</span></button></main>`;
+        } else {
+            const tools = [["move", "Move"], ["zone", "Zone"], ["door", "Entrance"]].map((t) =>
+                `<button type="button" class="tool" aria-pressed="${s.tool === t[0]}" data-tool="${t[0]}"><span class="pill">${icon(t[0], 24)}</span>${t[1]}</button>`).join("");
+            out = head + `<main class="ed-main"><div class="canvas dots ${s.tool === "move" ? "grab" : "cross"}" aria-label="Map canvas. ${HINTS[s.tool]}" id="canvas">${canvasHtml()}</div></main>
+                <div class="tools" role="toolbar" aria-label="Map tools">${tools}
+                <button type="button" class="tool" aria-haspopup="dialog" data-action="photo"><span class="pill">${icon("photo", 24)}</span>Map photo</button></div>`;
+        }
+    }
+
+    if (isEdit && s.toast && !s.sheet) {
+        out += `<div class="toast" role="status"><span style="color:var(--sheen-ink)">${icon("check", 22, 3)}</span>
+            <span style="flex:1;font:500 14px/19px var(--f-body)">${esc(s.toast)}</span>
+            <button type="button" class="ghost" data-action="dismiss">OK</button></div>`;
+    }
+    if (isEdit && s.sheet === "label" && sel) {
+        out += `<section class="sheet" aria-label="Name this zone">${sheetHead("Name this zone")}
+            <div class="field"><label class="eyebrow" style="color:var(--muted)" for="zone-name">Name</label>
+            <input id="zone-name" type="text" value="${esc(sel.name)}" placeholder="Dairy, Aisle 5, Garden centre"></div>
+            <div class="field"><span class="eyebrow" style="color:var(--muted)">Color</span><div class="kinds">
+            ${KIND_ORDER.map((k) => `<button type="button" class="kind" aria-pressed="${sel.kind === k}" data-kind="${k}"><span class="sw" style="background:var(--z-${k})"></span><span style="flex:1;min-width:0">${KIND_NAMES[k]}</span>${sel.kind === k ? icon("check", 16, 3.5) : ""}</button>`).join("")}</div></div>
+            <div class="pair"><button type="button" class="danger" data-action="delete">${icon("trash", 20)}Delete zone</button>
+            <button type="button" class="primary sm" data-action="close">${icon("check", 20, 3)}Done</button></div></section>`;
+    }
+    if (s.sheet === "source") {
+        out += `<div class="scrim" data-action="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Use a store map">${sheetHead("Use a store map")}
+            <p class="body" style="margin-bottom:4px">Big stores often post a map by the door or on their website. A photo of it works. It sits faded under your zones, so it does not need to be sharp.</p>
+            <button type="button" class="primary" data-action="usephoto">${icon("camera", 20)}Take a photo</button>
+            <button type="button" class="secondary" style="margin-top:4px" data-action="usephoto">${icon("photo", 20)}Choose from photos</button></div>`;
+    }
+    if (s.sheet === "photo") {
+        out += `<div class="scrim" data-action="close"></div><div class="sheet" role="dialog" aria-modal="true" aria-label="Map photo">${sheetHead("Map photo")}
+            <p class="body" style="margin-bottom:4px">The photo only helps you draw. Shoppers see your zones, not the photo. Zones stay put if you remove it.</p>
+            <button type="button" class="secondary" data-action="usephoto">${icon("camera", 20)}Replace photo</button>
+            <button type="button" class="danger" data-action="removephoto">${icon("trash", 20)}Remove photo</button></div>`;
+    }
+    document.getElementById("app").innerHTML = out;
+}
+
+const app = document.getElementById("app");
+const pt = (e, el) => {
+    const r = el.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top, maxX: el.clientWidth, maxY: el.clientHeight };
+};
+const grid = (v) => Math.round(v / 4) * 4;
+
+app.addEventListener("pointerdown", (e) => {
+    let el = e.target.closest(".canvas");
+    if (!el || state.sheet) return;
+    const p = pt(e, el);
+    if (state.toast) {
+        state.toast = null;
+        render();
+        el = document.querySelector(".canvas");
+    }
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (state.tool === "zone") {
+        state.drag = { mode: "draw", x0: p.x, y0: p.y };
+        state.draft = { x: p.x, y: p.y, w: 0, h: 0 };
+        state.sel = null;
+        renderCanvas();
+        return;
+    }
+    if (state.tool === "door") return commit({ door: { x: Math.round(p.x), y: Math.round(p.y) }, toast: null });
+    const selZ = state.zones.find((z) => z.id === state.sel);
+    if (selZ) {
+        const corners = { nw: [selZ.x, selZ.y], ne: [selZ.x + selZ.w, selZ.y], sw: [selZ.x, selZ.y + selZ.h], se: [selZ.x + selZ.w, selZ.y + selZ.h] };
+        const hit = Object.keys(corners).find((k) => Math.hypot(p.x - corners[k][0], p.y - corners[k][1]) < 22);
+        if (hit) { state.drag = { mode: "resize", id: selZ.id, corner: hit, o: { ...selZ }, moved: false }; return; }
+    }
+    let hit = null;
+    for (let i = state.zones.length - 1; i >= 0; i--) {
+        const z = state.zones[i];
+        if (p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h) { hit = z; break; }
+    }
+    if (hit) { state.sel = hit.id; state.drag = { mode: "move", id: hit.id, dx: p.x - hit.x, dy: p.y - hit.y, moved: false }; }
+    else state.sel = null;
+    renderCanvas();
+});
+
+app.addEventListener("pointermove", (e) => {
+    const d = state.drag;
+    const el = e.target.closest(".canvas") || document.querySelector(".canvas");
+    if (!d || !el) return;
+    const p = pt(e, el);
+    const cx = (v) => Math.max(0, Math.min(p.maxX, v));
+    const cy = (v) => Math.max(0, Math.min(p.maxY, v));
+    if (d.mode === "draw") {
+        const x1 = cx(p.x), y1 = cy(p.y);
+        state.draft = { x: grid(Math.min(d.x0, x1)), y: grid(Math.min(d.y0, y1)), w: grid(Math.abs(x1 - d.x0)), h: grid(Math.abs(y1 - d.y0)) };
+        return renderCanvas();
+    }
+    if (!d.moved) { state.past = state.past.concat([snap()]).slice(-30); state.future = []; d.moved = true; }
+    state.zones = state.zones.map((z) => {
+        if (z.id !== d.id) return z;
+        if (d.mode === "move") return { ...z, x: grid(Math.max(0, Math.min(p.maxX - z.w, p.x - d.dx))), y: grid(Math.max(0, Math.min(p.maxY - z.h, p.y - d.dy))) };
+        const o = d.o;
+        const l = d.corner.includes("w") ? cx(p.x) : o.x;
+        const r = d.corner.includes("e") ? cx(p.x) : o.x + o.w;
+        const t = d.corner.includes("n") ? cy(p.y) : o.y;
+        const b = d.corner.includes("s") ? cy(p.y) : o.y + o.h;
+        return { ...z, x: grid(Math.min(l, r)), y: grid(Math.min(t, b)), w: Math.max(28, grid(Math.abs(r - l))), h: Math.max(28, grid(Math.abs(b - t))) };
+    });
+    renderCanvas();
+});
+
+function endDrag() {
+    const d = state.drag;
+    if (!d) return;
+    if (d.mode === "draw") {
+        const f = state.draft;
+        if (f && f.w >= 28 && f.h >= 28) {
+            const id = "n" + Date.now();
+            return commit({ zones: state.zones.concat([{ id, kind: null, name: "", x: f.x, y: f.y, w: f.w, h: f.h }]), sel: id, sheet: "label", draft: null, drag: null });
+        }
+        return set({ draft: null, drag: null });
+    }
+    if (d.mode === "move" && !d.moved) return set({ drag: null, sheet: "label" });
+    set({ drag: null });
+}
+app.addEventListener("pointerup", endDrag);
+app.addEventListener("pointercancel", endDrag);
+
+app.addEventListener("input", (e) => {
+    if (e.target.id !== "zone-name") return;
+    state.zones = state.zones.map((z) => (z.id === state.sel ? { ...z, name: e.target.value } : z));
+    renderCanvas();
+});
+
+function usePhoto() {
+    const msg = state.scan ? "Map photo replaced." : SCAN_TOAST;
+    commit({ scan: true, sheet: null, screen: "edit", tool: state.screen === "start" ? "zone" : state.tool, toast: msg });
+}
+
+app.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-kind],[data-tool],[data-action]");
+    if (!el) return;
+    if (el.dataset.tool) return set({ tool: el.dataset.tool, sel: null, draft: null, sheet: null });
+    if (el.dataset.kind) {
+        return commit({ zones: state.zones.map((z) => (z.id === state.sel ? { ...z, kind: el.dataset.kind, name: z.name || KIND_NAMES[el.dataset.kind] } : z)) });
+    }
+    switch (el.dataset.action) {
+        case "start": return set({ screen: "start", sheet: null });
+        case "edit": return set({ screen: "edit", tool: "move", sheet: null, sel: null });
+        case "back": return set({ screen: "store", sheet: null, sel: null, draft: null, drag: null, toast: null });
+        case "sketch": return set({ screen: "edit", tool: "zone", sheet: null });
+        case "source": return set({ sheet: "source" });
+        case "photo": return set({ sheet: state.scan ? "photo" : "source", sel: null, toast: null });
+        case "usephoto": return usePhoto();
+        case "removephoto": return commit({ scan: false, sheet: null, toast: "Map photo removed. Your zones stay." });
+        case "dismiss": return set({ toast: null });
+        case "close": return set({ sheet: null, sel: null });
+        case "delete": return commit({ zones: state.zones.filter((z) => z.id !== state.sel), sel: null, sheet: null });
+        case "undo": {
+            if (!state.past.length) return;
+            const last = state.past[state.past.length - 1];
+            return set({ ...last, past: state.past.slice(0, -1), future: [snap()].concat(state.future), sel: null, sheet: null });
+        }
+        case "redo": {
+            if (!state.future.length) return;
+            const nx = state.future[0];
+            return set({ ...nx, future: state.future.slice(1), past: state.past.concat([snap()]), sel: null, sheet: null });
+        }
+    }
+});
+render();
+</script>
+</body>
+</html>

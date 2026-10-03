@@ -1,0 +1,51 @@
+{
+    "v": 3,
+    "createdOnFiles": {
+        "v": 1,
+        "at": "2026-10-03T19:00:00Z"
+    },
+    "title": "Magpie Map Editor",
+    "launch": {
+        "view": "canvas"
+    },
+    "pages": [],
+    "boards": {
+        "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Prototype · tap through", "is_interactive": true },
+        "MapStore.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "1 · Store page, no map yet" },
+        "MapStart.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "2 · Pick how to start" },
+        "MapSource.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "3 · Use a store map" },
+        "MapSketch.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "4 · Drawing a zone" },
+        "MapLabel.dc.html": { "x": 0, "y": 1264, "w": 390, "h": 844, "title": "5 · Name a zone" },
+        "MapScan.dc.html": { "x": 470, "y": 1264, "w": 390, "h": 844, "title": "6 · Zones over a map photo" },
+        "MapPhoto.dc.html": { "x": 940, "y": 1264, "w": 390, "h": 844, "title": "7 · Map photo options" },
+        "MapDone.dc.html": { "x": 1410, "y": 1264, "w": 390, "h": 844, "title": "8 · Back on the store page" },
+        "MapDark.dc.html": { "x": 1880, "y": 1264, "w": 390, "h": 844, "title": "Name a zone · dark" }
+    },
+    "order": [
+        "Main.dc.html",
+        "MapStore.dc.html",
+        "MapStart.dc.html",
+        "MapSource.dc.html",
+        "MapSketch.dc.html",
+        "MapLabel.dc.html",
+        "MapScan.dc.html",
+        "MapPhoto.dc.html",
+        "MapDone.dc.html",
+        "MapDark.dc.html"
+    ],
+    "notes": {
+        "flow": { "x": 0, "y": -300, "text": "Map editor: open from the store page, sketch or use a map photo", "kind": "title1", "maxW": 2270 },
+        "edges": { "x": 0, "y": 964, "text": "Name zones, manage the photo, go back", "kind": "title1", "maxW": 2270 },
+        "howto": { "x": -380, "y": 0, "w": 300, "fill": "teal", "text": "Play the prototype: tap Draw the map, then Sketch it or Use a store map. With Zone on, drag on the canvas to draw a box; the name sheet opens. Move drags zones, corner handles resize, Entrance places IN. Back returns to the store page. Tweaks: scenario and dark." },
+        "nav": { "x": -380, "y": 460, "w": 300, "fill": "orange", "text": "The editor takes the whole screen. No bottom nav: the canvas needs the room, and Back always returns to the store page. Edits save on the phone as you go, so there is no Save button." }
+    },
+    "designSystems": [
+        {
+            "title": "Magpie",
+            "namespace": "magpie",
+            "artifact": "https://claude.ai/artifact/6hCfFVWb7akGu15yzDsMzF",
+            "version": "1791036427-0816",
+            "copiedAt": "2026-10-03T19:00:00Z"
+        }
+    ]
+}

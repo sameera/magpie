@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop page</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&amp;family=DM+Mono:wght@500&amp;family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; display: flex; flex-direction: column; background: {{c.paper}}; color: {{c.ink}}; font-family: Figtree, 'Segoe UI', system-ui, sans-serif">
+<main style="position: relative; flex: 1; min-height: 0; overflow: hidden">
+
+<sc-if value="{{isChoose}}" hint-placeholder-val="{{true}}">
+<div style="position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column">
+<header style="padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">Shop</span>
+<h1 style="margin: 0; font: 800 34px/36px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.02em; color: {{c.ink}}">Which store?</h1>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{toGetText}}. Pick the store you are in and the list lays out on its map.</p>
+</header>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px 40px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}; padding: 8px 0 4px">Your stores</span>
+<sc-for list="{{stores}}" as="st" hint-placeholder-count="3">
+<button type="button" onClick="{{st.pick}}" style="display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 12px 12px 12px 16px; box-sizing: border-box; border: 0; border-radius: 14px; background: {{c.surface}}; box-shadow: {{c.sticker}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: inherit">
+<sc-if value="{{st.hasMap}}" hint-placeholder-val="{{true}}">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex: none; box-sizing: border-box; padding: 5px; border-radius: 8px; background: {{c.sunken}}; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px">
+<sc-for list="{{st.thumb}}" as="t" hint-placeholder-count="4">
+<span style="border-radius: 3px; background: {{t.fill}}; border: 1px solid {{c.edge}}"></span>
+</sc-for>
+</span>
+</sc-if>
+<sc-if value="{{st.noMap}}" hint-placeholder-val="{{false}}">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex: none; box-sizing: border-box; border-radius: 8px; border: 2px dashed {{c.lineStrong}}; color: {{c.muted}}; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"></path></svg></span>
+</sc-if>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif">{{st.name}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{st.meta}}</span>
+</span>
+<sc-if value="{{st.last}}" hint-placeholder-val="{{false}}">
+<span style="flex: none; padding: 3px 10px; border-radius: 999px; border: 2px solid {{c.lineStrong}}; font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.ink}}">Last trip</span>
+</sc-if>
+<span aria-hidden="true" style="flex: none; color: {{c.muted}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M9 6l6 6-6 6"></path></svg></span>
+</button>
+</sc-for>
+<a href="#" style="align-self: flex-start; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 12px; margin-top: 4px; border-radius: 14px; color: {{c.sheenInk}}; text-decoration: none; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round"><path d="M12 5v14M5 12h14"></path></svg>Add a store</a>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isShop}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column">
+<header style="flex: none; padding: 12px 16px; display: flex; align-items: center; gap: 12px">
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">Shopping at</span>
+<h1 style="margin: 0; font: 700 24px/28px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.01em; color: {{c.ink}}">{{store.name}}</h1>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{progressText}}</span>
+</div>
+<button type="button" aria-haspopup="dialog" onClick="{{openSheet}}" style="flex: none; display: flex; align-items: center; gap: 6px; height: 48px; padding: 0 14px; box-sizing: border-box; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.surface}}; color: {{c.ink}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"></path></svg>Change</button>
+</header>
+
+<sc-if value="{{store.hasMap}}" hint-placeholder-val="{{true}}">
+<div role="img" aria-label="Map of {{store.name}} with your route" style="position: relative; flex: none; width: 358px; height: 220px; margin: 0 16px 12px; border-radius: 22px; background: {{c.sunken}}; overflow: hidden">
+<sc-for list="{{zones}}" as="z" hint-placeholder-count="6">
+<div style="position: absolute; left: {{z.x}}px; top: {{z.y}}px; width: {{z.w}}px; height: {{z.h}}px; box-sizing: border-box; padding: 6px 7px; border-radius: 8px; background: {{z.fill}}; border: 1.5px solid {{c.edge}}; font: 700 12px/14px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: {{c.ink}}">{{z.label}}</div>
+</sc-for>
+<svg width="358" height="220" viewBox="0 0 358 220" aria-hidden="true" style="position: absolute; left: 0; top: 0"><path d="{{store.route}}" fill="none" style="stroke: {{c.berry}}; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 11"></path></svg>
+<span style="position: absolute; left: {{store.doorX}}px; top: {{store.doorY}}px; padding: 2px 9px; border-radius: 999px; background: {{c.ink}}; color: {{c.paper}}; font: 700 11px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em">IN</span>
+<sc-for list="{{stops}}" as="s" hint-placeholder-count="6">
+<span style="position: absolute; left: {{s.left}}px; top: {{s.top}}px; width: {{s.size}}px; height: {{s.size}}px; box-sizing: border-box; border-radius: 999px; background: {{s.bg}}; border: 3px solid {{s.ring}}; color: {{s.fg}}; display: grid; place-items: center; font: 700 13px/1 Figtree, 'Segoe UI', system-ui, sans-serif">
+<sc-if value="{{s.done}}" hint-placeholder-val="{{false}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+<sc-if value="{{s.todo}}" hint-placeholder-val="{{true}}">{{s.n}}</sc-if>
+</span>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{store.noMap}}" hint-placeholder-val="{{false}}">
+<div style="flex: none; margin: 0 16px 12px; padding: 16px; border-radius: 22px; border: 2px dashed {{c.lineStrong}}; display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex: none; border-radius: 8px; background: {{c.sunken}}; color: {{c.muted}}; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"></path></svg></span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 16px/22px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.ink}}">No map for this store yet</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">The list is grouped by zone for now.</span>
+</div>
+<a href="#" style="flex: none; display: grid; place-items: center; height: 48px; padding: 0 12px; border-radius: 14px; color: {{c.sheenInk}}; text-decoration: none; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif">Draw it</a>
+</div>
+</sc-if>
+
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 20px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<section aria-label="{{g.name}}" style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; display: flex; align-items: center; gap: 8px; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">
+<span aria-hidden="true" style="width: 16px; height: 16px; flex: none; border-radius: 5px; background: {{g.fill}}; border: 1.5px solid {{c.edge}}"></span>
+<span style="flex: 1">{{g.name}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{g.count}}</span>
+</h2>
+<sc-for list="{{g.rows}}" as="it" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 4px; min-height: 72px; padding-right: 4px; box-sizing: border-box; border-radius: 14px; {{it.box}}">
+<div style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0 10px 14px">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex: none; border-radius: 8px; background: {{c.sunken}}; color: {{c.muted}}; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{it.nameColor}}; text-decoration: {{it.deco}}">{{it.name}}</span>
+<sc-if value="{{it.missing}}" hint-placeholder-val="{{false}}">
+<span style="display: flex; align-items: center; gap: 4px; font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.missing}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M12 4L2.8 19.5h18.4L12 4zM12 10v4.5M12 17.2h.01"></path></svg>Missing</span>
+</sc-if>
+<sc-if value="{{it.showMeta}}" hint-placeholder-val="{{true}}">
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{it.meta}}</span>
+</sc-if>
+</span>
+</div>
+<button type="button" role="checkbox" aria-checked="{{it.ariaChecked}}" aria-label="Pick {{it.name}}" onClick="{{it.toggle}}" style="width: 56px; height: 56px; flex: none; padding: 0; border: 0; background: transparent; border-radius: 14px; display: grid; place-items: center; cursor: pointer">
+<sc-if value="{{it.picked}}" hint-placeholder-val="{{false}}"><span style="width: 32px; height: 32px; border-radius: 8px; background: {{c.sheen}}; color: {{c.onSheen}}; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></sc-if>
+<sc-if value="{{it.open}}" hint-placeholder-val="{{true}}"><span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 8px; border: 2.5px solid {{c.lineStrong}}"></span></sc-if>
+<sc-if value="{{it.missing}}" hint-placeholder-val="{{false}}"><span style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 8px; border: 2.5px dashed {{c.missing}}"></span></sc-if>
+</button>
+</div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 224px; display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 14px; border-radius: 14px; background: {{c.surface}}; box-shadow: {{c.float}}; color: {{c.ink}}">
+<span aria-hidden="true" style="flex: none; color: {{c.missing}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M12 4L2.8 19.5h18.4L12 4zM12 10v4.5M12 17.2h.01"></path></svg></span>
+<span style="flex: 1; font: 500 14px/19px Figtree, 'Segoe UI', system-ui, sans-serif">Marked missing. It stays on the list for next time.</span>
+<button type="button" onClick="{{undo}}" style="flex: none; height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Undo</button>
+</div>
+</sc-if>
+
+<sc-if value="{{hasNext}}" hint-placeholder-val="{{true}}">
+<section aria-label="Next up" style="flex: none; margin: 0 16px 12px; padding: 18px 20px 20px; border-radius: 22px; background: {{c.trinket}}; color: #241a00; box-shadow: {{c.sticker}}; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase">Next up · {{nextPos}} of {{total}}</span>
+<span style="font: 700 24px/28px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.01em">{{next.name}}</span>
+<span style="display: flex; align-items: center; gap: 4px; font: 600 14px/19px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; flex: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"></path></svg>{{next.where}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif">{{next.meta}}</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px">
+<button type="button" onClick="{{markMissing}}" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid #241a00; border-radius: 14px; background: transparent; color: #241a00; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M12 4L2.8 19.5h18.4L12 4zM12 10v4.5M12 17.2h.01"></path></svg>Missing</button>
+<button type="button" onClick="{{gotIt}}" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: #241a00; color: {{c.trinket}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Got it</button>
+</div>
+</section>
+</sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column">
+<header style="padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">{{store.name}}</span>
+<h1 style="margin: 0; font: 800 34px/36px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.02em; color: {{c.ink}}">Trip done</h1>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{doneText}}</p>
+</header>
+<sc-if value="{{store.hasMap}}" hint-placeholder-val="{{true}}">
+<div role="img" aria-label="Map of {{store.name}}, every stop done" style="position: relative; flex: none; width: 358px; height: 220px; margin: 0 16px 16px; border-radius: 22px; background: {{c.sunken}}; overflow: hidden">
+<sc-for list="{{zones}}" as="z" hint-placeholder-count="6">
+<div style="position: absolute; left: {{z.x}}px; top: {{z.y}}px; width: {{z.w}}px; height: {{z.h}}px; box-sizing: border-box; padding: 6px 7px; border-radius: 8px; background: {{z.fill}}; border: 1.5px solid {{c.edge}}; font: 700 12px/14px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: {{c.ink}}">{{z.label}}</div>
+</sc-for>
+<svg width="358" height="220" viewBox="0 0 358 220" aria-hidden="true" style="position: absolute; left: 0; top: 0"><path d="{{store.route}}" fill="none" style="stroke: {{c.berry}}; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 11"></path></svg>
+<span style="position: absolute; left: {{store.doorX}}px; top: {{store.doorY}}px; padding: 2px 9px; border-radius: 999px; background: {{c.ink}}; color: {{c.paper}}; font: 700 11px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em">IN</span>
+<sc-for list="{{stops}}" as="s" hint-placeholder-count="6">
+<span style="position: absolute; left: {{s.left}}px; top: {{s.top}}px; width: {{s.size}}px; height: {{s.size}}px; box-sizing: border-box; border-radius: 999px; background: {{s.bg}}; border: 3px solid {{s.ring}}; color: {{s.fg}}; display: grid; place-items: center; font: 700 13px/1 Figtree, 'Segoe UI', system-ui, sans-serif">
+<sc-if value="{{s.done}}" hint-placeholder-val="{{true}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+<sc-if value="{{s.todo}}" hint-placeholder-val="{{false}}">{{s.n}}</sc-if>
+</span>
+</sc-for>
+</div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 12px; padding: 0 16px 40px">
+<sc-if value="{{hasMissing}}" hint-placeholder-val="{{true}}">
+<section aria-label="Missing" style="padding: 16px; border-radius: 22px; background: {{c.surface}}; box-shadow: {{c.sticker}}; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">Missing</h2>
+<sc-for list="{{missingRows}}" as="m" hint-placeholder-count="1">
+<div style="display: flex; align-items: center; gap: 10px; min-height: 40px">
+<span aria-hidden="true" style="flex: none; color: {{c.missing}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M12 4L2.8 19.5h18.4L12 4zM12 10v4.5M12 17.2h.01"></path></svg></span>
+<span style="flex: 1; min-width: 0; font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.ink}}">{{m.name}}</span>
+<span style="font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.missing}}">Missing</span>
+</div>
+</sc-for>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">These stay on the list for next time.</p>
+</section>
+</sc-if>
+<button type="button" onClick="{{finish}}" style="height: 56px; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Finish trip</button>
+<p style="margin: 0; text-align: center; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{finishText}}</p>
+<sc-if value="{{hasMissing}}" hint-placeholder-val="{{true}}">
+<button type="button" onClick="{{retryMissing}}" style="height: 48px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.surface}}; color: {{c.ink}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Look for missing again</button>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+</main>
+
+<nav aria-label="Main" style="flex: none; background: {{c.surface}}; border-top: 1px solid {{c.line}}; padding: 6px 8px 22px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-height: 56px">
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 48px; border-radius: 14px; text-decoration: none">
+<span style="width: 56px; height: 30px; border-radius: 999px; color: {{c.muted}}; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"></path></svg></span>
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.02em; color: {{c.muted}}">List</span>
+</a>
+<a href="#" aria-current="page" style="display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 48px; border-radius: 14px; text-decoration: none">
+<span style="width: 56px; height: 30px; border-radius: 999px; background: {{c.sheen}}; color: {{c.onSheen}}; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"></path></svg></span>
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.02em; color: {{c.ink}}">Shop</span>
+</a>
+<a href="#" style="display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 48px; border-radius: 14px; text-decoration: none">
+<span style="width: 56px; height: 30px; border-radius: 999px; color: {{c.muted}}; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.02em; color: {{c.muted}}">More</span>
+</a>
+</div>
+</nav>
+
+<sc-if value="{{sheetOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; background: {{c.scrim}}"></div>
+<div role="dialog" aria-modal="true" aria-label="Change store" style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 34px; border-radius: 22px 22px 0 0; background: {{c.surface}}; box-shadow: {{c.float}}; display: flex; flex-direction: column; gap: 8px">
+<span aria-hidden="true" style="align-self: center; width: 40px; height: 5px; border-radius: 999px; background: {{c.line}}"></span>
+<div style="display: flex; align-items: center; gap: 8px">
+<h2 style="flex: 1; margin: 0; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">Change store</h2>
+<button type="button" aria-label="Close" onClick="{{closeSheet}}" style="width: 48px; height: 48px; padding: 0; border: 0; border-radius: 14px; background: transparent; color: {{c.ink}}; display: grid; place-items: center; cursor: pointer"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<p style="margin: 0 0 4px; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">What you picked stays picked. The rest of the list re-routes for the new store.</p>
+<sc-for list="{{stores}}" as="st" hint-placeholder-count="3">
+<button type="button" onClick="{{st.pick}}" aria-current="{{st.ariaCurrent}}" style="display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 16px; box-sizing: border-box; border-radius: 14px; border: 2px solid {{st.border}}; background: {{c.surface}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: inherit">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif">{{st.name}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{st.meta}}</span>
+</span>
+<sc-if value="{{st.current}}" hint-placeholder-val="{{false}}">
+<span style="flex: none; display: flex; align-items: center; gap: 4px; font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.sheenInk}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>Here now</span>
+</sc-if>
+</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scenario":{"editor":"enum","options":["choose","shop","missing","switch","walmart","nomap","done"],"default":"choose"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+data() {
+if (this._d) return this._d;
+const light = {
+paper: "#f3f5fa", surface: "#ffffff", sunken: "#e6eaf3", ink: "#121521", muted: "#505870",
+line: "#d9dee9", lineStrong: "#757e97", sheen: "#00a88f", onSheen: "#03211c", sheenInk: "#00705f",
+trinket: "#ffc21a", berry: "#d61f69", missing: "#ae3a0a", edge: "rgba(18, 21, 33, 0.35)",
+scrim: "rgba(14, 17, 26, 0.5)", sticker: "0 3px 0 rgba(18, 21, 33, 0.14)", press: "0 4px 0 #03211c",
+float: "0 10px 28px rgba(18, 21, 33, 0.18)",
+produce: "#c6f1dc", dairy: "#cde2ff", bakery: "#ffe6a3", meat: "#ffd0dd", frozen: "#e0d6ff", pantry: "#ffd9bd"
+};
+const dark = {
+paper: "#0e111a", surface: "#191e2b", sunken: "#080a10", ink: "#f1f3f9", muted: "#a3abc2",
+line: "#2a3144", lineStrong: "#687190", sheen: "#2ee6c5", onSheen: "#03211c", sheenInk: "#5cf0d4",
+trinket: "#ffcf4d", berry: "#ff6fa6", missing: "#ff9259", edge: "rgba(241, 243, 249, 0.35)",
+scrim: "rgba(0, 0, 0, 0.62)", sticker: "0 3px 0 rgba(0, 0, 0, 0.55)", press: "0 4px 0 #04463b",
+float: "0 10px 28px rgba(0, 0, 0, 0.6)",
+produce: "#1c4a3a", dairy: "#1d3556", bakery: "#4a3b0f", meat: "#4f2233", frozen: "#352a5e", pantry: "#4f2f1a"
+};
+const zoneNames = { produce: "Produce", bakery: "Bakery", dairy: "Dairy", meat: "Meat & fish", frozen: "Frozen", pantry: "Pantry" };
+const items = [
+{ id: "bananas", name: "Bananas", meta: "1 bunch", zone: "produce", hint: { costco: "by the entrance, first table", walmart: "front table, by the doors" } },
+{ id: "spinach", name: "Baby spinach", meta: "1 kg clamshell", zone: "produce", hint: { costco: "cold room, back shelf", walmart: "salad cooler" } },
+{ id: "sourdough", name: "Sourdough loaf", meta: "Sliced", zone: "bakery", hint: { costco: "end of the bread table", walmart: "bread rack" } },
+{ id: "yogurt", name: "Greek yogurt, plain", meta: "1 kg tub · Not the multipack", zone: "dairy", hint: { costco: "back wall, left of the eggs", walmart: "aisle 22, middle" } },
+{ id: "eggs", name: "Eggs", meta: "24 pack", zone: "dairy", hint: { costco: "back wall, end cooler", walmart: "aisle 22, end" } },
+{ id: "chicken", name: "Chicken thighs", meta: "Boneless · 2 packs", zone: "meat", hint: { costco: "second cooler", walmart: "back wall, packaged meat" } },
+{ id: "salmon", name: "Salmon fillets", meta: "Skin on", zone: "meat", hint: { costco: "fish case", walmart: "seafood case" } },
+{ id: "berries", name: "Frozen berries", meta: "2 kg bag", zone: "frozen", hint: { costco: "aisle 3, door 6", walmart: "aisle 30" } },
+{ id: "oil", name: "Olive oil", meta: "2 L tin", zone: "pantry", hint: { costco: "aisle 9, top shelf", walmart: "aisle 14" } },
+{ id: "coffee", name: "Coffee beans", meta: "Dark roast, whole bean", zone: "pantry", hint: { costco: "aisle 11", walmart: "aisle 12" } },
+{ id: "towels", name: "Paper towels", meta: "12 rolls", zone: "pantry", hint: { costco: "aisle 14, pallets", walmart: "aisle 40" } }
+];
+const stores = [
+{ id: "costco", name: "Costco", meta: "Map ready · 6 zones · last trip Sat", last: true,
+order: ["produce", "bakery", "dairy", "meat", "frozen", "pantry"], thumb: ["produce", "bakery", "meat", "dairy"],
+zones: [
+{ k: "meat", label: "Meat & fish", x: 12, y: 12, w: 110, h: 62 },
+{ k: "dairy", label: "Dairy", x: 132, y: 12, w: 110, h: 40 },
+{ k: "bakery", label: "Bakery", x: 252, y: 12, w: 94, h: 80 },
+{ k: "frozen", label: "Frozen", x: 12, y: 84, w: 110, h: 100 },
+{ k: "pantry", label: "Pantry", x: 132, y: 62, w: 110, h: 122 },
+{ k: "produce", label: "Produce", x: 252, y: 102, w: 94, h: 82 }
+],
+stops: { produce: [299, 150], bakery: [299, 56], dairy: [187, 34], meat: [67, 46], frozen: [67, 140], pantry: [187, 126] },
+route: "M299 204 L299 150 L299 56 L187 34 L67 46 L67 140 L187 126 L160 206",
+doorX: 281, doorY: 194 },
+{ id: "walmart", name: "Walmart", meta: "Map ready · 6 zones · last trip 3 weeks ago", last: false,
+order: ["produce", "bakery", "meat", "dairy", "frozen", "pantry"], thumb: ["bakery", "meat", "produce", "dairy"],
+zones: [
+{ k: "bakery", label: "Bakery", x: 12, y: 12, w: 100, h: 90 },
+{ k: "meat", label: "Meat & fish", x: 122, y: 12, w: 120, h: 40 },
+{ k: "dairy", label: "Dairy", x: 252, y: 12, w: 94, h: 84 },
+{ k: "produce", label: "Produce", x: 12, y: 112, w: 100, h: 72 },
+{ k: "pantry", label: "Pantry", x: 122, y: 62, w: 120, h: 122 },
+{ k: "frozen", label: "Frozen", x: 252, y: 106, w: 94, h: 78 }
+],
+stops: { produce: [62, 150], bakery: [62, 60], meat: [182, 34], dairy: [299, 56], frozen: [299, 148], pantry: [182, 126] },
+route: "M40 204 L62 150 L62 60 L182 34 L299 56 L299 148 L182 126 L190 206",
+doorX: 22, doorY: 194 },
+{ id: "corner", name: "Corner Market", meta: "No map yet", last: false,
+order: ["produce", "dairy", "bakery", "meat", "frozen", "pantry"], thumb: [], zones: null }
+];
+const p3 = { bananas: "picked", spinach: "picked", sourdough: "picked" };
+const doneAll = {};
+items.forEach((it) => { doneAll[it.id] = it.id === "yogurt" ? "missing" : "picked"; });
+const scenarios = {
+choose: { screen: "choose", store: "costco", status: {} },
+shop: { screen: "shop", store: "costco", status: p3 },
+missing: { screen: "shop", store: "costco", status: Object.assign({}, p3, { yogurt: "missing" }), toast: "yogurt" },
+"switch": { screen: "shop", store: "costco", status: p3, sheet: true },
+walmart: { screen: "shop", store: "walmart", status: p3 },
+nomap: { screen: "shop", store: "corner", status: { bananas: "picked", spinach: "picked" } },
+done: { screen: "shop", store: "costco", status: doneAll }
+};
+this._d = { light, dark, zoneNames, items, stores, scenarios };
+return this._d;
+}
+cur() {
+const D = this.data();
+const scn = this.props.scenario ?? "choose";
+const s = this.state;
+if (s && s.scn === scn) return s;
+const base = D.scenarios[scn] || D.scenarios.choose;
+return { scn: scn, screen: base.screen, store: base.store, status: Object.assign({}, base.status), toast: base.toast || null, sheet: !!base.sheet };
+}
+set(patch) {
+this.setState(Object.assign({}, this.cur(), patch));
+}
+renderVals() {
+const D = this.data();
+const s = this.cur();
+const c = this.props.dark ? D.dark : D.light;
+const store = D.stores.find((x) => x.id === s.store) || D.stores[0];
+const hasMap = !!store.zones;
+const ordered = [];
+store.order.forEach((z) => D.items.forEach((it) => { if (it.zone === z) ordered.push(it); }));
+const next = ordered.find((it) => !s.status[it.id]) || null;
+const total = ordered.length;
+const pickedCount = ordered.filter((it) => s.status[it.id] === "picked").length;
+const missing = ordered.filter((it) => s.status[it.id] === "missing");
+const handled = pickedCount + missing.length;
+const withStatus = (id, v) => {
+const st = Object.assign({}, s.status);
+if (v) st[id] = v; else delete st[id];
+return st;
+};
+const where = (it) => {
+const h = it.hint[store.id];
+return h ? D.zoneNames[it.zone] + " · " + h : D.zoneNames[it.zone];
+};
+
+const groups = store.order.map((z) => {
+const rows = ordered.filter((it) => it.zone === z);
+const n = rows.filter((it) => s.status[it.id]).length;
+return {
+name: D.zoneNames[z],
+fill: c[z],
+count: n + " of " + rows.length,
+rows: rows.map((it) => {
+const st = s.status[it.id];
+const picked = st === "picked";
+const isMissing = st === "missing";
+let box = "background: " + c.surface + "; box-shadow: " + c.sticker + "; border: 2px solid " + c.surface;
+if (picked) box = "background: transparent; box-shadow: none; border: 2px dashed " + c.line;
+if (isMissing) box = "background: " + c.surface + "; box-shadow: none; border: 2px dashed " + c.missing;
+return {
+name: it.name,
+meta: it.meta,
+picked: picked,
+missing: isMissing,
+open: !st,
+showMeta: !isMissing,
+box: box,
+deco: picked ? "line-through" : "none",
+nameColor: picked ? c.muted : c.ink,
+ariaChecked: picked ? "true" : "false",
+toggle: () => this.set({ status: withStatus(it.id, picked ? null : "picked"), toast: null })
+};
+})
+};
+}).filter((g) => g.rows.length > 0);
+
+const zones = hasMap ? store.zones.map((z) => Object.assign({}, z, { fill: c[z.k] })) : [];
+const stops = hasMap ? store.order.map((z, i) => {
+const rows = ordered.filter((it) => it.zone === z);
+const done = rows.length > 0 && rows.every((it) => s.status[it.id]);
+const isNext = !!next && next.zone === z;
+const size = isNext ? 34 : 28;
+const pt = store.stops[z];
+return {
+n: i + 1,
+done: done,
+todo: !done,
+size: size,
+left: pt[0] - size / 2,
+top: pt[1] - size / 2,
+bg: done ? c.sheen : isNext ? c.trinket : c.surface,
+ring: done ? c.sheen : isNext ? c.ink : c.berry,
+fg: done ? c.onSheen : isNext ? "#241a00" : c.ink
+};
+}) : [];
+
+const storeRows = D.stores.map((st) => {
+const current = s.screen === "shop" && st.id === store.id;
+return {
+name: st.name,
+meta: st.meta,
+last: st.last,
+hasMap: !!st.zones,
+noMap: !st.zones,
+thumb: st.thumb.map((k) => ({ fill: c[k] })),
+current: current,
+ariaCurrent: current ? "true" : "false",
+border: current ? c.sheenInk : c.lineStrong,
+pick: () => this.set({ screen: "shop", store: st.id, sheet: false, toast: null })
+};
+});
+
+const isShop = s.screen === "shop" && !!next;
+const isDone = s.screen === "shop" && !next;
+const progress = pickedCount + " picked · " + (total - handled) + " to go" + (missing.length ? " · " + missing.length + " missing" : "");
+const toGet = total - Object.keys(s.status).filter((k) => s.status[k] === "picked").length;
+
+return {
+c: c,
+isChoose: s.screen === "choose",
+isShop: isShop,
+isDone: isDone,
+sheetOpen: s.sheet && s.screen === "shop",
+store: { name: store.name, hasMap: hasMap, noMap: !hasMap, route: store.route || "", doorX: store.doorX || 0, doorY: store.doorY || 0 },
+zones: zones,
+stops: stops,
+groups: groups,
+stores: storeRows,
+hasNext: !!next,
+next: next ? { name: next.name, meta: next.meta, where: where(next) } : { name: "", meta: "", where: "" },
+nextPos: handled + 1,
+total: total,
+progressText: progress,
+toGetText: toGet + " items on the list",
+doneText: pickedCount + " picked · " + missing.length + " missing",
+finishText: "Clears the " + pickedCount + " picked items from the list.",
+hasMissing: missing.length > 0,
+missingRows: missing.map((it) => ({ name: it.name })),
+hasToast: !!s.toast && isShop,
+gotIt: () => { if (next) this.set({ status: withStatus(next.id, "picked"), toast: null }); },
+markMissing: () => { if (next) this.set({ status: withStatus(next.id, "missing"), toast: next.id }); },
+undo: () => { if (s.toast) this.set({ status: withStatus(s.toast, null), toast: null }); },
+openSheet: () => this.set({ sheet: true }),
+closeSheet: () => this.set({ sheet: false }),
+finish: () => this.set({ screen: "choose", status: {}, toast: null }),
+retryMissing: () => {
+const st = Object.assign({}, s.status);
+missing.forEach((it) => { delete st[it.id]; });
+this.set({ status: st });
+}
+};
+}
+}
+</script>
+</body>
+</html>

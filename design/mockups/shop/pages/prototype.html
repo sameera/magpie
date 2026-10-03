@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie Shop prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root {
+    --paper: #f3f5fa; --surface: #ffffff; --sunken: #e6eaf3; --ink: #121521; --muted: #505870;
+    --line: #d9dee9; --line-strong: #757e97; --sheen: #00a88f; --on-sheen: #03211c; --sheen-ink: #00705f;
+    --trinket: #ffc21a; --on-trinket: #241a00; --berry: #d61f69; --missing: #ae3a0a;
+    --edge: rgba(18, 21, 33, 0.35); --scrim: rgba(14, 17, 26, 0.5);
+    --sticker: 0 3px 0 rgba(18, 21, 33, 0.14); --press: 0 4px 0 #03211c; --float: 0 10px 28px rgba(18, 21, 33, 0.18);
+    --z-produce: #c6f1dc; --z-dairy: #cde2ff; --z-bakery: #ffe6a3; --z-meat: #ffd0dd; --z-frozen: #e0d6ff; --z-pantry: #ffd9bd;
+    --f-body: Figtree, "Segoe UI", system-ui, sans-serif;
+    --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+}
+:root[data-theme="dark"] {
+    --paper: #0e111a; --surface: #191e2b; --sunken: #080a10; --ink: #f1f3f9; --muted: #a3abc2;
+    --line: #2a3144; --line-strong: #687190; --sheen: #2ee6c5; --sheen-ink: #5cf0d4;
+    --trinket: #ffcf4d; --berry: #ff6fa6; --missing: #ff9259;
+    --edge: rgba(241, 243, 249, 0.35); --scrim: rgba(0, 0, 0, 0.62);
+    --sticker: 0 3px 0 rgba(0, 0, 0, 0.55); --press: 0 4px 0 #04463b; --float: 0 10px 28px rgba(0, 0, 0, 0.6);
+    --z-produce: #1c4a3a; --z-dairy: #1d3556; --z-bakery: #4a3b0f; --z-meat: #4f2233; --z-frozen: #352a5e; --z-pantry: #4f2f1a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); display: flex; justify-content: center; }
+button, a { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--sheen-ink); outline-offset: 2px; }
+svg.i { display: block; flex: none; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.25; }
+.app { position: relative; width: 100%; max-width: 430px; height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: var(--paper); }
+main { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.scroll { overflow-y: auto; }
+.eyebrow { font: 700 12px/16px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sheen-ink); }
+.display { margin: 0; font: 800 34px/36px var(--f-display); letter-spacing: -0.02em; }
+.title { margin: 0; font: 700 24px/28px var(--f-display); letter-spacing: -0.01em; }
+.heading { margin: 0; font: 700 19px/24px var(--f-display); }
+.item { font: 600 18px/24px var(--f-body); }
+.caption { margin: 0; font: 500 13px/18px var(--f-body); color: var(--muted); }
+.page-head { padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.stack { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 40px; }
+.card-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 12px 12px 12px 16px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); text-align: left; }
+.thumb { width: 48px; height: 48px; flex: none; border-radius: 8px; background: var(--sunken); color: var(--muted); display: grid; place-items: center; }
+.thumb.grid { padding: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; place-items: stretch; }
+.thumb.grid span { border-radius: 3px; border: 1px solid var(--edge); }
+.thumb.dashed { background: transparent; border: 2px dashed var(--line-strong); }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.badge { flex: none; padding: 3px 10px; border-radius: 999px; border: 2px solid var(--line-strong); font: 700 12px/16px var(--f-body); }
+.ghost { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: var(--sheen-ink); text-decoration: none; font: 700 16px/20px var(--f-body); }
+.secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 48px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); font: 700 16px/20px var(--f-body); }
+.primary { height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: var(--sheen); color: var(--on-sheen); box-shadow: var(--press); font: 700 16px/20px var(--f-body); transition: transform 90ms, box-shadow 90ms; }
+.primary:active { transform: translateY(4px); box-shadow: none; }
+.shop-head { flex: none; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.map { position: relative; flex: none; width: 358px; max-width: calc(100% - 32px); height: 220px; margin: 0 16px 12px; border-radius: 22px; background: var(--sunken); overflow: hidden; }
+.zone { position: absolute; padding: 6px 7px; border-radius: 8px; border: 1.5px solid var(--edge); font: 700 12px/14px var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.map svg.route { position: absolute; left: 0; top: 0; }
+.map svg.route path { fill: none; stroke: var(--berry); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 11; }
+.door { position: absolute; padding: 2px 9px; border-radius: 999px; background: var(--ink); color: var(--paper); font: 700 11px/16px var(--f-body); letter-spacing: 0.06em; }
+.stop { position: absolute; border-radius: 999px; border: 3px solid; display: grid; place-items: center; font: 700 13px/1 var(--f-body); }
+.nomap { flex: none; margin: 0 16px 12px; padding: 16px; border-radius: 22px; border: 2px dashed var(--line-strong); display: flex; align-items: center; gap: 12px; }
+.list { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 20px; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group h2 { display: flex; align-items: center; gap: 8px; }
+.swatch { width: 16px; height: 16px; flex: none; border-radius: 5px; border: 1.5px solid var(--edge); }
+.row { display: flex; align-items: center; gap: 4px; min-height: 72px; padding-right: 4px; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); border: 2px solid var(--surface); }
+.row.picked { background: transparent; box-shadow: none; border: 2px dashed var(--line); }
+.row.picked .item { text-decoration: line-through; color: var(--muted); }
+.row.missing { box-shadow: none; border: 2px dashed var(--missing); }
+.row-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0 10px 14px; }
+.miss-label { display: flex; align-items: center; gap: 4px; font: 700 13px/18px var(--f-body); color: var(--missing); }
+.check { width: 56px; height: 56px; flex: none; padding: 0; border: 0; background: transparent; border-radius: 14px; display: grid; place-items: center; }
+.box { width: 32px; height: 32px; border-radius: 8px; border: 2.5px solid var(--line-strong); display: grid; place-items: center; }
+.box.on { border: 0; background: var(--sheen); color: var(--on-sheen); }
+.box.miss { border-style: dashed; border-color: var(--missing); }
+.toast { position: absolute; left: 16px; right: 16px; bottom: 224px; display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 14px; border-radius: 14px; background: var(--surface); box-shadow: var(--float); }
+.next { flex: none; margin: 0 16px 12px; padding: 18px 20px 20px; border-radius: 22px; background: var(--trinket); color: var(--on-trinket); box-shadow: var(--sticker); display: flex; flex-direction: column; gap: 2px; }
+.next .eyebrow { color: var(--on-trinket); }
+.next .where { display: flex; align-items: center; gap: 4px; font: 600 14px/19px var(--f-body); }
+.next .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.next .actions button { height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; font: 700 16px/20px var(--f-body); }
+.btn-miss { border: 2px solid var(--on-trinket); background: transparent; color: var(--on-trinket); }
+.btn-got { border: 0; background: var(--on-trinket); color: var(--trinket); }
+.next :focus-visible { outline-color: var(--on-trinket); }
+.missing-card { padding: 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--sticker); display: flex; flex-direction: column; gap: 8px; }
+.missing-card .mrow { display: flex; align-items: center; gap: 10px; min-height: 40px; color: var(--missing); }
+nav { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); }
+nav .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-height: 56px; }
+nav a { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 48px; border-radius: 14px; text-decoration: none; color: var(--muted); font: 700 12px/16px var(--f-body); letter-spacing: 0.02em; }
+nav a .pill { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+nav a[aria-current="page"] { color: var(--ink); }
+nav a[aria-current="page"] .pill { background: var(--sheen); color: var(--on-sheen); }
+.scrim { position: absolute; inset: 0; background: var(--scrim); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 16px 34px; border-radius: 22px 22px 0 0; background: var(--surface); box-shadow: var(--float); display: flex; flex-direction: column; gap: 8px; }
+.grab { align-self: center; width: 40px; height: 5px; border-radius: 999px; background: var(--line); }
+.sheet-store { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 16px; border-radius: 14px; border: 2px solid var(--line-strong); background: var(--surface); text-align: left; }
+.sheet-store[aria-current="true"] { border-color: var(--sheen-ink); }
+.here { flex: none; display: flex; align-items: center; gap: 4px; font: 700 13px/18px var(--f-body); color: var(--sheen-ink); }
+@media (prefers-reduced-motion: reduce) { .primary { transition: none; } .primary:active { transform: none; } }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const ICONS = {
+    map: "M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20",
+    list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+    menu: "M4 7h16M4 12h16M4 17h16",
+    chevron: "M9 6l6 6-6 6",
+    plus: "M12 5v14M5 12h14",
+    swap: "M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7",
+    camera: "M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z",
+    check: "M5 12.5l4.5 4.5L19 7.5",
+    alert: "M12 4L2.8 19.5h18.4L12 4zM12 10v4.5M12 17.2h.01",
+    pin: "M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
+    close: "M6 6l12 12M18 6L6 18"
+};
+const icon = (name, size = 22, width = 2.25) =>
+    `<svg class="i" width="${size}" height="${size}" viewBox="0 0 24 24" style="stroke-width:${width}" aria-hidden="true"><path d="${ICONS[name]}"></path></svg>`;
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const ZONE_NAMES = { produce: "Produce", bakery: "Bakery", dairy: "Dairy", meat: "Meat & fish", frozen: "Frozen", pantry: "Pantry" };
+const ITEMS = [
+    { id: "bananas", name: "Bananas", meta: "1 bunch", zone: "produce", hint: { costco: "by the entrance, first table", walmart: "front table, by the doors" } },
+    { id: "spinach", name: "Baby spinach", meta: "1 kg clamshell", zone: "produce", hint: { costco: "cold room, back shelf", walmart: "salad cooler" } },
+    { id: "sourdough", name: "Sourdough loaf", meta: "Sliced", zone: "bakery", hint: { costco: "end of the bread table", walmart: "bread rack" } },
+    { id: "yogurt", name: "Greek yogurt, plain", meta: "1 kg tub · Not the multipack", zone: "dairy", hint: { costco: "back wall, left of the eggs", walmart: "aisle 22, middle" } },
+    { id: "eggs", name: "Eggs", meta: "24 pack", zone: "dairy", hint: { costco: "back wall, end cooler", walmart: "aisle 22, end" } },
+    { id: "chicken", name: "Chicken thighs", meta: "Boneless · 2 packs", zone: "meat", hint: { costco: "second cooler", walmart: "back wall, packaged meat" } },
+    { id: "salmon", name: "Salmon fillets", meta: "Skin on", zone: "meat", hint: { costco: "fish case", walmart: "seafood case" } },
+    { id: "berries", name: "Frozen berries", meta: "2 kg bag", zone: "frozen", hint: { costco: "aisle 3, door 6", walmart: "aisle 30" } },
+    { id: "oil", name: "Olive oil", meta: "2 L tin", zone: "pantry", hint: { costco: "aisle 9, top shelf", walmart: "aisle 14" } },
+    { id: "coffee", name: "Coffee beans", meta: "Dark roast, whole bean", zone: "pantry", hint: { costco: "aisle 11", walmart: "aisle 12" } },
+    { id: "towels", name: "Paper towels", meta: "12 rolls", zone: "pantry", hint: { costco: "aisle 14, pallets", walmart: "aisle 40" } }
+];
+const STORES = [
+    {
+        id: "costco", name: "Costco", meta: "Map ready · 6 zones · last trip Sat", last: true,
+        order: ["produce", "bakery", "dairy", "meat", "frozen", "pantry"], thumb: ["produce", "bakery", "meat", "dairy"],
+        zones: [
+            { k: "meat", label: "Meat & fish", x: 12, y: 12, w: 110, h: 62 },
+            { k: "dairy", label: "Dairy", x: 132, y: 12, w: 110, h: 40 },
+            { k: "bakery", label: "Bakery", x: 252, y: 12, w: 94, h: 80 },
+            { k: "frozen", label: "Frozen", x: 12, y: 84, w: 110, h: 100 },
+            { k: "pantry", label: "Pantry", x: 132, y: 62, w: 110, h: 122 },
+            { k: "produce", label: "Produce", x: 252, y: 102, w: 94, h: 82 }
+        ],
+        stops: { produce: [299, 150], bakery: [299, 56], dairy: [187, 34], meat: [67, 46], frozen: [67, 140], pantry: [187, 126] },
+        route: "M299 204 L299 150 L299 56 L187 34 L67 46 L67 140 L187 126 L160 206",
+        door: [281, 194]
+    },
+    {
+        id: "walmart", name: "Walmart", meta: "Map ready · 6 zones · last trip 3 weeks ago", last: false,
+        order: ["produce", "bakery", "meat", "dairy", "frozen", "pantry"], thumb: ["bakery", "meat", "produce", "dairy"],
+        zones: [
+            { k: "bakery", label: "Bakery", x: 12, y: 12, w: 100, h: 90 },
+            { k: "meat", label: "Meat & fish", x: 122, y: 12, w: 120, h: 40 },
+            { k: "dairy", label: "Dairy", x: 252, y: 12, w: 94, h: 84 },
+            { k: "produce", label: "Produce", x: 12, y: 112, w: 100, h: 72 },
+            { k: "pantry", label: "Pantry", x: 122, y: 62, w: 120, h: 122 },
+            { k: "frozen", label: "Frozen", x: 252, y: 106, w: 94, h: 78 }
+        ],
+        stops: { produce: [62, 150], bakery: [62, 60], meat: [182, 34], dairy: [299, 56], frozen: [299, 148], pantry: [182, 126] },
+        route: "M40 204 L62 150 L62 60 L182 34 L299 56 L299 148 L182 126 L190 206",
+        door: [22, 194]
+    },
+    { id: "corner", name: "Corner Market", meta: "No map yet", last: false, order: ["produce", "dairy", "bakery", "meat", "frozen", "pantry"], thumb: [], zones: null }
+];
+const P3 = { bananas: "picked", spinach: "picked", sourdough: "picked" };
+const DONE_ALL = Object.fromEntries(ITEMS.map((it) => [it.id, it.id === "yogurt" ? "missing" : "picked"]));
+const SCENARIOS = {
+    choose: { screen: "choose", store: "costco", status: {} },
+    shop: { screen: "shop", store: "costco", status: P3 },
+    missing: { screen: "shop", store: "costco", status: { ...P3, yogurt: "missing" }, toast: "yogurt" },
+    switch: { screen: "shop", store: "costco", status: P3, sheet: true },
+    walmart: { screen: "shop", store: "walmart", status: P3 },
+    nomap: { screen: "shop", store: "corner", status: { bananas: "picked", spinach: "picked" } },
+    done: { screen: "shop", store: "costco", status: DONE_ALL }
+};
+
+const params = new URLSearchParams(location.search);
+if (params.get("theme") === "dark") document.documentElement.dataset.theme = "dark";
+const base = SCENARIOS[params.get("scenario")] || SCENARIOS.choose;
+let state = { screen: base.screen, store: base.store, status: { ...base.status }, toast: base.toast || null, sheet: !!base.sheet };
+
+function set(patch) {
+    state = { ...state, ...patch };
+    render();
+}
+function withStatus(id, v) {
+    const st = { ...state.status };
+    if (v) st[id] = v; else delete st[id];
+    return st;
+}
+
+function storeThumb(st) {
+    if (!st.zones) return `<span class="thumb dashed" aria-hidden="true">${icon("map")}</span>`;
+    return `<span class="thumb grid" aria-hidden="true" style="display:grid">${st.thumb.map((k) => `<span style="background:var(--z-${k})"></span>`).join("")}</span>`;
+}
+
+function mapHtml(store, ordered, next, label) {
+    const zones = store.zones.map((z) =>
+        `<div class="zone" style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;background:var(--z-${z.k})">${esc(z.label)}</div>`).join("");
+    const stops = store.order.map((z, i) => {
+        const rows = ordered.filter((it) => it.zone === z);
+        const done = rows.length > 0 && rows.every((it) => state.status[it.id]);
+        const isNext = !!next && next.zone === z;
+        const size = isNext ? 34 : 28;
+        const [x, y] = store.stops[z];
+        const bg = done ? "var(--sheen)" : isNext ? "var(--trinket)" : "var(--surface)";
+        const ring = done ? "var(--sheen)" : isNext ? "var(--ink)" : "var(--berry)";
+        const fg = done ? "var(--on-sheen)" : isNext ? "var(--on-trinket)" : "var(--ink)";
+        return `<span class="stop" style="left:${x - size / 2}px;top:${y - size / 2}px;width:${size}px;height:${size}px;background:${bg};border-color:${ring};color:${fg}">${done ? icon("check", 14, 3.5) : i + 1}</span>`;
+    }).join("");
+    return `<div class="map" role="img" aria-label="${esc(label)}">${zones}
+        <svg class="route" width="358" height="220" viewBox="0 0 358 220" aria-hidden="true"><path d="${store.route}"></path></svg>
+        <span class="door" style="left:${store.door[0]}px;top:${store.door[1]}px">IN</span>${stops}</div>`;
+}
+
+function render() {
+    const store = STORES.find((s) => s.id === state.store) || STORES[0];
+    const ordered = [];
+    store.order.forEach((z) => ITEMS.forEach((it) => { if (it.zone === z) ordered.push(it); }));
+    const next = ordered.find((it) => !state.status[it.id]) || null;
+    const total = ordered.length;
+    const picked = ordered.filter((it) => state.status[it.id] === "picked");
+    const missing = ordered.filter((it) => state.status[it.id] === "missing");
+    const handled = picked.length + missing.length;
+    const isShop = state.screen === "shop" && !!next;
+    const isDone = state.screen === "shop" && !next;
+    let body = "";
+
+    if (state.screen === "choose") {
+        body = `<div class="screen scroll">
+            <header class="page-head"><span class="eyebrow">Shop</span><h1 class="display">Which store?</h1>
+            <p class="caption">${total - picked.length} items on the list. Pick the store you are in and the list lays out on its map.</p></header>
+            <div class="stack"><span class="eyebrow" style="color:var(--muted);padding:8px 0 4px">Your stores</span>
+            ${STORES.map((st) => `<button type="button" class="card-btn" data-store="${st.id}">${storeThumb(st)}
+                <span class="col"><span class="item">${esc(st.name)}</span><span class="caption">${esc(st.meta)}</span></span>
+                ${st.last ? `<span class="badge">Last trip</span>` : ""}<span style="color:var(--muted)">${icon("chevron")}</span></button>`).join("")}
+            <a href="#" class="ghost" style="align-self:flex-start;margin-top:4px">${icon("plus", 22, 2.5)}Add a store</a></div></div>`;
+    } else if (isShop) {
+        const progress = `${picked.length} picked · ${total - handled} to go${missing.length ? ` · ${missing.length} missing` : ""}`;
+        const groups = store.order.map((z) => {
+            const rows = ordered.filter((it) => it.zone === z);
+            const n = rows.filter((it) => state.status[it.id]).length;
+            return `<section class="group" aria-label="${ZONE_NAMES[z]}"><h2 class="heading"><span class="swatch" style="background:var(--z-${z})" aria-hidden="true"></span>
+                <span style="flex:1">${esc(ZONE_NAMES[z])}</span><span class="caption">${n} of ${rows.length}</span></h2>
+                ${rows.map((it) => {
+                    const st = state.status[it.id];
+                    const sub = st === "missing" ? `<span class="miss-label">${icon("alert", 16)}Missing</span>` : `<span class="caption">${esc(it.meta)}</span>`;
+                    const box = st === "picked" ? `<span class="box on">${icon("check", 20, 3)}</span>` : st === "missing" ? `<span class="box miss"></span>` : `<span class="box"></span>`;
+                    return `<div class="row ${st || ""}"><div class="row-main"><span class="thumb" aria-hidden="true">${icon("camera", 22, 1.75)}</span>
+                        <span class="col"><span class="item">${esc(it.name)}</span>${sub}</span></div>
+                        <button type="button" class="check" role="checkbox" aria-checked="${st === "picked"}" aria-label="Pick ${esc(it.name)}" data-toggle="${it.id}">${box}</button></div>`;
+                }).join("")}</section>`;
+        }).join("");
+        const hint = next.hint[store.id];
+        const where = hint ? `${ZONE_NAMES[next.zone]} · ${hint}` : ZONE_NAMES[next.zone];
+        body = `<div class="screen">
+            <header class="shop-head"><div class="col" style="gap:0"><span class="eyebrow">Shopping at</span><h1 class="title">${esc(store.name)}</h1>
+            <span class="caption">${progress}</span></div>
+            <button type="button" class="secondary" aria-haspopup="dialog" data-action="sheet">${icon("swap", 20)}Change</button></header>
+            ${store.zones ? mapHtml(store, ordered, next, `Map of ${store.name} with your route`) : `<div class="nomap"><span class="thumb" aria-hidden="true">${icon("map", 24, 2)}</span>
+                <div class="col"><span style="font:600 16px/22px var(--f-body)">No map for this store yet</span><span class="caption">The list is grouped by zone for now.</span></div>
+                <a href="#" class="ghost">Draw it</a></div>`}
+            <div class="list">${groups}</div>
+            ${state.toast ? `<div class="toast" role="status"><span style="color:var(--missing)">${icon("alert")}</span>
+                <span style="flex:1;font:500 14px/19px var(--f-body)">Marked missing. It stays on the list for next time.</span>
+                <button type="button" class="ghost" data-action="undo">Undo</button></div>` : ""}
+            <section class="next" aria-label="Next up"><span class="eyebrow">Next up · ${handled + 1} of ${total}</span>
+                <span class="title">${esc(next.name)}</span><span class="where">${icon("pin", 16)}${esc(where)}</span>
+                <span style="font:500 13px/18px var(--f-body)">${esc(next.meta)}</span>
+                <div class="actions"><button type="button" class="btn-miss" data-action="missing">${icon("alert", 20)}Missing</button>
+                <button type="button" class="btn-got" data-action="got">${icon("check", 20, 3)}Got it</button></div></section></div>`;
+    } else if (isDone) {
+        body = `<div class="screen scroll">
+            <header class="page-head"><span class="eyebrow">${esc(store.name)}</span><h1 class="display">Trip done</h1>
+            <p class="caption">${picked.length} picked · ${missing.length} missing</p></header>
+            ${store.zones ? mapHtml(store, ordered, null, `Map of ${store.name}, every stop done`) : ""}
+            <div class="stack" style="gap:12px">
+            ${missing.length ? `<section class="missing-card" aria-label="Missing"><h2 class="heading">Missing</h2>
+                ${missing.map((it) => `<div class="mrow">${icon("alert")}<span class="item" style="flex:1;color:var(--ink)">${esc(it.name)}</span><span style="font:700 13px/18px var(--f-body)">Missing</span></div>`).join("")}
+                <p class="caption">These stay on the list for next time.</p></section>` : ""}
+            <button type="button" class="primary" style="margin-top:8px" data-action="finish">${icon("check", 20, 3)}Finish trip</button>
+            <p class="caption" style="text-align:center">Clears the ${picked.length} picked items from the list.</p>
+            ${missing.length ? `<button type="button" class="secondary" data-action="retry">Look for missing again</button>` : ""}</div></div>`;
+    }
+
+    const sheet = state.sheet && state.screen === "shop" ? `<div class="scrim" data-action="close"></div>
+        <div class="sheet" role="dialog" aria-modal="true" aria-label="Change store"><span class="grab" aria-hidden="true"></span>
+        <div style="display:flex;align-items:center;gap:8px"><h2 class="heading" style="flex:1">Change store</h2>
+        <button type="button" class="check" style="width:48px;height:48px" aria-label="Close" data-action="close">${icon("close", 24)}</button></div>
+        <p style="margin:0 0 4px;font:400 16px/24px var(--f-body);color:var(--muted)">What you picked stays picked. The rest of the list re-routes for the new store.</p>
+        ${STORES.map((st) => `<button type="button" class="sheet-store" data-store="${st.id}" aria-current="${st.id === store.id}">
+            <span class="col"><span class="item">${esc(st.name)}</span><span class="caption">${esc(st.meta)}</span></span>
+            ${st.id === store.id ? `<span class="here">${icon("check", 18, 3)}Here now</span>` : ""}</button>`).join("")}</div>` : "";
+
+    document.getElementById("app").innerHTML = `<main>${body}</main>
+        <nav aria-label="Main"><div class="tabs">
+        <a href="#"><span class="pill">${icon("list", 24)}</span>List</a>
+        <a href="#" aria-current="page"><span class="pill">${icon("map", 24)}</span>Shop</a>
+        <a href="#"><span class="pill">${icon("menu", 24)}</span>More</a></div></nav>${sheet}`;
+}
+
+document.getElementById("app").addEventListener("click", (e) => {
+    const el = e.target.closest("[data-store],[data-toggle],[data-action]");
+    if (!el) return;
+    const store = STORES.find((s) => s.id === state.store);
+    const ordered = [];
+    store.order.forEach((z) => ITEMS.forEach((it) => { if (it.zone === z) ordered.push(it); }));
+    const next = ordered.find((it) => !state.status[it.id]);
+    if (el.dataset.store) return set({ screen: "shop", store: el.dataset.store, sheet: false, toast: null });
+    if (el.dataset.toggle) {
+        const id = el.dataset.toggle;
+        return set({ status: withStatus(id, state.status[id] === "picked" ? null : "picked"), toast: null });
+    }
+    switch (el.dataset.action) {
+        case "got": return next && set({ status: withStatus(next.id, "picked"), toast: null });
+        case "missing": return next && set({ status: withStatus(next.id, "missing"), toast: next.id });
+        case "undo": return set({ status: withStatus(state.toast, null), toast: null });
+        case "sheet": return set({ sheet: true });
+        case "close": return set({ sheet: false });
+        case "finish": return set({ screen: "choose", status: {}, toast: null });
+        case "retry": {
+            const st = { ...state.status };
+            Object.keys(st).forEach((k) => { if (st[k] === "missing") delete st[k]; });
+            return set({ status: st });
+        }
+    }
+});
+render();
+</script>
+</body>
+</html>

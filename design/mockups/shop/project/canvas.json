@@ -1,0 +1,48 @@
+{
+    "v": 3,
+    "createdOnFiles": {
+        "v": 1,
+        "at": "2026-10-03T17:00:00Z"
+    },
+    "title": "Magpie Shop",
+    "launch": {
+        "view": "canvas"
+    },
+    "pages": [],
+    "boards": {
+        "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Prototype · tap through", "is_interactive": true },
+        "ShopChoose.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "1 · Choose a store" },
+        "ShopInStore.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "2 · In-store view" },
+        "ShopMissing.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "3 · Marked missing" },
+        "ShopDone.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "4 · Trip done" },
+        "ShopSwitch.dc.html": { "x": 0, "y": 1264, "w": 390, "h": 844, "title": "Change store sheet" },
+        "ShopRerouted.dc.html": { "x": 470, "y": 1264, "w": 390, "h": 844, "title": "Re-routed at Walmart" },
+        "ShopNoMap.dc.html": { "x": 940, "y": 1264, "w": 390, "h": 844, "title": "Store with no map" },
+        "ShopDark.dc.html": { "x": 1410, "y": 1264, "w": 390, "h": 844, "title": "In-store · dark" }
+    },
+    "order": [
+        "Main.dc.html",
+        "ShopChoose.dc.html",
+        "ShopInStore.dc.html",
+        "ShopMissing.dc.html",
+        "ShopDone.dc.html",
+        "ShopSwitch.dc.html",
+        "ShopRerouted.dc.html",
+        "ShopNoMap.dc.html",
+        "ShopDark.dc.html"
+    ],
+    "notes": {
+        "flow": { "x": 0, "y": -300, "text": "Shop: pick a store, then walk the list in map order", "kind": "title1", "maxW": 2270 },
+        "edges": { "x": 0, "y": 964, "text": "Changing store, no map, dark", "kind": "title1", "maxW": 1800 },
+        "howto": { "x": -380, "y": 0, "w": 300, "fill": "teal", "text": "Play the prototype: tap Costco, then Got it or Missing on the yellow card. Change swaps stores and re-routes. Tick the last item to reach Trip done. Tweaks: scenario and dark." }
+    },
+    "designSystems": [
+        {
+            "title": "Magpie",
+            "namespace": "magpie",
+            "artifact": "https://claude.ai/artifact/6hCfFVWb7akGu15yzDsMzF",
+            "version": "1791036427-0816",
+            "copiedAt": "2026-10-03T17:00:00Z"
+        }
+    ]
+}

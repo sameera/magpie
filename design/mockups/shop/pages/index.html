@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie Shop mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root { --paper: #f3f5fa; --surface: #ffffff; --ink: #121521; --muted: #505870; --line: #d9dee9; --sheen-ink: #00705f; }
+@media (prefers-color-scheme: dark) {
+    :root { --paper: #0e111a; --surface: #191e2b; --ink: #f1f3f9; --muted: #a3abc2; --line: #2a3144; --sheen-ink: #5cf0d4; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: Figtree, "Segoe UI", system-ui, sans-serif; }
+.wrap { max-width: 1760px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { margin: 0 0 8px; font: 800 34px/40px "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; letter-spacing: -0.02em; }
+h2 { margin: 40px 0 16px; font: 700 24px/28px "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; }
+p { margin: 0; max-width: 720px; font-size: 16px; line-height: 24px; color: var(--muted); }
+a { color: var(--sheen-ink); font-weight: 700; }
+.grid { display: flex; flex-wrap: wrap; gap: 32px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+figcaption { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+iframe { width: 390px; max-width: calc(100vw - 32px); height: 844px; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Magpie · Shop page</h1>
+<p>Mockups for <a href="https://github.com/sameera/magpie/issues/5">#5 Shop page</a>: pick the store you are in, then walk the list in that store's map order. Each frame below is live. Open the <a href="prototype.html">interactive prototype</a> to tap through the whole flow. Store names, items and aisle hints are sample data.</p>
+
+<h2>Main flow</h2>
+<div class="grid">
+<figure><figcaption>1 · Choose a store <a href="prototype.html?scenario=choose">Open</a></figcaption><iframe src="prototype.html?scenario=choose" title="Choose a store" loading="lazy"></iframe></figure>
+<figure><figcaption>2 · In-store view <a href="prototype.html?scenario=shop">Open</a></figcaption><iframe src="prototype.html?scenario=shop" title="In-store view" loading="lazy"></iframe></figure>
+<figure><figcaption>3 · Marked missing <a href="prototype.html?scenario=missing">Open</a></figcaption><iframe src="prototype.html?scenario=missing" title="Marked missing" loading="lazy"></iframe></figure>
+<figure><figcaption>4 · Trip done <a href="prototype.html?scenario=done">Open</a></figcaption><iframe src="prototype.html?scenario=done" title="Trip done" loading="lazy"></iframe></figure>
+</div>
+
+<h2>Changing store, no map, dark</h2>
+<div class="grid">
+<figure><figcaption>Change store sheet <a href="prototype.html?scenario=switch">Open</a></figcaption><iframe src="prototype.html?scenario=switch" title="Change store sheet" loading="lazy"></iframe></figure>
+<figure><figcaption>Re-routed at Walmart <a href="prototype.html?scenario=walmart">Open</a></figcaption><iframe src="prototype.html?scenario=walmart" title="Re-routed at Walmart" loading="lazy"></iframe></figure>
+<figure><figcaption>Store with no map <a href="prototype.html?scenario=nomap">Open</a></figcaption><iframe src="prototype.html?scenario=nomap" title="Store with no map" loading="lazy"></iframe></figure>
+<figure><figcaption>In-store · dark <a href="prototype.html?scenario=shop&amp;theme=dark">Open</a></figcaption><iframe src="prototype.html?scenario=shop&amp;theme=dark" title="In-store, dark" loading="lazy"></iframe></figure>
+</div>
+</div>
+</body>
+</html>

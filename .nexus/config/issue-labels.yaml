@@ -1,0 +1,53 @@
+# Domain labels for Magpie story issues.
+#
+# Selected per story by /nxs.epic — applicable ones only, never all of them.
+# Classification labels (`epic`, `backlog`) are resolved by `nexus config resolve`
+# and are NOT listed here.
+#
+# Stack: React + TypeScript PWA on Firebase (Firestore, Auth, Storage, Hosting); no Cloud Functions by default
+# (see docs/system/stack.md). Add labels as real work areas appear.
+
+labels:
+    - name: lists
+      color: "1d76db"
+      description: Shopping lists and items — create, edit, share within the household
+
+    - name: store-maps
+      color: "5319e7"
+      description: Store map editor — sketching, scanning, zone labelling
+
+    - name: routing
+      color: "fbca04"
+      description: Ordering list items by store layout and overlaying the route on the map
+
+    - name: prices
+      color: "0e8a16"
+      description: Per-chain, timestamped price history and comparison
+
+    - name: sync
+      color: "d93f0b"
+      description: Real-time sync and Firestore offline cache, PWA service worker
+
+    - name: photos
+      color: "e99695"
+      description: Item photos and scanned maps in Cloud Storage
+
+    - name: auth
+      color: "b60205"
+      description: Firebase Auth, household membership, access scoping
+
+    - name: ui
+      color: "c2e0c6"
+      description: React components, Tailwind/shadcn styling, mobile layout
+
+    - name: infrastructure
+      color: "006b75"
+      description: Firebase Hosting, security rules, emulators, deploy, CI
+
+    - name: testing
+      color: "bfd4f2"
+      description: Unit tests and emulator-backed integration tests
+
+    - name: docs
+      color: "cfd3d7"
+      description: Documentation and standards

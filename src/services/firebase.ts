@@ -65,6 +65,6 @@ export function createFirebaseServices(): Services {
             signIn: () => signInWithRedirect(auth, new GoogleAuthProvider()),
             signOut: () => signOut(auth),
         },
-        data: createFirestoreData(db),
+        data: createFirestoreData(db, storage),
     };
 }

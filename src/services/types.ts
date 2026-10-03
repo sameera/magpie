@@ -26,6 +26,8 @@ export interface DataService {
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
     watchStores(householdId: string, listener: (stores: Watched<Store[]>) => void): Unsubscribe;
     watchStore(householdId: string, storeId: string, listener: (store: Watched<Store>) => void): Unsubscribe;
+    // Download URL of a Cloud Storage file: an item photo or a scanned map.
+    fileUrl(path: string): Promise<string>;
 }
 
 export interface Services {

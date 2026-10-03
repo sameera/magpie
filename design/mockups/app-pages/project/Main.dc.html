@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign-in, item and stores</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&amp;family=DM+Mono:wght@500&amp;family=Figtree:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; display: flex; flex-direction: column; background: {{c.paper}}; color: {{c.ink}}; font-family: Figtree, 'Segoe UI', system-ui, sans-serif">
+
+<sc-if value="{{isSignin}}" hint-placeholder-val="{{true}}">
+<main style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 24px 40px">
+<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center">
+<span style="width: 168px; height: 168px; border-radius: 999px; overflow: hidden; background: #f3f5fa; border: 3px solid {{c.ink}}; box-shadow: 0 6px 0 {{c.ink}}; display: block"><img src="/_blob/aef68de803d53293d0a1e3ebad47cc61" alt="" style="width: 168px; height: 168px; display: block; object-fit: cover"></span>
+<h1 style="margin: 12px 0 0; font: 800 48px/48px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.03em; color: {{c.ink}}">Magpie</h1>
+<p style="margin: 0; max-width: 280px; font: 400 18px/26px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">Our shared list, laid out on the store map in walking order.</p>
+</div>
+
+<sc-if value="{{denied}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display: flex; gap: 12px; padding: 16px; margin-bottom: 16px; border-radius: 22px; background: {{c.surface}}; border: 2px solid {{c.danger}}; text-align: left">
+<span aria-hidden="true" style="flex: none; color: {{c.danger}}"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M12 4L2.5 20h19L12 4zM12 10v4.5M12 17.5h.01"></path></svg></span>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">That account isn't in our household</h2>
+<p style="margin: 0; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">You signed in as sam.k.work@gmail.com. Use the Google account you set up Magpie with.</p>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{idle}}" hint-placeholder-val="{{true}}">
+<button type="button" onClick="{{signIn}}" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M14 4h5a1 1 0 011 1v14a1 1 0 01-1 1h-5M10 16l4-4-4-4M14 12H4"></path></svg>{{signInLabel}}</button>
+</sc-if>
+<sc-if value="{{busy}}" hint-placeholder-val="{{false}}">
+<button type="button" disabled="{{true}}" aria-busy="true" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; transform: translateY(4px); font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.5; stroke-linecap: round"><path d="M12 3a9 9 0 109 9" opacity="1"></path></svg>Signing in…</button>
+</sc-if>
+<p style="margin: 16px 0 0; display: flex; align-items: center; justify-content: center; gap: 6px; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3"></path></svg>Only our household can open this list.</p>
+</main>
+</sc-if>
+
+<sc-if value="{{isList}}" hint-placeholder-val="{{false}}">
+<main style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column">
+<header style="padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">Magpie</span>
+<h1 style="margin: 0; font: 800 34px/36px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.02em; color: {{c.ink}}">Our list</h1>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{listCount}}</p>
+</header>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 0 16px 104px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<button type="button" onClick="{{r.open}}" style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 16px; border: 0; background: {{c.surface}}; border-radius: 14px; box-shadow: {{c.sticker}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: inherit">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex: none; border-radius: 8px; background: {{r.thumb}}; color: {{c.muted}}; display: grid; place-items: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round"><path d="M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif">{{r.name}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{r.meta}}</span>
+</span>
+<span aria-hidden="true" style="flex: none; color: {{c.muted}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M9 6l6 6-6 6"></path></svg></span>
+</button>
+</sc-for>
+</div>
+</main>
+<button type="button" aria-label="Add item" onClick="{{newItem}}" style="position: absolute; right: 16px; bottom: 100px; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 999px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; display: grid; place-items: center; cursor: pointer"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round"><path d="M12 5v14M5 12h14"></path></svg></button>
+</sc-if>
+
+<sc-if value="{{isItem}}" hint-placeholder-val="{{false}}">
+<main style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column">
+<header style="padding: 8px 16px 8px; display: flex; flex-direction: column; gap: 4px">
+<button type="button" onClick="{{goList}}" style="align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 48px; margin-left: -8px; padding: 0 10px 0 4px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M15 6l-6 6 6 6"></path></svg>List</button>
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">{{itemEyebrow}}</span>
+</header>
+<div style="display: flex; flex-direction: column; gap: 24px; padding: 0 16px 24px">
+
+<sc-if value="{{hasPhoto}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-haspopup="dialog" aria-label="Photo options" onClick="{{openPhoto}}" style="position: relative; height: 180px; padding: 0; border: 0; border-radius: 22px; background: {{c.dairy}}; overflow: hidden; cursor: pointer; display: grid; place-items: center">
+<svg width="150" height="140" viewBox="0 0 150 140" aria-hidden="true" style="display: block">
+<path d="M28 34h94l-9 96H37z" fill="#ffffff" stroke="#121521" stroke-width="4" stroke-linejoin="round"></path>
+<rect x="22" y="20" width="106" height="18" rx="6" fill="#00a88f" stroke="#121521" stroke-width="4"></rect>
+<rect x="44" y="62" width="62" height="34" rx="6" fill="#cde2ff" stroke="#121521" stroke-width="3"></rect>
+<path d="M54 74h42M54 84h28" stroke="#121521" stroke-width="3" stroke-linecap="round"></path>
+</svg>
+<span style="position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: {{c.surface}}; box-shadow: {{c.sticker}}; color: {{c.ink}}; font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"></path></svg>Photo</span>
+</button>
+</sc-if>
+<sc-if value="{{noPhoto}}" hint-placeholder-val="{{true}}">
+<button type="button" aria-haspopup="dialog" onClick="{{openPhoto}}" style="min-height: 96px; display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px dashed {{c.lineStrong}}; border-radius: 22px; background: transparent; color: {{c.ink}}; text-align: left; cursor: pointer; font: inherit">
+<span aria-hidden="true" style="width: 56px; height: 56px; flex: none; border-radius: 14px; background: {{c.sunken}}; color: {{c.sheenInk}}; display: grid; place-items: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px">
+<span style="font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.sheenInk}}">Add photo</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">A photo helps the shopper grab the right one.</span>
+</span>
+</button>
+</sc-if>
+
+<div style="display: flex; flex-direction: column; gap: 16px">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}">Name</span>
+<input type="text" value="{{name}}" onChange="{{onName}}" placeholder="What do we need?" style="height: 52px; box-sizing: border-box; padding: 0 14px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.sunken}}; color: {{c.ink}}; font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}">Quantity</span>
+<input type="text" value="{{qty}}" onChange="{{onQty}}" placeholder="1, 2 dozen, 1 kg tub" style="height: 48px; box-sizing: border-box; padding: 0 14px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.sunken}}; color: {{c.ink}}; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}">Note</span>
+<textarea rows="2" value="{{note}}" onChange="{{onNote}}" placeholder="Brand, size, anything the shopper should know" style="box-sizing: border-box; padding: 12px 14px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.sunken}}; color: {{c.ink}}; resize: none; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif"></textarea>
+</label>
+</div>
+
+<section aria-labelledby="where-h" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="where-h" style="margin: 0; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">Where it is</h2>
+<div style="display: flex; flex-direction: column; background: {{c.surface}}; border-radius: 14px; box-shadow: {{c.sticker}}">
+<sc-for list="{{places}}" as="p" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 8px 8px 16px; border-top: {{p.divider}}">
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 16px/22px Figtree, 'Segoe UI', system-ui, sans-serif">{{p.name}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{p.chain}}</span>
+</span>
+<sc-if value="{{p.placed}}" hint-placeholder-val="{{true}}">
+<button type="button" aria-haspopup="dialog" aria-label="Zone at {{p.name}}: {{p.zoneName}}. Change" onClick="{{p.pick}}" style="min-height: 48px; display: flex; align-items: center; padding: 0; border: 0; background: transparent; cursor: pointer">
+<span style="display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 8px 0 12px; box-sizing: border-box; border-radius: 999px; background: {{p.fill}}; border: 1.5px solid {{c.edge}}; color: {{c.ink}}; font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif">{{p.zoneName}}<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round"><path d="M6 9l6 6 6-6"></path></svg></span>
+</button>
+</sc-if>
+<sc-if value="{{p.unplaced}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-haspopup="dialog" onClick="{{p.pick}}" style="min-height: 48px; padding: 0 10px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Choose zone</button>
+</sc-if>
+<sc-if value="{{p.noMap}}" hint-placeholder-val="{{false}}">
+<span style="padding: 0 10px; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">No map yet</span>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="prices-h" style="display: flex; flex-direction: column; gap: 8px">
+<h2 id="prices-h" style="margin: 0; display: flex; align-items: baseline; gap: 8px; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}"><span style="flex: 1">Prices</span><span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">Last trip at each chain</span></h2>
+<sc-if value="{{hasPrices}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; background: {{c.surface}}; border-radius: 14px; box-shadow: {{c.sticker}}">
+<sc-for list="{{prices}}" as="pr" hint-placeholder-count="2">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-top: {{pr.divider}}">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<span style="flex: 1; min-width: 0; font: 600 16px/22px Figtree, 'Segoe UI', system-ui, sans-serif">{{pr.chain}}</span>
+<span style="font: 500 20px/24px 'DM Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: {{c.ink}}">{{pr.price}}</span>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<span style="flex: 1; min-width: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{pr.when}}</span>
+<span style="font: 500 13px/18px 'DM Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: {{c.muted}}">{{pr.unit}}</span>
+</div>
+<span style="align-self: flex-start; display: flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px; box-sizing: border-box; border-radius: 999px; background: {{pr.pillBg}}; border: {{pr.pillBorder}}; color: {{pr.pillFg}}; font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.75; stroke-linecap: round; stroke-linejoin: round"><path d="{{pr.icon}}"></path></svg>{{pr.change}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{noPrices}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; padding: 16px; border-radius: 14px; border: 2px dashed {{c.line}}; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">No prices yet. They show up here once you record one while shopping.</p>
+</sc-if>
+</section>
+
+<sc-if value="{{isEditItem}}" hint-placeholder-val="{{true}}">
+<button type="button" onClick="{{removeItem}}" style="height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid {{c.danger}}; border-radius: 14px; background: transparent; color: {{c.danger}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"></path></svg>Remove from list</button>
+</sc-if>
+</div>
+</main>
+<div style="flex: none; padding: 12px 16px 16px; background: {{c.paper}}; border-top: 1px solid {{c.line}}">
+<button type="button" onClick="{{finish}}" style="width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round"><path d="{{finishIcon}}"></path></svg>{{finishLabel}}</button>
+</div>
+</sc-if>
+
+<sc-if value="{{isStores}}" hint-placeholder-val="{{false}}">
+<main style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column">
+<header style="padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">Magpie</span>
+<h1 style="margin: 0; font: 800 34px/36px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.02em; color: {{c.ink}}">Stores</h1>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{storesCount}}</p>
+</header>
+<div style="display: flex; flex-direction: column; gap: 24px; padding: 0 16px 40px">
+<sc-if value="{{hasStores}}" hint-placeholder-val="{{true}}">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<section style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}">{{g.chain}}</h2>
+<sc-for list="{{g.stores}}" as="st" hint-placeholder-count="1">
+<button type="button" onClick="{{st.open}}" style="display: flex; align-items: center; gap: 12px; min-height: 72px; padding: 12px 12px 12px 16px; border: 0; background: {{c.surface}}; border-radius: 14px; box-shadow: {{c.sticker}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: inherit">
+<span aria-hidden="true" style="width: 48px; height: 48px; flex: none; border-radius: 8px; background: {{st.tileBg}}; border: {{st.tileBorder}}; box-sizing: border-box; color: {{st.tileFg}}; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"></path></svg></span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif">{{st.name}}</span>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{st.meta}}</span>
+</span>
+<span aria-hidden="true" style="flex: none; color: {{c.muted}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M9 6l6 6-6 6"></path></svg></span>
+</button>
+</sc-for>
+</section>
+</sc-for>
+</sc-if>
+<sc-if value="{{noStores}}" hint-placeholder-val="{{false}}">
+<div style="padding: 24px 20px; border-radius: 22px; border: 2px dashed {{c.lineStrong}}; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+<span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 14px; background: {{c.sunken}}; color: {{c.muted}}; display: grid; place-items: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M9.5 20v-5h5v5"></path></svg></span>
+<h2 style="margin: 4px 0 0; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">No stores yet</h2>
+<p style="margin: 0; max-width: 280px; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">Add the stores you shop at. Then draw each one's map.</p>
+</div>
+</sc-if>
+<button type="button" aria-haspopup="dialog" onClick="{{openAdd}}" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round"><path d="M12 5v14M5 12h14"></path></svg>Add a store</button>
+</div>
+</main>
+</sc-if>
+
+<sc-if value="{{isStore}}" hint-placeholder-val="{{false}}">
+<main style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column">
+<header style="padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 4px">
+<button type="button" onClick="{{goStores}}" style="align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 48px; margin-left: -8px; padding: 0 10px 0 4px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M15 6l-6 6 6 6"></path></svg>Stores</button>
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.sheenInk}}">Store</span>
+<h1 style="margin: 0; font: 800 34px/36px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.02em; color: {{c.ink}}">{{store.name}}</h1>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">Chain: {{store.chain}} · {{storeMeta}}</p>
+</header>
+
+<sc-if value="{{storeHasMap}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 24px; padding: 0 16px 40px">
+<div role="img" aria-label="Map of {{store.name}} with {{zoneCount}} zones" style="position: relative; height: 330px; border-radius: 22px; background: {{c.sunken}}; overflow: hidden">
+<div style="position: absolute; left: 50%; top: 12px; width: 197px; margin-left: -98.5px">
+<sc-for list="{{mini}}" as="z" hint-placeholder-count="6">
+<div style="position: absolute; left: {{z.left}}px; top: {{z.top}}px; width: {{z.w}}px; height: {{z.h}}px; box-sizing: border-box; padding: 4px 5px; border-radius: 6px; background: {{z.fill}}; border: 1.5px solid {{c.edge}}; overflow: hidden; font: 700 10px/12px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: 0.04em; text-transform: uppercase; color: {{c.ink}}">{{z.label}}</div>
+</sc-for>
+<span style="position: absolute; left: {{door.left}}px; top: {{door.top}}px; padding: 1px 7px; border-radius: 999px; background: {{c.ink}}; color: {{c.paper}}; font: 700 10px/14px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em">IN</span>
+</div>
+</div>
+<section aria-label="Zones" style="display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; display: flex; align-items: baseline; gap: 8px; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}"><span style="flex: 1">Zones</span><span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{zoneCount}}</span></h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{mini}}" as="ch" hint-placeholder-count="6">
+<span style="display: flex; align-items: center; min-height: 32px; padding: 0 12px; box-sizing: border-box; border-radius: 999px; background: {{ch.fill}}; border: 1.5px solid {{c.edge}}; font: 700 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.ink}}">{{ch.name}}</span>
+</sc-for>
+</div>
+</section>
+<button type="button" style="height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.surface}}; color: {{c.ink}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"></path></svg>Edit map</button>
+</div>
+</sc-if>
+
+<sc-if value="{{storeNoMap}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 16px; padding: 0 16px 40px">
+<div style="padding: 24px 20px; border-radius: 22px; border: 2px dashed {{c.lineStrong}}; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+<span aria-hidden="true" style="width: 56px; height: 56px; border-radius: 14px; background: {{c.sunken}}; color: {{c.muted}}; display: grid; place-items: center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"></path></svg></span>
+<h2 style="margin: 4px 0 0; font: 700 19px/24px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; color: {{c.ink}}">No map yet</h2>
+<p style="margin: 0; max-width: 280px; font: 400 16px/24px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">Draw a rough map once. Then the list lays out here in walking order.</p>
+</div>
+<button type="button" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"></path></svg>Draw the map</button>
+</div>
+</sc-if>
+</main>
+</sc-if>
+
+<sc-if value="{{showNav}}" hint-placeholder-val="{{false}}">
+<nav aria-label="Main" style="flex: none; background: {{c.surface}}; border-top: 1px solid {{c.line}}; padding: 6px 8px 22px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; min-height: 56px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button type="button" aria-current="{{t.current}}" onClick="{{t.go}}" style="display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 48px; padding: 0; border: 0; border-radius: 14px; background: transparent; cursor: pointer">
+<span style="width: 56px; height: 30px; border-radius: 999px; background: {{t.bg}}; color: {{t.fg}}; display: grid; place-items: center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="{{t.icon}}"></path></svg></span>
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.02em; color: {{t.label}}">{{t.name}}</span>
+</button>
+</sc-for>
+</div>
+</nav>
+</sc-if>
+
+<sc-if value="{{hasToast}}" hint-placeholder-val="{{false}}">
+<div role="status" style="position: absolute; left: 16px; right: 16px; bottom: 104px; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 14px; background: {{c.surface}}; box-shadow: {{c.float}}; color: {{c.ink}}">
+<span aria-hidden="true" style="flex: none; color: {{c.sheenInk}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display: block; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+<span style="flex: 1; font: 500 14px/19px Figtree, 'Segoe UI', system-ui, sans-serif">{{toast}}</span>
+<button type="button" onClick="{{dismissToast}}" style="flex: none; height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">OK</button>
+</div>
+</sc-if>
+
+<sc-if value="{{hasSheet}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end">
+<button type="button" aria-label="Close" onClick="{{closeSheet}}" style="flex: 1; border: 0; padding: 0; background: {{c.scrim}}; cursor: pointer"></button>
+<div role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="flex: none; display: flex; flex-direction: column; gap: 16px; padding: 10px 16px 28px; border-radius: 22px 22px 0 0; background: {{c.surface}}; box-shadow: {{c.float}}">
+<span aria-hidden="true" style="align-self: center; width: 40px; height: 4px; border-radius: 999px; background: {{c.line}}"></span>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 id="sheet-title" style="margin: 0; font: 700 24px/28px 'Bricolage Grotesque', 'Avenir Next', system-ui, sans-serif; letter-spacing: -0.01em; color: {{c.ink}}">{{sheetTitle}}</h2>
+<p style="margin: 0; font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">{{sheetCaption}}</p>
+</div>
+
+<sc-if value="{{isZoneSheet}}" hint-placeholder-val="{{false}}">
+<div role="radiogroup" aria-labelledby="sheet-title" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{zoneOpts}}" as="o" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 12px; box-sizing: border-box; border-radius: 14px; background: {{o.fill}}; border: {{o.border}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif">
+<span style="flex: 1; min-width: 0">{{o.name}}</span>
+<sc-if value="{{o.selected}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; flex: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+</button>
+</sc-for>
+</div>
+<button type="button" onClick="{{clearZone}}" style="height: 48px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Not sure yet</button>
+</sc-if>
+
+<sc-if value="{{isPhotoSheet}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<button type="button" onClick="{{takePhoto}}" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.surface}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z"></path></svg>Take a photo</button>
+<button type="button" onClick="{{takePhoto}}" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.surface}}; color: {{c.ink}}; text-align: left; cursor: pointer; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zM4 16l5-5 4 4 2-2 5 5M15.5 9h.01"></path></svg>Choose from photos</button>
+<sc-if value="{{hasPhoto}}" hint-placeholder-val="{{true}}">
+<button type="button" onClick="{{removePhoto}}" style="min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 2px solid {{c.danger}}; border-radius: 14px; background: transparent; color: {{c.danger}}; text-align: left; cursor: pointer; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style="display: block; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"></path></svg>Remove photo</button>
+</sc-if>
+</div>
+<button type="button" onClick="{{closeSheet}}" style="height: 48px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Cancel</button>
+</sc-if>
+
+<sc-if value="{{isAddSheet}}" hint-placeholder-val="{{false}}">
+<label style="display: flex; flex-direction: column; gap: 6px">
+<span style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}">Store name</span>
+<input type="text" value="{{newName}}" onChange="{{onNewName}}" placeholder="Costco Eastgate" style="height: 52px; box-sizing: border-box; padding: 0 14px; border: 2px solid {{c.lineStrong}}; border-radius: 14px; background: {{c.sunken}}; color: {{c.ink}}; font: 600 18px/24px Figtree, 'Segoe UI', system-ui, sans-serif">
+</label>
+<div role="radiogroup" aria-labelledby="chain-h" style="display: flex; flex-direction: column; gap: 8px">
+<span id="chain-h" style="font: 700 12px/16px Figtree, 'Segoe UI', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; color: {{c.muted}}">Chain</span>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{chainOpts}}" as="o" hint-placeholder-count="4">
+<button type="button" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="min-height: 44px; padding: 0 16px; box-sizing: border-box; border-radius: 999px; background: {{o.bg}}; border: 2px solid {{o.border}}; color: {{o.fg}}; cursor: pointer; font: 700 14px/18px Figtree, 'Segoe UI', system-ui, sans-serif">{{o.name}}</button>
+</sc-for>
+</div>
+<span style="font: 500 13px/18px Figtree, 'Segoe UI', system-ui, sans-serif; color: {{c.muted}}">Prices compare across stores of the same chain.</span>
+</div>
+<button type="button" onClick="{{addStore}}" style="height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: {{c.sheen}}; color: {{c.onSheen}}; box-shadow: {{c.press}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Add store</button>
+<button type="button" onClick="{{closeSheet}}" style="height: 48px; border: 0; border-radius: 14px; background: transparent; color: {{c.sheenInk}}; font: 700 16px/20px Figtree, 'Segoe UI', system-ui, sans-serif; cursor: pointer">Cancel</button>
+</sc-if>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scenario":{"editor":"enum","options":["signin","signinBusy","signinDenied","list","itemNew","itemEdit","itemZone","itemPhoto","stores","storesAdd","storesEmpty","store","storeNoMap"],"default":"signin"},"dark":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+data() {
+if (this._d) return this._d;
+const light = {
+paper: "#f3f5fa", surface: "#ffffff", sunken: "#e6eaf3", ink: "#121521", muted: "#505870",
+line: "#d9dee9", lineStrong: "#757e97", sheen: "#00a88f", onSheen: "#03211c", sheenInk: "#00705f",
+trinket: "#ffc21a", onTrinket: "#2b1d00", berry: "#d61f69", danger: "#c81e1e", edge: "rgba(18, 21, 33, 0.35)",
+scrim: "rgba(14, 17, 26, 0.5)", sticker: "0 3px 0 rgba(18, 21, 33, 0.14)", press: "0 4px 0 #03211c",
+float: "0 10px 28px rgba(18, 21, 33, 0.18)",
+produce: "#c6f1dc", dairy: "#cde2ff", bakery: "#ffe6a3", meat: "#ffd0dd", frozen: "#e0d6ff", pantry: "#ffd9bd"
+};
+const dark = {
+paper: "#0e111a", surface: "#191e2b", sunken: "#080a10", ink: "#f1f3f9", muted: "#a3abc2",
+line: "#2a3144", lineStrong: "#687190", sheen: "#2ee6c5", onSheen: "#03211c", sheenInk: "#5cf0d4",
+trinket: "#ffcf4d", onTrinket: "#2b1d00", berry: "#ff6fa6", danger: "#ff7a70", edge: "rgba(241, 243, 249, 0.35)",
+scrim: "rgba(0, 0, 0, 0.62)", sticker: "0 3px 0 rgba(0, 0, 0, 0.55)", press: "0 4px 0 #04463b",
+float: "0 10px 28px rgba(0, 0, 0, 0.6)",
+produce: "#1c4a3a", dairy: "#1d3556", bakery: "#4a3b0f", meat: "#4f2233", frozen: "#352a5e", pantry: "#4f2f1a"
+};
+const maps = {
+s1: {
+door: { x: 296, y: 540 },
+zones: [
+{ id: "dairy", kind: "dairy", name: "Dairy", x: 16, y: 24, w: 170, h: 70 },
+{ id: "bakery", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 110 },
+{ id: "meat", kind: "meat", name: "Meat & fish", x: 16, y: 104, w: 80, h: 220 },
+{ id: "frozen", kind: "frozen", name: "Frozen", x: 106, y: 104, w: 80, h: 220 },
+{ id: "produce", kind: "produce", name: "Produce", x: 16, y: 336, w: 170, h: 120 },
+{ id: "snacks", kind: "pantry", name: "Snacks & drinks", x: 200, y: 146, w: 142, h: 220 }
+]
+},
+s3: {
+door: { x: 30, y: 540 },
+zones: [
+{ id: "produce", kind: "produce", name: "Produce", x: 16, y: 24, w: 170, h: 110 },
+{ id: "bakery", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 80 },
+{ id: "dairy", kind: "dairy", name: "Dairy", x: 200, y: 116, w: 142, h: 200 },
+{ id: "meat", kind: "meat", name: "Meat & fish", x: 16, y: 146, w: 80, h: 210 },
+{ id: "frozen", kind: "frozen", name: "Frozen", x: 106, y: 146, w: 80, h: 210 }
+]
+}
+};
+const stores = [
+{ id: "s1", name: "Costco Eastgate", chain: "Costco" },
+{ id: "s2", name: "Costco Downtown", chain: "Costco" },
+{ id: "s3", name: "Walmart Supercenter", chain: "Walmart" },
+{ id: "s4", name: "Trader Joe's", chain: "Trader Joe's" }
+];
+const rows = [
+{ name: "Greek yogurt, plain", meta: "1 kg tub · Not the multipack", photo: true },
+{ name: "Frozen blueberries", meta: "2 × 1.5 kg · Kirkland bag" },
+{ name: "Bananas", meta: "1 bunch" },
+{ name: "Eggs", meta: "2 dozen · Large, free range" }
+];
+const yogurt = { name: "Greek yogurt, plain", qty: "1 kg tub", note: "Not the multipack", hasPhoto: true, places: { s1: "dairy", s3: null } };
+const blank = { name: "", qty: "", note: "", hasPhoto: false, places: { s1: null, s3: null } };
+const scenarios = {
+signin: { screen: "signin" },
+signinBusy: { screen: "signin", busy: true },
+signinDenied: { screen: "signin", denied: true },
+list: { screen: "list" },
+itemNew: { screen: "item", isNew: true },
+itemEdit: { screen: "item" },
+itemZone: { screen: "item", sheet: "zone", zoneStore: "s3" },
+itemPhoto: { screen: "item", sheet: "photo" },
+stores: { screen: "stores" },
+storesAdd: { screen: "stores", sheet: "add", newName: "Costco Kirkland", newChain: "Costco" },
+storesEmpty: { screen: "stores", empty: true },
+store: { screen: "store", storeId: "s1" },
+storeNoMap: { screen: "store", storeId: "s4" }
+};
+const icons = {
+list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+map: "M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20",
+more: "M4 7h16M4 12h16M4 17h16",
+down: "M12 5v14M6 13l6 6 6-6",
+up: "M12 19V5M6 11l6-6 6 6",
+same: "M5 12h14",
+plus: "M12 5v14M5 12h14",
+check: "M5 12.5l4.5 4.5L19 7.5"
+};
+this._d = { light, dark, maps, stores, rows, yogurt, blank, scenarios, icons };
+return this._d;
+}
+cur() {
+const D = this.data();
+const scn = this.props.scenario ?? "signin";
+const s = this.state;
+if (s && s.scn === scn) return s;
+const b = D.scenarios[scn] || D.scenarios.signin;
+const it = b.isNew ? D.blank : D.yogurt;
+return {
+scn: scn, screen: b.screen, sheet: b.sheet || null, busy: !!b.busy, denied: !!b.denied,
+isNew: !!b.isNew, name: it.name, qty: it.qty, note: it.note, hasPhoto: it.hasPhoto,
+places: Object.assign({}, it.places), zoneStore: b.zoneStore || null,
+stores: b.empty ? [] : D.stores.slice(), storeId: b.storeId || "s1",
+newName: b.newName || "", newChain: b.newChain || "Costco", toast: null
+};
+}
+set(patch) {
+this.setState(Object.assign({}, this.cur(), patch));
+}
+componentWillUnmount() {
+clearTimeout(this._t);
+}
+openItem(isNew) {
+const D = this.data();
+const it = isNew ? D.blank : D.yogurt;
+this.set({ screen: "item", sheet: null, isNew: isNew, name: it.name, qty: it.qty, note: it.note, hasPhoto: it.hasPhoto, places: Object.assign({}, it.places), toast: null });
+}
+renderVals() {
+const D = this.data();
+const c = this.props.dark ? D.dark : D.light;
+const s = this.cur();
+const scr = s.screen;
+const I = D.icons;
+const goList = () => this.set({ screen: "list", sheet: null });
+const goStores = () => this.set({ screen: "stores", sheet: null, toast: null });
+
+const tabDefs = [
+{ name: "List", icon: I.list, on: scr === "list" || scr === "item", go: goList },
+{ name: "Shop", icon: I.map, on: false, go: () => {} },
+{ name: "More", icon: I.more, on: scr === "stores" || scr === "store", go: goStores }
+];
+const tabs = tabDefs.map((t) => ({
+name: t.name, icon: t.icon, go: t.go, current: t.on ? "page" : "false",
+bg: t.on ? c.sheen : "transparent", fg: t.on ? c.onSheen : c.muted, label: t.on ? c.ink : c.muted
+}));
+
+const rows = D.rows.map((r) => ({ name: r.name, meta: r.meta, thumb: r.photo ? c.dairy : c.sunken, open: () => this.openItem(false) }));
+
+const places = s.stores.map((st, i) => {
+const m = D.maps[st.id];
+const zid = s.places[st.id];
+const z = m && zid ? m.zones.find((q) => q.id === zid) : null;
+return {
+name: st.name, chain: st.chain, divider: i === 0 ? "0" : "1px solid " + c.line,
+placed: !!z, unplaced: !!m && !z, noMap: !m,
+zoneName: z ? z.name : "", fill: z ? c[z.kind] : "transparent",
+pick: () => this.set({ sheet: "zone", zoneStore: st.id })
+};
+});
+
+const priceDefs = [
+{ chain: "Costco", price: "$6.49", unit: "1 kg · $6.49/kg", when: "Sep 27 · Costco Eastgate", dir: "down", change: "$0.50 less than last trip" },
+{ chain: "Walmart", price: "$4.97", unit: "750 g · $6.63/kg", when: "Sep 12 · Walmart Supercenter", dir: "same", change: "Same as last trip" }
+];
+const prices = priceDefs.map((p, i) => ({
+chain: p.chain, price: p.price, unit: p.unit, when: p.when, change: p.change,
+divider: i === 0 ? "0" : "1px solid " + c.line,
+icon: p.dir === "down" ? I.down : p.dir === "up" ? I.up : I.same,
+pillBg: p.dir === "down" ? c.trinket : "transparent",
+pillFg: p.dir === "down" ? c.onTrinket : p.dir === "up" ? c.danger : c.muted,
+pillBorder: p.dir === "down" ? "2px solid " + c.ink : p.dir === "up" ? "2px solid " + c.danger : "2px solid " + c.line
+}));
+
+const zm = s.zoneStore ? D.maps[s.zoneStore] : null;
+const zStore = s.stores.find((q) => q.id === s.zoneStore);
+const zoneOpts = zm ? zm.zones.map((z) => {
+const sel = s.places[s.zoneStore] === z.id;
+return {
+name: z.name, fill: c[z.kind], selected: sel, checked: sel ? "true" : "false",
+border: sel ? "3px solid " + c.ink : "1.5px solid " + c.edge,
+pick: () => this.set({ sheet: null, places: Object.assign({}, s.places, { [s.zoneStore]: z.id }) })
+};
+}) : [];
+
+const chains = [];
+s.stores.forEach((st) => { if (chains.indexOf(st.chain) < 0) chains.push(st.chain); });
+const groups = chains.map((ch) => ({
+chain: ch,
+stores: s.stores.filter((st) => st.chain === ch).map((st) => {
+const m = D.maps[st.id];
+return {
+name: st.name,
+meta: m ? "Map · " + m.zones.length + " zones" : "No map yet",
+tileBg: m ? c.produce : "transparent", tileFg: m ? c.ink : c.muted,
+tileBorder: m ? "1.5px solid " + c.edge : "2px dashed " + c.lineStrong,
+open: () => this.set({ screen: "store", storeId: st.id, sheet: null })
+};
+})
+}));
+const allChains = ["Costco", "Walmart", "Trader Joe's", "New chain"];
+const chainOpts = allChains.map((ch) => {
+const on = s.newChain === ch;
+return {
+name: ch === "New chain" ? "+ New chain" : ch, checked: on ? "true" : "false",
+bg: on ? c.ink : "transparent", fg: on ? c.paper : c.ink, border: on ? c.ink : c.lineStrong,
+pick: () => this.set({ newChain: ch })
+};
+});
+
+const store = s.stores.find((q) => q.id === s.storeId) || { id: "new", name: "New store", chain: "Costco" };
+const sm = D.maps[store.id];
+const k = 0.55;
+const mini = sm ? sm.zones.map((z) => ({
+left: Math.round(z.x * k), top: Math.round(z.y * k), w: Math.round(z.w * k), h: Math.round(z.h * k),
+fill: c[z.kind], label: z.name, name: z.name
+})) : [];
+const door = sm ? { left: Math.round(sm.door.x * k) - 4, top: Math.round(sm.door.y * k) - 4 } : { left: 0, top: 0 };
+
+let sheetTitle = "";
+let sheetCaption = "";
+if (s.sheet === "zone") { sheetTitle = "Where at " + (zStore ? zStore.name : "this store") + "?"; sheetCaption = "Pick the zone on that store's map."; }
+if (s.sheet === "photo") { sheetTitle = "Photo"; sheetCaption = "Show the shopper exactly which one to grab."; }
+if (s.sheet === "add") { sheetTitle = "Add a store"; sheetCaption = "You can draw its map next."; }
+
+const nStores = s.stores.length;
+return {
+c: c,
+isSignin: scr === "signin", isList: scr === "list", isItem: scr === "item", isStores: scr === "stores", isStore: scr === "store",
+showNav: scr !== "signin",
+busy: s.busy, denied: s.denied, idle: !s.busy,
+signInLabel: s.denied ? "Try another account" : "Sign in with Google",
+signIn: () => {
+if (s.busy) return;
+this.set({ busy: true, denied: false });
+clearTimeout(this._t);
+this._t = setTimeout(() => this.set({ busy: false, screen: "list" }), 1100);
+},
+listCount: "9 items to get", rows: rows,
+newItem: () => this.openItem(true),
+goList: goList, goStores: goStores,
+itemEyebrow: s.isNew ? "New item" : "Item",
+isEditItem: !s.isNew,
+hasPhoto: s.hasPhoto, noPhoto: !s.hasPhoto,
+name: s.name, qty: s.qty, note: s.note,
+onName: (e) => this.set({ name: e.target.value }),
+onQty: (e) => this.set({ qty: e.target.value }),
+onNote: (e) => this.set({ note: e.target.value }),
+places: places,
+hasPrices: !s.isNew, noPrices: s.isNew, prices: prices,
+finishLabel: s.isNew ? "Add to list" : "Done",
+finishIcon: s.isNew ? I.plus : I.check,
+finish: () => this.set({ screen: "list", sheet: null, toast: s.isNew ? (s.name ? s.name + " added to the list." : "Added to the list.") : null }),
+removeItem: () => this.set({ screen: "list", sheet: null, toast: "Removed " + s.name + " from the list." }),
+openPhoto: () => this.set({ sheet: "photo" }),
+takePhoto: () => this.set({ sheet: null, hasPhoto: true }),
+removePhoto: () => this.set({ sheet: null, hasPhoto: false }),
+hasSheet: !!s.sheet, isZoneSheet: s.sheet === "zone", isPhotoSheet: s.sheet === "photo", isAddSheet: s.sheet === "add",
+sheetTitle: sheetTitle, sheetCaption: sheetCaption,
+closeSheet: () => this.set({ sheet: null }),
+zoneOpts: zoneOpts,
+clearZone: () => this.set({ sheet: null, places: Object.assign({}, s.places, { [s.zoneStore]: null }) }),
+storesCount: nStores ? nStores + " stores · " + chains.length + " chains" : "Places you shop",
+hasStores: nStores > 0, noStores: nStores === 0, groups: groups,
+openAdd: () => this.set({ sheet: "add", newName: "", newChain: "Costco" }),
+newName: s.newName, onNewName: (e) => this.set({ newName: e.target.value }),
+chainOpts: chainOpts,
+addStore: () => {
+const id = "n" + (s.stores.length + 1);
+const chain = s.newChain === "New chain" ? "New chain" : s.newChain;
+const st = { id: id, name: s.newName || "New store", chain: chain };
+this.set({ stores: s.stores.concat([st]), storeId: id, screen: "store", sheet: null });
+},
+store: store, storeHasMap: !!sm, storeNoMap: !sm,
+storeMeta: sm ? sm.zones.length + " zones" : "no map yet",
+zoneCount: sm ? sm.zones.length + " zones" : "",
+mini: mini, door: door,
+hasToast: !!s.toast && scr === "list", toast: s.toast || "",
+dismissToast: () => this.set({ toast: null })
+};
+}
+}
+</script>
+</body>
+</html>

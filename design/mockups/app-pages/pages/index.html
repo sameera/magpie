@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie sign-in, item and stores mockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root { --paper: #f3f5fa; --surface: #ffffff; --ink: #121521; --muted: #505870; --line: #d9dee9; --sheen-ink: #00705f; }
+@media (prefers-color-scheme: dark) {
+    :root { --paper: #0e111a; --surface: #191e2b; --ink: #f1f3f9; --muted: #a3abc2; --line: #2a3144; --sheen-ink: #5cf0d4; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: Figtree, "Segoe UI", system-ui, sans-serif; }
+.wrap { max-width: 1760px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { margin: 0 0 8px; font: 800 34px/40px "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; letter-spacing: -0.02em; }
+h2 { margin: 48px 0 8px; font: 700 28px/32px "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif; }
+p { margin: 0 0 16px; max-width: 720px; font-size: 16px; line-height: 24px; color: var(--muted); }
+a { color: var(--sheen-ink); font-weight: 700; }
+.toc { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 8px; }
+.grid { display: flex; flex-wrap: wrap; gap: 32px; }
+figure { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+figcaption { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+iframe { width: 390px; max-width: calc(100vw - 32px); height: 844px; border: 1px solid var(--line); border-radius: 28px; background: var(--surface); }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Magpie · Sign-in, Item, Stores</h1>
+<p>Mockups for three pages of the app layout epic. Each frame below is live. The <a href="prototype.html">interactive prototype</a> starts at sign-in and taps through to the list, an item, and the stores. Store, item and price values are sample data.</p>
+<div class="toc"><a href="#sign-in">#3 Sign-in</a><a href="#item">#7 Item</a><a href="#stores">#6 Stores and Store</a></div>
+
+<section id="sign-in">
+<h2>Sign-in</h2>
+<p>For <a href="https://github.com/sameera/magpie/issues/3">#3 Sign-in page</a>. The only page without the main navigation. Sign in with Google; a finished sign-in opens the List page. An account outside the household is turned away with a way to try another account.</p>
+<div class="grid">
+<figure><figcaption>1 · Sign in <a href="prototype.html?scenario=signin">Open</a></figcaption><iframe src="prototype.html?scenario=signin" title="1 · Sign in" loading="lazy"></iframe></figure>
+<figure><figcaption>2 · Signing in <a href="prototype.html?scenario=signinBusy">Open</a></figcaption><iframe src="prototype.html?scenario=signinBusy" title="2 · Signing in" loading="lazy"></iframe></figure>
+<figure><figcaption>3 · Not in the household <a href="prototype.html?scenario=signinDenied">Open</a></figcaption><iframe src="prototype.html?scenario=signinDenied" title="3 · Not in the household" loading="lazy"></iframe></figure>
+<figure><figcaption>Sign in · dark <a href="prototype.html?scenario=signin&amp;theme=dark">Open</a></figcaption><iframe src="prototype.html?scenario=signin&amp;theme=dark" title="Sign in · dark" loading="lazy"></iframe></figure>
+</div>
+</section>
+
+<section id="item">
+<h2>Item</h2>
+<p>For <a href="https://github.com/sameera/magpie/issues/7">#7 Item page</a>. Name, quantity, note, photo, and the zone it sits in at each store. Prices show the last price at each chain and the change since the trip before. Add to list (new item) or Done (existing item) returns to the List page.</p>
+<div class="grid">
+<figure><figcaption>1 · New item <a href="prototype.html?scenario=itemNew">Open</a></figcaption><iframe src="prototype.html?scenario=itemNew" title="1 · New item" loading="lazy"></iframe></figure>
+<figure><figcaption>2 · Item with prices <a href="prototype.html?scenario=itemEdit">Open</a></figcaption><iframe src="prototype.html?scenario=itemEdit" title="2 · Item with prices" loading="lazy"></iframe></figure>
+<figure><figcaption>3 · Pick a zone <a href="prototype.html?scenario=itemZone">Open</a></figcaption><iframe src="prototype.html?scenario=itemZone" title="3 · Pick a zone" loading="lazy"></iframe></figure>
+<figure><figcaption>4 · Photo options <a href="prototype.html?scenario=itemPhoto">Open</a></figcaption><iframe src="prototype.html?scenario=itemPhoto" title="4 · Photo options" loading="lazy"></iframe></figure>
+<figure><figcaption>Item · dark <a href="prototype.html?scenario=itemEdit&amp;theme=dark">Open</a></figcaption><iframe src="prototype.html?scenario=itemEdit&amp;theme=dark" title="Item · dark" loading="lazy"></iframe></figure>
+</div>
+</section>
+
+<section id="stores">
+<h2>Stores and Store</h2>
+<p>For <a href="https://github.com/sameera/magpie/issues/6">#6 Stores and Store pages</a>. Opened from the More menu. Stores are grouped by chain, because prices compare per chain. A Store page shows the map and its zones, with Edit map (or Draw the map) opening the <a href="../../map-editor/pages/">Map editor</a>.</p>
+<div class="grid">
+<figure><figcaption>1 · Stores <a href="prototype.html?scenario=stores">Open</a></figcaption><iframe src="prototype.html?scenario=stores" title="1 · Stores" loading="lazy"></iframe></figure>
+<figure><figcaption>2 · Add a store <a href="prototype.html?scenario=storesAdd">Open</a></figcaption><iframe src="prototype.html?scenario=storesAdd" title="2 · Add a store" loading="lazy"></iframe></figure>
+<figure><figcaption>3 · Store with a map <a href="prototype.html?scenario=store">Open</a></figcaption><iframe src="prototype.html?scenario=store" title="3 · Store with a map" loading="lazy"></iframe></figure>
+<figure><figcaption>4 · Store, no map yet <a href="prototype.html?scenario=storeNoMap">Open</a></figcaption><iframe src="prototype.html?scenario=storeNoMap" title="4 · Store, no map yet" loading="lazy"></iframe></figure>
+<figure><figcaption>5 · No stores yet <a href="prototype.html?scenario=storesEmpty">Open</a></figcaption><iframe src="prototype.html?scenario=storesEmpty" title="5 · No stores yet" loading="lazy"></iframe></figure>
+<figure><figcaption>Stores · dark <a href="prototype.html?scenario=stores&amp;theme=dark">Open</a></figcaption><iframe src="prototype.html?scenario=stores&amp;theme=dark" title="Stores · dark" loading="lazy"></iframe></figure>
+</div>
+</section>
+</div>
+</body>
+</html>

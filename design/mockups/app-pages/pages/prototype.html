@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie sign-in, item and stores prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=DM+Mono:wght@500&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root {
+    --paper: #f3f5fa; --surface: #ffffff; --sunken: #e6eaf3; --ink: #121521; --muted: #505870;
+    --line: #d9dee9; --line-strong: #757e97; --sheen: #00a88f; --on-sheen: #03211c; --sheen-ink: #00705f;
+    --trinket: #ffc21a; --on-trinket: #2b1d00; --danger: #c81e1e; --edge: rgba(18, 21, 33, 0.35); --scrim: rgba(14, 17, 26, 0.5);
+    --sticker: 0 3px 0 rgba(18, 21, 33, 0.14); --press: 0 4px 0 #03211c; --float: 0 10px 28px rgba(18, 21, 33, 0.18);
+    --z-produce: #c6f1dc; --z-dairy: #cde2ff; --z-bakery: #ffe6a3; --z-meat: #ffd0dd; --z-frozen: #e0d6ff; --z-pantry: #ffd9bd;
+    --f-body: Figtree, "Segoe UI", system-ui, sans-serif;
+    --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --f-mono: "DM Mono", ui-monospace, monospace;
+}
+:root[data-theme="dark"] {
+    --paper: #0e111a; --surface: #191e2b; --sunken: #080a10; --ink: #f1f3f9; --muted: #a3abc2;
+    --line: #2a3144; --line-strong: #687190; --sheen: #2ee6c5; --sheen-ink: #5cf0d4;
+    --trinket: #ffcf4d; --danger: #ff7a70; --edge: rgba(241, 243, 249, 0.35); --scrim: rgba(0, 0, 0, 0.62);
+    --sticker: 0 3px 0 rgba(0, 0, 0, 0.55); --press: 0 4px 0 #04463b; --float: 0 10px 28px rgba(0, 0, 0, 0.6);
+    --z-produce: #1c4a3a; --z-dairy: #1d3556; --z-bakery: #4a3b0f; --z-meat: #4f2233; --z-frozen: #352a5e; --z-pantry: #4f2f1a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); display: flex; justify-content: center; }
+button, a, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--sheen-ink); outline-offset: 2px; }
+svg.i { display: block; flex: none; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.25; }
+.app { position: relative; width: 100%; max-width: 430px; height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: var(--paper); }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.eyebrow { font: 700 12px/16px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sheen-ink); }
+.label { font: 700 12px/16px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.display { margin: 0; font: 800 34px/36px var(--f-display); letter-spacing: -0.02em; }
+.title { margin: 0; font: 700 24px/28px var(--f-display); letter-spacing: -0.01em; }
+.heading { margin: 0; font: 700 19px/24px var(--f-display); }
+.item { font: 600 18px/24px var(--f-body); }
+.caption { margin: 0; font: 500 13px/18px var(--f-body); color: var(--muted); }
+.body { margin: 0; font: 400 16px/24px var(--f-body); color: var(--muted); }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.head { padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.head.sub { padding-top: 8px; }
+.back { align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 48px; margin-left: -8px; padding: 0 10px 0 4px; border: 0; border-radius: 14px; background: transparent; color: var(--sheen-ink); font: 700 16px/20px var(--f-body); }
+.ghost { min-height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: var(--sheen-ink); font: 700 16px/20px var(--f-body); }
+.secondary { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); font: 700 16px/20px var(--f-body); }
+.danger { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 14px; border: 2px solid var(--danger); border-radius: 14px; background: transparent; color: var(--danger); font: 700 16px/20px var(--f-body); }
+.primary { width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: var(--sheen); color: var(--on-sheen); box-shadow: var(--press); font: 700 16px/20px var(--f-body); transition: transform 90ms, box-shadow 90ms; }
+.primary:active, .primary[aria-busy="true"] { transform: translateY(4px); box-shadow: none; }
+.body-pad { display: flex; flex-direction: column; gap: 24px; padding: 0 16px 40px; }
+.card { display: flex; flex-direction: column; background: var(--surface); border-radius: 14px; box-shadow: var(--sticker); }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 12px 12px 16px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); text-align: left; }
+.thumb { width: 48px; height: 48px; flex: none; border-radius: 8px; display: grid; place-items: center; color: var(--muted); background: var(--sunken); }
+.empty-card { padding: 24px 20px; border-radius: 22px; border: 2px dashed var(--line-strong); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.tile { width: 56px; height: 56px; border-radius: 14px; background: var(--sunken); color: var(--muted); display: grid; place-items: center; flex: none; }
+.chip { display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--edge); font: 700 13px/18px var(--f-body); color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input, .field textarea { width: 100%; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--sunken); color: var(--ink); font: 400 16px/24px var(--f-body); }
+.field input { height: 48px; }
+.field input.big { height: 52px; font: 600 18px/24px var(--f-body); }
+.field textarea { padding: 12px 14px; resize: none; }
+.field ::placeholder { color: var(--muted); opacity: 1; }
+nav.main { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 8px calc(22px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+nav.main button { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 56px; padding: 0; border: 0; border-radius: 14px; background: transparent; color: var(--muted); }
+nav.main .pill { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+nav.main .name { font: 700 12px/16px var(--f-body); letter-spacing: 0.02em; }
+nav.main [aria-current="page"] .pill { background: var(--sheen); color: var(--on-sheen); }
+nav.main [aria-current="page"] .name { color: var(--ink); }
+.fab { position: absolute; right: 16px; bottom: 100px; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 999px; background: var(--sheen); color: var(--on-sheen); box-shadow: var(--press); display: grid; place-items: center; }
+.actionbar { flex: none; padding: 12px 16px 16px; background: var(--paper); border-top: 1px solid var(--line); }
+.toast { position: absolute; left: 16px; right: 16px; bottom: 104px; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--surface); box-shadow: var(--float); }
+.sheet-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+.scrim { flex: 1; border: 0; padding: 0; background: var(--scrim); }
+.sheet { flex: none; display: flex; flex-direction: column; gap: 16px; padding: 10px 16px 28px; border-radius: 22px 22px 0 0; background: var(--surface); box-shadow: var(--float); }
+.grabber { align-self: center; width: 40px; height: 4px; border-radius: 999px; background: var(--line); }
+.opt { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); text-align: left; font: 700 16px/20px var(--f-body); }
+.opt.bad { border-color: var(--danger); color: var(--danger); background: transparent; }
+.zgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.zopt { min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 14px; border: 1.5px solid var(--edge); text-align: left; font: 700 16px/20px var(--f-body); color: var(--ink); }
+.zopt[aria-checked="true"] { border: 3px solid var(--ink); }
+.zopt span { flex: 1; }
+.cchip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line-strong); background: transparent; font: 700 14px/18px var(--f-body); }
+.cchip[aria-checked="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.mini { position: relative; height: 330px; border-radius: 22px; background: var(--sunken); overflow: hidden; }
+.mini .inner { position: absolute; left: 50%; top: 12px; width: 197px; margin-left: -98.5px; }
+.mini .z { position: absolute; padding: 4px 5px; border-radius: 6px; border: 1.5px solid var(--edge); overflow: hidden; font: 700 10px/12px var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.door { position: absolute; padding: 1px 7px; border-radius: 999px; background: var(--ink); color: var(--paper); font: 700 10px/14px var(--f-body); letter-spacing: 0.06em; }
+.signin { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 24px calc(40px + env(safe-area-inset-bottom)); }
+.signin .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
+.mascot { width: 168px; height: 168px; border-radius: 999px; overflow: hidden; background: #f3f5fa; border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); }
+.mascot img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.brand { margin: 12px 0 0; font: 800 48px/48px var(--f-display); letter-spacing: -0.03em; }
+.alert { display: flex; gap: 12px; padding: 16px; margin-bottom: 16px; border-radius: 22px; background: var(--surface); border: 2px solid var(--danger); }
+.alert > svg { color: var(--danger); }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.photo { position: relative; height: 180px; padding: 0; border: 0; border-radius: 22px; background: var(--z-dairy); overflow: hidden; display: grid; place-items: center; width: 100%; }
+.photo .tag { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--sticker); font: 700 13px/18px var(--f-body); }
+.addphoto { min-height: 96px; display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px dashed var(--line-strong); border-radius: 22px; background: transparent; text-align: left; width: 100%; }
+.place { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 8px 8px 16px; }
+.place + .place, .price + .price { border-top: 1px solid var(--line); }
+.zbtn { min-height: 48px; display: flex; align-items: center; padding: 0; border: 0; background: transparent; }
+.price { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
+.price .amt { font: 500 20px/24px var(--f-mono); font-variant-numeric: tabular-nums; }
+.price .unit { font: 500 13px/18px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.pill { align-self: flex-start; display: flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px; border-radius: 999px; font: 700 13px/18px var(--f-body); }
+.pill.down { background: var(--trinket); color: var(--on-trinket); border: 2px solid var(--ink); }
+.pill.same { border: 2px solid var(--line); color: var(--muted); }
+.pill.up { border: 2px solid var(--danger); color: var(--danger); }
+.noprice { margin: 0; padding: 16px; border-radius: 14px; border: 2px dashed var(--line); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const P = {
+    list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+    map: "M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20",
+    more: "M4 7h16M4 12h16M4 17h16",
+    left: "M15 6l-6 6 6 6",
+    right: "M9 6l6 6-6 6",
+    chev: "M6 9l6 6 6-6",
+    plus: "M12 5v14M5 12h14",
+    check: "M5 12.5l4.5 4.5L19 7.5",
+    camera: "M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z",
+    image: "M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zM4 16l5-5 4 4 2-2 5 5M15.5 9h.01",
+    trash: "M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13",
+    edit: "M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4",
+    alert: "M12 4L2.5 20h19L12 4zM12 10v4.5M12 17.5h.01",
+    lock: "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3",
+    signin: "M14 4h5a1 1 0 011 1v14a1 1 0 01-1 1h-5M10 16l4-4-4-4M14 12H4",
+    store: "M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M9.5 20v-5h5v5",
+    down: "M12 5v14M6 13l6 6 6-6",
+    up: "M12 19V5M6 11l6-6 6 6",
+    same: "M5 12h14",
+    spin: "M12 3a9 9 0 109 9"
+};
+const ic = (name, size, sw, cls) => `<svg class="i ${cls || ""}" width="${size || 24}" height="${size || 24}" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:${sw || 2.25}"><path d="${P[name]}"/></svg>`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+const MAPS = {
+    s1: { door: { x: 296, y: 540 }, zones: [
+        { id: "dairy", kind: "dairy", name: "Dairy", x: 16, y: 24, w: 170, h: 70 },
+        { id: "bakery", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 110 },
+        { id: "meat", kind: "meat", name: "Meat & fish", x: 16, y: 104, w: 80, h: 220 },
+        { id: "frozen", kind: "frozen", name: "Frozen", x: 106, y: 104, w: 80, h: 220 },
+        { id: "produce", kind: "produce", name: "Produce", x: 16, y: 336, w: 170, h: 120 },
+        { id: "snacks", kind: "pantry", name: "Snacks & drinks", x: 200, y: 146, w: 142, h: 220 }
+    ] },
+    s3: { door: { x: 30, y: 540 }, zones: [
+        { id: "produce", kind: "produce", name: "Produce", x: 16, y: 24, w: 170, h: 110 },
+        { id: "bakery", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 80 },
+        { id: "dairy", kind: "dairy", name: "Dairy", x: 200, y: 116, w: 142, h: 200 },
+        { id: "meat", kind: "meat", name: "Meat & fish", x: 16, y: 146, w: 80, h: 210 },
+        { id: "frozen", kind: "frozen", name: "Frozen", x: 106, y: 146, w: 80, h: 210 }
+    ] }
+};
+const STORES = [
+    { id: "s1", name: "Costco Eastgate", chain: "Costco" },
+    { id: "s2", name: "Costco Downtown", chain: "Costco" },
+    { id: "s3", name: "Walmart Supercenter", chain: "Walmart" },
+    { id: "s4", name: "Trader Joe's", chain: "Trader Joe's" }
+];
+const ROWS = [
+    { name: "Greek yogurt, plain", meta: "1 kg tub · Not the multipack", photo: true },
+    { name: "Frozen blueberries", meta: "2 × 1.5 kg · Kirkland bag" },
+    { name: "Bananas", meta: "1 bunch" },
+    { name: "Eggs", meta: "2 dozen · Large, free range" }
+];
+const PRICES = [
+    { chain: "Costco", price: "$6.49", unit: "1 kg · $6.49/kg", when: "Sep 27 · Costco Eastgate", dir: "down", change: "$0.50 less than last trip" },
+    { chain: "Walmart", price: "$4.97", unit: "750 g · $6.63/kg", when: "Sep 12 · Walmart Supercenter", dir: "same", change: "Same as last trip" }
+];
+const YOGURT = { name: "Greek yogurt, plain", qty: "1 kg tub", note: "Not the multipack", hasPhoto: true, places: { s1: "dairy", s3: null } };
+const BLANK = { name: "", qty: "", note: "", hasPhoto: false, places: { s1: null, s3: null } };
+const SCENARIOS = {
+    signin: { screen: "signin" },
+    signinBusy: { screen: "signin", busy: true },
+    signinDenied: { screen: "signin", denied: true },
+    list: { screen: "list" },
+    itemNew: { screen: "item", isNew: true },
+    itemEdit: { screen: "item" },
+    itemZone: { screen: "item", sheet: "zone", zoneStore: "s3" },
+    itemPhoto: { screen: "item", sheet: "photo" },
+    stores: { screen: "stores" },
+    storesAdd: { screen: "stores", sheet: "add", newName: "Costco Kirkland", newChain: "Costco" },
+    storesEmpty: { screen: "stores", empty: true },
+    store: { screen: "store", storeId: "s1" },
+    storeNoMap: { screen: "store", storeId: "s4" }
+};
+
+const q = new URLSearchParams(location.search);
+if (q.get("theme") === "dark" || q.get("theme") === "light") document.documentElement.dataset.theme = q.get("theme");
+const base = SCENARIOS[q.get("scenario")] || SCENARIOS.signin;
+const app = document.getElementById("app");
+let timer = null;
+
+function itemState(isNew) {
+    const it = isNew ? BLANK : YOGURT;
+    return { isNew: isNew, name: it.name, qty: it.qty, note: it.note, hasPhoto: it.hasPhoto, places: Object.assign({}, it.places) };
+}
+let S = Object.assign({
+    screen: base.screen, sheet: base.sheet || null, busy: !!base.busy, denied: !!base.denied,
+    zoneStore: base.zoneStore || null, stores: base.empty ? [] : STORES.slice(), storeId: base.storeId || "s1",
+    newName: base.newName || "", newChain: base.newChain || "Costco", toast: null
+}, itemState(!!base.isNew));
+
+function set(patch) {
+    S = Object.assign({}, S, patch);
+    render();
+}
+
+function nav() {
+    const tab = (name, icon, on, act) => `<button type="button" data-act="${act}" ${on ? 'aria-current="page"' : ""}><span class="pill">${ic(icon)}</span><span class="name">${name}</span></button>`;
+    const onList = S.screen === "list" || S.screen === "item";
+    const onMore = S.screen === "stores" || S.screen === "store";
+    return `<nav class="main" aria-label="Main">${tab("List", "list", onList, "goList")}${tab("Shop", "map", false, "noop")}${tab("More", "more", onMore, "goStores")}</nav>`;
+}
+
+function signinView() {
+    const alert = S.denied ? `<div class="alert" role="alert">${ic("alert")}<div class="col" style="gap:4px"><h2 class="heading">That account isn't in our household</h2><p class="body">You signed in as sam.k.work@gmail.com. Use the Google account you set up Magpie with.</p></div></div>` : "";
+    const btn = S.busy
+        ? `<button type="button" class="primary" disabled aria-busy="true">${ic("spin", 22, 2.5, "spin")}Signing in…</button>`
+        : `<button type="button" class="primary" data-act="signIn">${ic("signin", 22)}${S.denied ? "Try another account" : "Sign in with Google"}</button>`;
+    return `<main class="signin">
+<div class="hero"><span class="mascot"><img src="../../../../public/icons/icon-512.png" alt=""></span><h1 class="brand">Magpie</h1><p class="body" style="max-width:280px;font-size:18px;line-height:26px">Our shared list, laid out on the store map in walking order.</p></div>
+${alert}${btn}
+<p class="caption" style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px">${ic("lock", 16)}Only our household can open this list.</p>
+</main>`;
+}
+
+function listView() {
+    const rows = ROWS.map((r) => `<button type="button" class="row" data-act="openItem"><span class="thumb" style="${r.photo ? "background:var(--z-dairy)" : ""}">${ic("camera", 22, 1.75)}</span><span class="col"><span class="item">${esc(r.name)}</span><span class="caption">${esc(r.meta)}</span></span><span style="color:var(--muted)">${ic("right", 22)}</span></button>`).join("");
+    return `<main class="scroll"><header class="head"><span class="eyebrow">Magpie</span><h1 class="display">Our list</h1><p class="caption">9 items to get</p></header>
+<div style="display:flex;flex-direction:column;gap:8px;padding:0 16px 104px">${rows}</div></main>
+<button type="button" class="fab" aria-label="Add item" data-act="newItem">${ic("plus", 28, 2.5)}</button>${nav()}`;
+}
+
+function itemView() {
+    const photo = S.hasPhoto
+        ? `<button type="button" class="photo" aria-haspopup="dialog" aria-label="Photo options" data-act="openPhoto"><svg width="150" height="140" viewBox="0 0 150 140" aria-hidden="true"><path d="M28 34h94l-9 96H37z" fill="#ffffff" stroke="#121521" stroke-width="4" stroke-linejoin="round"/><rect x="22" y="20" width="106" height="18" rx="6" fill="#00a88f" stroke="#121521" stroke-width="4"/><rect x="44" y="62" width="62" height="34" rx="6" fill="#cde2ff" stroke="#121521" stroke-width="3"/><path d="M54 74h42M54 84h28" stroke="#121521" stroke-width="3" stroke-linecap="round"/></svg><span class="tag">${ic("camera", 16)}Photo</span></button>`
+        : `<button type="button" class="addphoto" aria-haspopup="dialog" data-act="openPhoto"><span class="tile" style="color:var(--sheen-ink)">${ic("camera", 26, 2)}</span><span class="col"><span style="font:700 16px/20px var(--f-body);color:var(--sheen-ink)">Add photo</span><span class="caption">A photo helps the shopper grab the right one.</span></span></button>`;
+    const places = S.stores.map((st) => {
+        const m = MAPS[st.id];
+        const zid = S.places[st.id];
+        const z = m && zid ? m.zones.find((x) => x.id === zid) : null;
+        let right;
+        if (z) right = `<button type="button" class="zbtn" aria-haspopup="dialog" aria-label="Zone at ${esc(st.name)}: ${esc(z.name)}. Change" data-act="pickZone" data-id="${st.id}"><span class="chip" style="background:var(--z-${z.kind});padding-right:8px">${esc(z.name)}${ic("chev", 16, 2.5)}</span></button>`;
+        else if (m) right = `<button type="button" class="ghost" aria-haspopup="dialog" data-act="pickZone" data-id="${st.id}" style="padding:0 10px">Choose zone</button>`;
+        else right = `<span class="caption" style="padding:0 10px">No map yet</span>`;
+        return `<div class="place"><span class="col"><span style="font:600 16px/22px var(--f-body)">${esc(st.name)}</span><span class="caption">${esc(st.chain)}</span></span>${right}</div>`;
+    }).join("");
+    const prices = S.isNew
+        ? `<p class="noprice body">No prices yet. They show up here once you record one while shopping.</p>`
+        : `<div class="card">${PRICES.map((p) => `<div class="price"><div style="display:flex;align-items:baseline;gap:12px"><span style="flex:1;font:600 16px/22px var(--f-body)">${p.chain}</span><span class="amt">${p.price}</span></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caption" style="flex:1">${p.when}</span><span class="unit">${p.unit}</span></div><span class="pill ${p.dir}">${ic(p.dir, 14, 2.75)}${p.change}</span></div>`).join("")}</div>`;
+    return `<main class="scroll"><header class="head sub"><button type="button" class="back" data-act="goList">${ic("left", 22)}List</button><span class="eyebrow">${S.isNew ? "New item" : "Item"}</span></header>
+<div class="body-pad" style="padding-bottom:24px">
+${photo}
+<div style="display:flex;flex-direction:column;gap:16px">
+<label class="field"><span class="label">Name</span><input class="big" type="text" data-field="name" value="${esc(S.name)}" placeholder="What do we need?"></label>
+<label class="field"><span class="label">Quantity</span><input type="text" data-field="qty" value="${esc(S.qty)}" placeholder="1, 2 dozen, 1 kg tub"></label>
+<label class="field"><span class="label">Note</span><textarea rows="2" data-field="note" placeholder="Brand, size, anything the shopper should know">${esc(S.note)}</textarea></label>
+</div>
+<section aria-labelledby="where-h" style="display:flex;flex-direction:column;gap:8px"><h2 id="where-h" class="heading">Where it is</h2><div class="card">${places}</div></section>
+<section aria-labelledby="prices-h" style="display:flex;flex-direction:column;gap:8px"><h2 id="prices-h" class="heading" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1">Prices</span><span class="caption">Last trip at each chain</span></h2>${prices}</section>
+${S.isNew ? "" : `<button type="button" class="danger" data-act="removeItem">${ic("trash", 20)}Remove from list</button>`}
+</div></main>
+<div class="actionbar"><button type="button" class="primary" data-act="finish">${ic(S.isNew ? "plus" : "check", 20, 2.5)}${S.isNew ? "Add to list" : "Done"}</button></div>${nav()}`;
+}
+
+function chainsOf(stores) {
+    const out = [];
+    stores.forEach((st) => { if (out.indexOf(st.chain) < 0) out.push(st.chain); });
+    return out;
+}
+
+function storesView() {
+    const chains = chainsOf(S.stores);
+    const n = S.stores.length;
+    const groups = chains.map((ch) => `<section style="display:flex;flex-direction:column;gap:8px"><h2 class="label">${esc(ch)}</h2>${S.stores.filter((st) => st.chain === ch).map((st) => {
+        const m = MAPS[st.id];
+        const tile = m ? "background:var(--z-produce);border:1.5px solid var(--edge);color:var(--ink)" : "background:transparent;border:2px dashed var(--line-strong)";
+        return `<button type="button" class="row" data-act="openStore" data-id="${st.id}"><span class="thumb" style="${tile}">${ic("map", 24, 2)}</span><span class="col"><span class="item">${esc(st.name)}</span><span class="caption">${m ? "Map · " + m.zones.length + " zones" : "No map yet"}</span></span><span style="color:var(--muted)">${ic("right", 22)}</span></button>`;
+    }).join("")}</section>`).join("");
+    const empty = `<div class="empty-card"><span class="tile">${ic("store", 28, 2)}</span><h2 class="heading" style="margin-top:4px">No stores yet</h2><p class="body" style="max-width:280px">Add the stores you shop at. Then draw each one's map.</p></div>`;
+    return `<main class="scroll"><header class="head"><span class="eyebrow">Magpie</span><h1 class="display">Stores</h1><p class="caption">${n ? n + " stores · " + chains.length + " chains" : "Places you shop"}</p></header>
+<div class="body-pad">${n ? groups : empty}<button type="button" class="primary" aria-haspopup="dialog" data-act="openAdd">${ic("plus", 20, 2.5)}Add a store</button></div></main>${nav()}`;
+}
+
+function storeView() {
+    const st = S.stores.find((x) => x.id === S.storeId) || { id: "new", name: "New store", chain: "Costco" };
+    const m = MAPS[st.id];
+    const k = 0.55;
+    const r = (v) => Math.round(v * k);
+    let body;
+    if (m) {
+        const zones = m.zones.map((z) => `<div class="z" style="left:${r(z.x)}px;top:${r(z.y)}px;width:${r(z.w)}px;height:${r(z.h)}px;background:var(--z-${z.kind})">${esc(z.name)}</div>`).join("");
+        const chips = m.zones.map((z) => `<span class="chip" style="background:var(--z-${z.kind})">${esc(z.name)}</span>`).join("");
+        body = `<div class="body-pad"><div class="mini" role="img" aria-label="Map of ${esc(st.name)} with ${m.zones.length} zones"><div class="inner">${zones}<span class="door" style="left:${r(m.door.x) - 4}px;top:${r(m.door.y) - 4}px">IN</span></div></div>
+<section aria-label="Zones" style="display:flex;flex-direction:column;gap:8px"><h2 class="heading" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1">Zones</span><span class="caption">${m.zones.length} zones</span></h2><div class="chips">${chips}</div></section>
+<a class="secondary" href="../../map-editor/pages/prototype.html?scenario=after" style="text-decoration:none">${ic("edit", 20)}Edit map</a></div>`;
+    } else {
+        body = `<div class="body-pad" style="gap:16px"><div class="empty-card"><span class="tile">${ic("map", 28, 2)}</span><h2 class="heading" style="margin-top:4px">No map yet</h2><p class="body" style="max-width:280px">Draw a rough map once. Then the list lays out here in walking order.</p></div>
+<a class="primary" href="../../map-editor/pages/prototype.html?scenario=start" style="text-decoration:none">${ic("edit", 20)}Draw the map</a></div>`;
+    }
+    return `<main class="scroll"><header class="head sub"><button type="button" class="back" data-act="goStores">${ic("left", 22)}Stores</button><span class="eyebrow">Store</span><h1 class="display">${esc(st.name)}</h1><p class="caption">Chain: ${esc(st.chain)} · ${m ? m.zones.length + " zones" : "no map yet"}</p></header>${body}</main>${nav()}`;
+}
+
+function sheetView() {
+    if (!S.sheet) return "";
+    let title = "", cap = "", inner = "";
+    if (S.sheet === "zone") {
+        const st = S.stores.find((x) => x.id === S.zoneStore);
+        const m = MAPS[S.zoneStore];
+        title = "Where at " + (st ? st.name : "this store") + "?";
+        cap = "Pick the zone on that store's map.";
+        inner = `<div class="zgrid" role="radiogroup" aria-labelledby="sheet-title">${m.zones.map((z) => {
+            const on = S.places[S.zoneStore] === z.id;
+            return `<button type="button" class="zopt" role="radio" aria-checked="${on}" data-act="setZone" data-id="${z.id}" style="background:var(--z-${z.kind})"><span>${esc(z.name)}</span>${on ? ic("check", 20, 3) : ""}</button>`;
+        }).join("")}</div><button type="button" class="ghost" data-act="clearZone">Not sure yet</button>`;
+    }
+    if (S.sheet === "photo") {
+        title = "Photo";
+        cap = "Show the shopper exactly which one to grab.";
+        inner = `<div style="display:flex;flex-direction:column;gap:8px"><button type="button" class="opt" data-act="takePhoto">${ic("camera", 22)}Take a photo</button><button type="button" class="opt" data-act="takePhoto">${ic("image", 22)}Choose from photos</button>${S.hasPhoto ? `<button type="button" class="opt bad" data-act="removePhoto">${ic("trash", 22)}Remove photo</button>` : ""}</div><button type="button" class="ghost" data-act="closeSheet">Cancel</button>`;
+    }
+    if (S.sheet === "add") {
+        title = "Add a store";
+        cap = "You can draw its map next.";
+        const chains = ["Costco", "Walmart", "Trader Joe's", "New chain"].map((ch) => `<button type="button" class="cchip" role="radio" aria-checked="${S.newChain === ch}" data-act="setChain" data-id="${esc(ch)}">${ch === "New chain" ? "+ New chain" : esc(ch)}</button>`).join("");
+        inner = `<label class="field"><span class="label">Store name</span><input class="big" type="text" data-field="newName" value="${esc(S.newName)}" placeholder="Costco Eastgate"></label>
+<div role="radiogroup" aria-labelledby="chain-h" style="display:flex;flex-direction:column;gap:8px"><span id="chain-h" class="label">Chain</span><div class="chips">${chains}</div><span class="caption">Prices compare across stores of the same chain.</span></div>
+<button type="button" class="primary" data-act="addStore">Add store</button><button type="button" class="ghost" data-act="closeSheet">Cancel</button>`;
+    }
+    return `<div class="sheet-wrap"><button type="button" class="scrim" aria-label="Close" data-act="closeSheet"></button><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><span class="grabber" aria-hidden="true"></span><div style="display:flex;flex-direction:column;gap:4px"><h2 id="sheet-title" class="title">${esc(title)}</h2><p class="caption">${esc(cap)}</p></div>${inner}</div></div>`;
+}
+
+function render() {
+    const views = { signin: signinView, list: listView, item: itemView, stores: storesView, store: storeView };
+    const toast = S.toast && S.screen === "list" ? `<div class="toast" role="status"><span style="color:var(--sheen-ink)">${ic("check", 22, 3)}</span><span style="flex:1;font:500 14px/19px var(--f-body)">${esc(S.toast)}</span><button type="button" class="ghost" data-act="dismissToast">OK</button></div>` : "";
+    app.innerHTML = views[S.screen]() + toast + sheetView();
+}
+
+const ACTS = {
+    noop: () => {},
+    signIn: () => {
+        if (S.busy) return;
+        set({ busy: true, denied: false });
+        clearTimeout(timer);
+        timer = setTimeout(() => set({ busy: false, screen: "list" }), 1100);
+    },
+    goList: () => set({ screen: "list", sheet: null }),
+    goStores: () => set({ screen: "stores", sheet: null, toast: null }),
+    openItem: () => set(Object.assign({ screen: "item", sheet: null, toast: null }, itemState(false))),
+    newItem: () => set(Object.assign({ screen: "item", sheet: null, toast: null }, itemState(true))),
+    finish: () => set({ screen: "list", sheet: null, toast: S.isNew ? (S.name ? S.name + " added to the list." : "Added to the list.") : null }),
+    removeItem: () => set({ screen: "list", sheet: null, toast: "Removed " + S.name + " from the list." }),
+    openPhoto: () => set({ sheet: "photo" }),
+    takePhoto: () => set({ sheet: null, hasPhoto: true }),
+    removePhoto: () => set({ sheet: null, hasPhoto: false }),
+    closeSheet: () => set({ sheet: null }),
+    pickZone: (id) => set({ sheet: "zone", zoneStore: id }),
+    setZone: (id) => set({ sheet: null, places: Object.assign({}, S.places, { [S.zoneStore]: id }) }),
+    clearZone: () => set({ sheet: null, places: Object.assign({}, S.places, { [S.zoneStore]: null }) }),
+    openStore: (id) => set({ screen: "store", storeId: id, sheet: null }),
+    openAdd: () => set({ sheet: "add", newName: "", newChain: "Costco" }),
+    setChain: (id) => set({ newChain: id }),
+    addStore: () => {
+        const id = "n" + (S.stores.length + 1);
+        set({ stores: S.stores.concat([{ id: id, name: S.newName || "New store", chain: S.newChain }]), storeId: id, screen: "store", sheet: null });
+    },
+    dismissToast: () => set({ toast: null })
+};
+
+app.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-act]");
+    if (!el || el.disabled) return;
+    ACTS[el.dataset.act](el.dataset.id);
+});
+app.addEventListener("input", (e) => {
+    const f = e.target.dataset.field;
+    if (f) S[f] = e.target.value;
+});
+render();
+</script>
+</body>
+</html>

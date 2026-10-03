@@ -1,0 +1,66 @@
+{
+    "v": 3,
+    "createdOnFiles": {
+        "v": 1,
+        "at": "2026-10-03T21:00:00Z"
+    },
+    "title": "Magpie sign-in, item, stores",
+    "launch": {
+        "view": "canvas"
+    },
+    "pages": [],
+    "boards": {
+        "Main.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Prototype · tap through", "is_interactive": true },
+        "SignIn.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "1 · Sign in" },
+        "SignInBusy.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "2 · Signing in" },
+        "SignInDenied.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "3 · Not in the household" },
+        "SignInDark.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Sign in · dark" },
+        "ItemNew.dc.html": { "x": 0, "y": 1264, "w": 390, "h": 844, "title": "1 · New item" },
+        "ItemEdit.dc.html": { "x": 470, "y": 1264, "w": 390, "h": 844, "title": "2 · Item with prices" },
+        "ItemZone.dc.html": { "x": 940, "y": 1264, "w": 390, "h": 844, "title": "3 · Pick a zone" },
+        "ItemPhoto.dc.html": { "x": 1410, "y": 1264, "w": 390, "h": 844, "title": "4 · Photo options" },
+        "ItemDark.dc.html": { "x": 1880, "y": 1264, "w": 390, "h": 844, "title": "Item · dark" },
+        "Stores.dc.html": { "x": 0, "y": 2528, "w": 390, "h": 844, "title": "1 · Stores" },
+        "StoresAdd.dc.html": { "x": 470, "y": 2528, "w": 390, "h": 844, "title": "2 · Add a store" },
+        "Store.dc.html": { "x": 940, "y": 2528, "w": 390, "h": 844, "title": "3 · Store with a map" },
+        "StoreNoMap.dc.html": { "x": 1410, "y": 2528, "w": 390, "h": 844, "title": "4 · Store, no map yet" },
+        "StoresEmpty.dc.html": { "x": 1880, "y": 2528, "w": 390, "h": 844, "title": "5 · No stores yet" },
+        "StoresDark.dc.html": { "x": 2350, "y": 2528, "w": 390, "h": 844, "title": "Stores · dark" }
+    },
+    "order": [
+        "Main.dc.html",
+        "SignIn.dc.html",
+        "SignInBusy.dc.html",
+        "SignInDenied.dc.html",
+        "SignInDark.dc.html",
+        "ItemNew.dc.html",
+        "ItemEdit.dc.html",
+        "ItemZone.dc.html",
+        "ItemPhoto.dc.html",
+        "ItemDark.dc.html",
+        "Stores.dc.html",
+        "StoresAdd.dc.html",
+        "Store.dc.html",
+        "StoreNoMap.dc.html",
+        "StoresEmpty.dc.html",
+        "StoresDark.dc.html"
+    ],
+    "notes": {
+        "signin": { "x": 0, "y": -300, "text": "Sign-in (#3): the only page without the main navigation", "kind": "title1", "maxW": 2270 },
+        "item": { "x": 0, "y": 964, "text": "Item (#7): details, where it is in each store, prices", "kind": "title1", "maxW": 2270 },
+        "stores": { "x": 0, "y": 2228, "text": "Stores and Store (#6): from the More menu", "kind": "title1", "maxW": 2740 },
+        "howto": { "x": -380, "y": 0, "w": 300, "fill": "teal", "text": "Play the prototype: Sign in with Google, then tap a list row or + to open the Item page. Tap a zone chip or Choose zone to place it; tap the photo for options. More opens Stores; tap a store, or Add a store. Tweaks: scenario and dark." },
+        "auth": { "x": -380, "y": 460, "w": 300, "fill": "orange", "text": "Assumed: Google sign-in through Firebase Auth. An account that is not one of the household's two members gets the 'not in our household' screen. Signing out and adding the second member live on a settings page that is out of scope." },
+        "itemnote": { "x": -380, "y": 1264, "w": 300, "fill": "orange", "text": "Prices show the last price at each chain, with the change since the trip before. Prices are recorded in the store, not here. A full price history page comes later. Add to list (new) and Done (existing) both return to the List page." },
+        "storesnote": { "x": -380, "y": 2528, "w": 300, "fill": "orange", "text": "Stores are grouped by chain, because prices compare per chain. The Store page matches the Map editor mockups (#8): Edit map and Draw the map open the editor." }
+    },
+    "designSystems": [
+        {
+            "title": "Magpie",
+            "namespace": "magpie",
+            "artifact": "https://claude.ai/artifact/6hCfFVWb7akGu15yzDsMzF",
+            "version": null,
+            "copiedAt": "2026-10-03T21:00:00Z"
+        }
+    ]
+}

@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// Authorization layer. The app's sign-in gate is for convenience only.
+// Membership records are created by the set-up step (scripts/setup-household.ts),
+// never from the app.
+service cloud.firestore {
+    match /databases/{database}/documents {
+        function memberPath() {
+            return /databases/$(database)/documents/members/$(request.auth.uid);
+        }
+
+        function isMemberOf(householdId) {
+            return request.auth != null
+                && exists(memberPath())
+                && get(memberPath()).data.householdId == householdId;
+        }
+
+        match /members/{uid} {
+            allow read: if request.auth != null && request.auth.uid == uid;
+            allow write: if false;
+        }
+
+        match /households/{householdId} {
+            allow read: if isMemberOf(householdId);
+            allow write: if false;
+
+            match /{document=**} {
+                allow read: if isMemberOf(householdId);
+                allow write: if false;
+            }
+        }
+    }
+}

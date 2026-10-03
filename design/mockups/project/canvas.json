@@ -1,0 +1,98 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-03T15:15:00Z"
+  },
+  "title": "Magpie Layout & List",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Shell.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "App shell"
+    },
+    "NavStates.dc.html": {
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 640,
+      "title": "Navigation"
+    },
+    "ListWide.dc.html": {
+      "x": 940,
+      "y": 0,
+      "w": 1024,
+      "h": 768,
+      "title": "List · wide screen"
+    },
+    "Main.dc.html": {
+      "x": 0,
+      "y": 1224,
+      "w": 390,
+      "h": 844,
+      "title": "List · tap More",
+      "is_interactive": true
+    },
+    "ListMenu.dc.html": {
+      "x": 470,
+      "y": 1224,
+      "w": 390,
+      "h": 844,
+      "title": "List · More sheet"
+    },
+    "ListEmpty.dc.html": {
+      "x": 940,
+      "y": 1224,
+      "w": 390,
+      "h": 844,
+      "title": "List · empty"
+    },
+    "ListDark.dc.html": {
+      "x": 1410,
+      "y": 1224,
+      "w": 390,
+      "h": 844,
+      "title": "List · dark"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "ListMenu.dc.html",
+    "ListEmpty.dc.html",
+    "ListDark.dc.html",
+    "Shell.dc.html",
+    "NavStates.dc.html",
+    "ListWide.dc.html"
+  ],
+  "notes": {
+    "layout": {
+      "x": 0,
+      "y": -300,
+      "text": "App layout and navigation",
+      "kind": "title1",
+      "maxW": 1964
+    },
+    "list": {
+      "x": 0,
+      "y": 924,
+      "text": "List page (home)",
+      "kind": "title1",
+      "maxW": 1800
+    }
+  },
+  "designSystems": [
+    {
+      "title": "Magpie",
+      "namespace": "magpie",
+      "artifact": "https://claude.ai/artifact/6hCfFVWb7akGu15yzDsMzF",
+      "version": "1791036427-0816",
+      "copiedAt": "2026-10-03T15:15:00Z"
+    }
+  ]
+}

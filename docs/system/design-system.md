@@ -72,7 +72,7 @@ Dark mode is a first-class theme, not an inversion. Ground goes to a blue-black,
 
 - 4px base: `space-1` … `space-10`. Screen gutter and card padding are `space-4`. Sections are `space-6` apart.
 - Single column, phone first. Design at 360px wide; check 320px. Cap content at 560px on larger screens and center it.
-- The bottom nav (`nav-height` + safe-area inset) is always there. Leave `space-10` clearance after the last row.
+- The bottom nav (`nav-height` + safe-area inset) is always there, except on the sign-in page. Leave `space-10` clearance after the last row.
 - Fixed bars add `env(safe-area-inset-bottom)` to their own padding.
 - In shopping mode the screen splits: map on top, list scrolling under it, `NextUp` pinned at the bottom above the nav.
 
@@ -123,4 +123,4 @@ Build these in `src/components/` on top of shadcn/ui primitives where one fits. 
 | NextUp | Shopping-mode card, pinned above the nav. `bg-trinket text-on-trinket rounded-lg p-5`. Eyebrow "Next up" + progress ("4 of 11"), item in `text-title`, location with a pin icon. Two 56px actions: **Missing** (outline `on-trinket`) and **Got it** (solid `on-trinket` with `trinket` text). One per screen. |
 | PriceTag | Amount in `text-price`, unit price in `text-price-small text-ink-muted`, tabular. Change pill: cheaper = `bg-trinket` + down arrow + "less"; dearer = `danger` outline + up arrow + "more"; same = `line` outline. Compare within one chain only. |
 | StoreMap | SVG. Canvas `surface-sunken`, `rounded-lg`. Zones: `radius-sm` rects in `zone-*`, 1.5px `zone-edge` stroke, uppercase `text-zone-label` in `ink`. Route: dotted `berry` line, 5px, round caps (`stroke-dasharray: 0.1 11`). Stops: numbered discs; to do = `surface` + `berry` ring, next = larger `trinket` + `ink` ring, done = `sheen` with a tick. Entrance = `ink` pill reading "IN". |
-| BottomNav | List, Shop, Prices, Stores. `bg-surface`, `border-t border-line`, `h-nav` + bottom safe-area inset. Active: `sheen` pill behind the icon, `ink` label; others `ink-muted`. Labels always visible. Four items max. |
+| BottomNav | List and Shop, the two areas used every week. Rarely used pages (Stores) are reached from a menu, not the nav. Prices are not a nav item; they show on the item page. `bg-surface`, `border-t border-line`, `h-nav` + bottom safe-area inset. Active: `sheen` pill behind the icon, `ink` label; others `ink-muted`. Labels always visible. Four items max. |

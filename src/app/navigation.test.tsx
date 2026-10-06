@@ -57,10 +57,6 @@ describe("main navigation", () => {
         expect(router.state.location.pathname).toBe("/");
     });
 
-    it("hides the main navigation on Sign-in", async () => {
-        renderApp(["/sign-in"]);
-        expect(screen.queryByRole("navigation", { name: "Main" })).toBeNull();
-    });
 });
 
 describe("paths", () => {

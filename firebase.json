@@ -1,0 +1,26 @@
+{
+    "hosting": {
+        "public": "dist",
+        "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+        "rewrites": [
+            {
+                "regex": "^/(?!__/).*",
+                "destination": "/index.html"
+            }
+        ]
+    },
+    "firestore": {
+        "rules": "firestore.rules"
+    },
+    "storage": {
+        "rules": "storage.rules"
+    },
+    "emulators": {
+        "auth": { "port": 9099 },
+        "firestore": { "port": 8080 },
+        "storage": { "port": 9199 },
+        "hosting": { "port": 5000 },
+        "ui": { "enabled": true },
+        "singleProjectMode": true
+    }
+}

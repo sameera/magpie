@@ -72,7 +72,7 @@ Dark mode is a first-class theme, not an inversion. Ground goes to a blue-black,
 
 - 4px base: `space-1` … `space-10`. Screen gutter and card padding are `space-4`. Sections are `space-6` apart.
 - Single column, phone first. Design at 360px wide; check 320px. Cap content at 560px on larger screens and center it.
-- The bottom nav (`nav-height` + safe-area inset) is always there, except on the sign-in page. Leave `space-10` clearance after the last row.
+- The bottom nav (`nav-height` + safe-area inset) is always there, except on the sign-in page and the Map editor, which use the whole screen (drawing needs the full height, and a stray thumb must not hit the nav). Leave `space-10` clearance after the last row.
 - Fixed bars add `env(safe-area-inset-bottom)` to their own padding.
 - In shopping mode the screen splits: map on top, list scrolling under it, `NextUp` pinned at the bottom above the nav.
 

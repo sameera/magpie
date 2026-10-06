@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Item, Store } from "../data/model";
+import type { Item, Price, Store } from "../data/model";
 import type { AuthUser, DataService, Membership, Services, Watched } from "../services/types";
 
 type Listener<T> = (value: T) => void;
@@ -15,6 +15,7 @@ export function testStore(fields: Partial<Store> & { id: string; name: string })
 export interface FakeHousehold {
     items: Item[];
     stores: Store[];
+    prices: Price[];
 }
 
 // In-memory stand-in for Firebase. Tests drive auth and membership through it.
@@ -52,6 +53,10 @@ export class FakeServices implements Services {
                 }),
                 testStore({ id: "s2", name: "Safeway Main St", chain: "Safeway" }),
             ],
+            prices: [
+                { id: "p1", itemId: "i1", chain: "Costco", amount: 4.29, unit: "2 L", observedAt: new Date("2026-09-01") },
+                { id: "p2", itemId: "i1", chain: "Safeway", amount: 5.49, unit: "2 L", observedAt: new Date("2026-09-20") },
+            ],
         });
     }
 
@@ -74,7 +79,7 @@ export class FakeServices implements Services {
 
     private household(householdId: string): FakeHousehold {
         this.reads.push(householdId);
-        return this.households.get(householdId) ?? { items: [], stores: [] };
+        return this.households.get(householdId) ?? { items: [], stores: [], prices: [] };
     }
 
     private answer<T>(listener: Listener<Watched<T>>, value: T | null | undefined): () => void {
@@ -87,6 +92,18 @@ export class FakeServices implements Services {
             this.answer(
                 listener,
                 this.household(householdId).items.filter((item) => item.onList),
+            ),
+        watchItem: (householdId, itemId, listener) =>
+            this.answer(
+                listener,
+                this.household(householdId).items.find((item) => item.id === itemId),
+            ),
+        watchPrices: (householdId, itemId, listener) =>
+            this.answer(
+                listener,
+                this.household(householdId)
+                    .prices.filter((price) => price.itemId === itemId)
+                    .sort((a, b) => b.observedAt.getTime() - a.observedAt.getTime()),
             ),
         watchStores: (householdId, listener) => this.answer(listener, this.household(householdId).stores),
         watchStore: (householdId, storeId, listener) =>

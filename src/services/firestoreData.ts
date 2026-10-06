@@ -1,5 +1,5 @@
 import { collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
-import { itemConverter, storeConverter, type Item, type Store } from "../data/model";
+import { itemConverter, priceConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import type { DataService } from "./types";
 
@@ -16,6 +16,30 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()).sort(byName) }),
+                () => listener({ status: "missing" }),
+            ),
+        watchItem: (householdId, itemId, listener) =>
+            onSnapshot(
+                doc(items(householdId), itemId),
+                (snap) => {
+                    const item = snap.data();
+                    listener(item ? { status: "ready", value: item } : { status: "missing" });
+                },
+                () => listener({ status: "missing" }),
+            ),
+        watchPrices: (householdId, itemId, listener) =>
+            onSnapshot(
+                query(
+                    collection(db, "households", householdId, "prices").withConverter(priceConverter),
+                    where("itemId", "==", itemId),
+                ),
+                (snap) =>
+                    listener({
+                        status: "ready",
+                        value: snap.docs
+                            .map((d): Price => d.data())
+                            .sort((a, b) => b.observedAt.getTime() - a.observedAt.getTime()),
+                    }),
                 () => listener({ status: "missing" }),
             ),
         watchStores: (householdId, listener) =>

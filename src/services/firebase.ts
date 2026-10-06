@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { connectStorageEmulator, getStorage } from "firebase/storage";
 import { memberConverter } from "../data/model";
+import { createFirestoreData } from "./firestoreData";
 import type { Services } from "./types";
 
 export function createFirebaseServices(): Services {
@@ -64,5 +65,6 @@ export function createFirebaseServices(): Services {
             signIn: () => signInWithRedirect(auth, new GoogleAuthProvider()),
             signOut: () => signOut(auth),
         },
+        data: createFirestoreData(db),
     };
 }

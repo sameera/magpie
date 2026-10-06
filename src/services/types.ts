@@ -1,3 +1,5 @@
+import type { Item } from "../data/model";
+
 export interface AuthUser {
     uid: string;
     email: string | null;
@@ -14,6 +16,17 @@ export interface AuthService {
     signOut(): Promise<void>;
 }
 
+// What a watched read currently holds. "missing": absent, or not readable by this user.
+export type Watched<T> = { status: "loading" } | { status: "ready"; value: T } | { status: "missing" };
+
+export type Unsubscribe = () => void;
+
+// Read-only access to one household's data. No page in this epic saves.
+export interface DataService {
+    watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
+}
+
 export interface Services {
     auth: AuthService;
+    data: DataService;
 }

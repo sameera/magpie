@@ -42,6 +42,19 @@ async function writeHousehold(db: Firestore, householdId: string, uids: string[]
     }
 }
 
+// Test data, so every page can be reached during development.
+async function writeTestData(db: Firestore, householdId: string): Promise<void> {
+    const household = db.doc(`households/${householdId}`);
+    await household.collection("items").doc("test-milk").set({
+        name: "Milk",
+        quantity: "2 L",
+        note: "Lactose free",
+        photoPath: null,
+        onList: true,
+        places: {},
+    });
+}
+
 async function setupLocal(): Promise<void> {
     if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) {
         throw new Error("--local runs only against the Emulator Suite");
@@ -62,7 +75,8 @@ async function setupLocal(): Promise<void> {
         localHouseholdId,
         localMembers.map((m) => m.uid),
     );
-    console.log(`Local household ${localHouseholdId} set up.`);
+    await writeTestData(db, localHouseholdId);
+    console.log(`Local household ${localHouseholdId} set up with test data.`);
 }
 
 async function setupLive(): Promise<void> {

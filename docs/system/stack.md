@@ -15,6 +15,7 @@ Greenfield. Choices below were made at setup (2026-10-03), not detected from cod
 - **App form**: Installable PWA (service worker via `vite-plugin-pwa`); camera through the browser (`<input type="file" capture>` / `getUserMedia`)
 - **Styling**: Tailwind CSS v4 + shadcn/ui (Radix-based components copied into the repo). Theme and tokens in `src/styles/globals.css`; rules in [design-system.md](design-system.md)
 - **Store-map rendering**: Hand-rolled SVG (no canvas/drawing library)
+- **Routing**: React Router, plain client-side library mode (`createBrowserRouter`); no server or framework mode. Paths and frames in `src/app/routes.tsx`
 - **Build Tool**: Vite
 
 ## Backend

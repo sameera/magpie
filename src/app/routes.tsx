@@ -2,13 +2,13 @@ import { Navigate, Outlet, type RouteObject } from "react-router";
 import { FramedLayout } from "./FramedLayout";
 import { HistoryTracker } from "./history";
 import { SignInGate } from "./SignInGate";
+import { Splash } from "./Splash";
 import { ListPage } from "../pages/ListPage";
 import { ItemPage } from "../pages/ItemPage";
 import { ShopChoicePage } from "../pages/ShopChoicePage";
 import { InStorePage } from "../pages/InStorePage";
 import { StoresPage } from "../pages/StoresPage";
 import { StorePage } from "../pages/StorePage";
-import { MapEditorPage } from "../pages/MapEditorPage";
 import { SignInPage } from "../pages/SignInPage";
 
 function Root() {
@@ -37,8 +37,13 @@ export const routes: RouteObject[] = [
                             { path: "shop/:storeId", element: <InStorePage /> },
                             { path: "stores", element: <StoresPage /> },
                             { path: "stores/:storeId", element: <StorePage /> },
-                            { path: "stores/:storeId/map", element: <MapEditorPage /> },
                         ],
+                    },
+                    // Full-screen, and its code loads only when first opened.
+                    {
+                        path: "stores/:storeId/map",
+                        lazy: () => import("../pages/MapEditorPage").then((m) => ({ Component: m.MapEditorPage })),
+                        hydrateFallbackElement: <Splash />,
                     },
                 ],
             },

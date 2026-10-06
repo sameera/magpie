@@ -14,7 +14,7 @@ export function UpButton({ to, label, children }: UpButtonProps) {
         <button
             type="button"
             onClick={up}
-            aria-label={children ? undefined : label}
+            aria-label={typeof children === "string" ? undefined : label}
             className="inline-flex h-tap min-w-tap items-center justify-center gap-2 rounded-md px-2 text-button text-sheen-ink"
         >
             {children ?? <ArrowLeft aria-hidden="true" />}

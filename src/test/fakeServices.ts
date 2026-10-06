@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { Item } from "../data/model";
+import type { Item, Store } from "../data/model";
 import type { AuthUser, DataService, Membership, Services, Watched } from "../services/types";
 
 type Listener<T> = (value: T) => void;
@@ -8,8 +8,13 @@ export function testItem(fields: Partial<Item> & { id: string; name: string }): 
     return { quantity: "", note: "", photoPath: null, onList: true, places: {}, ...fields };
 }
 
+export function testStore(fields: Partial<Store> & { id: string; name: string }): Store {
+    return { chain: "", map: null, ...fields };
+}
+
 export interface FakeHousehold {
     items: Item[];
+    stores: Store[];
 }
 
 // In-memory stand-in for Firebase. Tests drive auth and membership through it.
@@ -27,8 +32,25 @@ export class FakeServices implements Services {
         this.memberships.set("alex", { householdId: "h1" });
         this.households.set("h1", {
             items: [
-                testItem({ id: "i1", name: "Milk", quantity: "2 L" }),
-                testItem({ id: "i2", name: "Bread", note: "Sourdough" }),
+                testItem({ id: "i1", name: "Milk", quantity: "2 L", places: { s1: "z-dairy" } }),
+                testItem({ id: "i2", name: "Bread", note: "Sourdough", places: { s1: "z-bakery" } }),
+            ],
+            stores: [
+                testStore({
+                    id: "s1",
+                    name: "Costco Kirkland",
+                    chain: "Costco",
+                    map: {
+                        width: 100,
+                        height: 60,
+                        scanPath: null,
+                        zones: [
+                            { id: "z-bakery", label: "Bakery", kind: "bakery", order: 0, x: 0, y: 0, width: 50, height: 30 },
+                            { id: "z-dairy", label: "Dairy", kind: "dairy", order: 1, x: 50, y: 0, width: 50, height: 30 },
+                        ],
+                    },
+                }),
+                testStore({ id: "s2", name: "Safeway Main St", chain: "Safeway" }),
             ],
         });
     }
@@ -52,7 +74,7 @@ export class FakeServices implements Services {
 
     private household(householdId: string): FakeHousehold {
         this.reads.push(householdId);
-        return this.households.get(householdId) ?? { items: [] };
+        return this.households.get(householdId) ?? { items: [], stores: [] };
     }
 
     private answer<T>(listener: Listener<Watched<T>>, value: T | null | undefined): () => void {
@@ -65,6 +87,12 @@ export class FakeServices implements Services {
             this.answer(
                 listener,
                 this.household(householdId).items.filter((item) => item.onList),
+            ),
+        watchStores: (householdId, listener) => this.answer(listener, this.household(householdId).stores),
+        watchStore: (householdId, storeId, listener) =>
+            this.answer(
+                listener,
+                this.household(householdId).stores.find((store) => store.id === storeId),
             ),
     };
 

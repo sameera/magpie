@@ -51,7 +51,21 @@ async function writeTestData(db: Firestore, householdId: string): Promise<void> 
         note: "Lactose free",
         photoPath: null,
         onList: true,
-        places: {},
+        places: { "test-store": "dairy" },
+    });
+    await household.collection("stores").doc("test-store").set({
+        name: "Costco Kirkland",
+        chain: "Costco",
+        map: {
+            width: 100,
+            height: 60,
+            scanPath: null,
+            zones: [
+                { id: "produce", label: "Produce", kind: "produce", order: 0, x: 4, y: 4, width: 44, height: 24 },
+                { id: "bakery", label: "Bakery", kind: "bakery", order: 1, x: 52, y: 4, width: 44, height: 24 },
+                { id: "dairy", label: "Dairy", kind: "dairy", order: 2, x: 4, y: 32, width: 92, height: 24 },
+            ],
+        },
     });
 }
 

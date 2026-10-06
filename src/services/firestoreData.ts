@@ -1,12 +1,13 @@
 import { collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
 import { itemConverter, storeConverter, type Item, type Store } from "../data/model";
+import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import type { DataService } from "./types";
 
 function byName(a: { name: string }, b: { name: string }): number {
     return a.name.localeCompare(b.name);
 }
 
-export function createFirestoreData(db: Firestore): DataService {
+export function createFirestoreData(db: Firestore, storage: FirebaseStorage): DataService {
     const items = (householdId: string) => collection(db, "households", householdId, "items").withConverter(itemConverter);
     const stores = (householdId: string) => collection(db, "households", householdId, "stores").withConverter(storeConverter);
 
@@ -32,5 +33,6 @@ export function createFirestoreData(db: Firestore): DataService {
                 },
                 () => listener({ status: "missing" }),
             ),
+        fileUrl: (path) => getDownloadURL(ref(storage, path)),
     };
 }

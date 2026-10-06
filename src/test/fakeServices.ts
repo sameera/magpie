@@ -94,6 +94,7 @@ export class FakeServices implements Services {
                 listener,
                 this.household(householdId).stores.find((store) => store.id === storeId),
             ),
+        fileUrl: async (path) => `https://files.test/${path}`,
     };
 
     setUser(user: AuthUser | null): void {

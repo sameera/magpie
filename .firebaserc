@@ -1,5 +1,6 @@
 {
     "projects": {
-        "default": "demo-magpie"
+        "default": "demo-magpie",
+        "prod": "awzm-magpie"
     }
 }

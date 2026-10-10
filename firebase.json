@@ -4,7 +4,7 @@
         "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
         "rewrites": [
             {
-                "regex": "^/(?!__/).*",
+                "regex": "^/([^_].*|_[^_].*|__[^/].*|__?)?$",
                 "destination": "/index.html"
             }
         ]
@@ -14,6 +14,15 @@
     },
     "storage": {
         "rules": "storage.rules"
+    },
+    "auth": {
+        "providers": {
+            "googleSignIn": {
+                "oAuthBrandDisplayName": "Magpie",
+                "supportEmail": "www.sameera@gmail.com",
+                "authorizedRedirectUris": ["https://awzm-magpie.web.app/__/auth/handler"]
+            }
+        }
     },
     "emulators": {
         "auth": { "port": 9099 },

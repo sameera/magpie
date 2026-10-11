@@ -5,6 +5,7 @@ import {
     getAuth,
     getRedirectResult,
     onAuthStateChanged,
+    signInWithPopup,
     signInWithRedirect,
     signOut,
 } from "firebase/auth";
@@ -62,7 +63,16 @@ export function createFirebaseServices(): Services {
                     },
                     () => listener(null),
                 ),
-            signIn: () => signInWithRedirect(auth, new GoogleAuthProvider()),
+            signIn: async () => {
+                const provider = new GoogleAuthProvider();
+                // Localhost differs from the hosted auth domain. Use a popup so
+                // browser storage restrictions cannot lose the redirect result.
+                if (env.DEV) {
+                    await signInWithPopup(auth, provider);
+                } else {
+                    await signInWithRedirect(auth, provider);
+                }
+            },
             signOut: () => signOut(auth),
         },
         data: createFirestoreData(db, storage),

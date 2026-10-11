@@ -1,10 +1,22 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FakeServices } from "../test/fakeServices";
 import { renderApp } from "../test/renderApp";
 
 describe("sign-in gate", () => {
+    it("shows authentication failures and allows another attempt", async () => {
+        const services = new FakeServices(null);
+        vi.mocked(services.auth.signIn).mockRejectedValueOnce(new Error("Firebase: Error (auth/popup-blocked)."));
+        renderApp(["/sign-in"], services);
+        const button = screen.getByRole("button", { name: "Sign in with Google" });
+        await userEvent.setup().click(button);
+        expect(screen.getByRole("alert")).toHaveTextContent("auth/popup-blocked");
+        expect(button).toBeEnabled();
+        await userEvent.setup().click(button);
+        expect(screen.queryByRole("alert")).toBeNull();
+    });
+
     it("sends a signed-out user to Sign-in, without the main navigation", async () => {
         const { router } = renderApp(["/"], new FakeServices(null));
         expect(router.state.location.pathname).toBe("/sign-in");

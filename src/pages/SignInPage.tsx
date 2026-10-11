@@ -7,6 +7,7 @@ export function SignInPage() {
     const session = useSession();
     const { auth } = useServices();
     const [busy, setBusy] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
 
     if (session.status === "starting" || session.status === "checking") {
         return <Splash />;
@@ -17,8 +18,11 @@ export function SignInPage() {
 
     async function run(action: () => Promise<void>): Promise<void> {
         setBusy(true);
+        setError(null);
         try {
             await action();
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "Sign-in failed. Please try again.");
         } finally {
             setBusy(false);
         }
@@ -28,6 +32,7 @@ export function SignInPage() {
         <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-paper px-4 text-center text-ink">
             <img src="/icons/magpie-mascot.svg" alt="" className="size-32" />
             <h1 className="font-display text-display">Magpie</h1>
+            {error && <p role="alert" className="text-body">{error}</p>}
             {session.status === "not-member" ? (
                 <>
                     <p className="text-body">

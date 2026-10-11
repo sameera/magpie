@@ -17,8 +17,9 @@ export function confirmSave(write: Promise<void>): Promise<SaveResult> {
                 clearTimeout(timer);
                 resolve("saved");
             },
-            () => {
+            (error: unknown) => {
                 clearTimeout(timer);
+                console.error("Save failed", error);
                 resolve("refused");
             },
         );

@@ -71,11 +71,15 @@ describe("Add store chains", () => {
 
     it("keeps entered values on failure and allows retry", async () => {
         const services = new FakeServices();
-        const save = vi.spyOn(services.data, "createStore").mockRejectedValueOnce(new Error("denied"));
+        const error = new Error("denied");
+        const report = vi.spyOn(console, "error").mockImplementation(() => {});
+        const save = vi.spyOn(services.data, "createStore").mockRejectedValueOnce(error);
         const { user } = await open(services);
         await user.type(screen.getByRole("combobox", { name: "Store Chain" }), "New chain");
         await user.click(screen.getByRole("button", { name: "Save store" }));
         expect(await screen.findByRole("alert")).toHaveTextContent("could not be saved");
+        expect(report).toHaveBeenCalledWith("Save failed", error);
+        report.mockRestore();
         expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("New location");
         expect(screen.getByRole("combobox", { name: "Store Chain" })).toHaveValue("New chain");
         await user.click(screen.getByRole("button", { name: "Save store" }));

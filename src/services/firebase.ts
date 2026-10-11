@@ -5,6 +5,7 @@ import {
     getAuth,
     getRedirectResult,
     onAuthStateChanged,
+    signInWithPopup,
     signInWithRedirect,
     signOut,
 } from "firebase/auth";
@@ -19,13 +20,18 @@ import {
 import { connectStorageEmulator, getStorage } from "firebase/storage";
 import { memberConverter } from "../data/model";
 import { createFirestoreData } from "./firestoreData";
+import { authDomainForHost } from "./authDomain";
 import type { Services } from "./types";
 
 export function createFirebaseServices(): Services {
     const env = import.meta.env;
     const app = initializeApp({
         apiKey: env.VITE_FIREBASE_API_KEY,
-        authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
+        authDomain: authDomainForHost(
+            window.location.hostname,
+            env.VITE_FIREBASE_AUTH_DOMAIN,
+            env.VITE_USE_EMULATORS === "true",
+        ),
         projectId: env.VITE_FIREBASE_PROJECT_ID,
         storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
         appId: env.VITE_FIREBASE_APP_ID,
@@ -62,7 +68,15 @@ export function createFirebaseServices(): Services {
                     },
                     () => listener(null),
                 ),
-            signIn: () => signInWithRedirect(auth, new GoogleAuthProvider()),
+            signIn: async () => {
+                // Cross-origin redirects cannot reliably recover the session when
+                // third-party storage is blocked (for example, on localhost).
+                if (env.VITE_USE_EMULATORS !== "true" && window.location.hostname !== app.options.authDomain) {
+                    await signInWithPopup(auth, new GoogleAuthProvider());
+                } else {
+                    await signInWithRedirect(auth, new GoogleAuthProvider());
+                }
+            },
             signOut: () => signOut(auth),
         },
         data: createFirestoreData(db, storage),

@@ -2,14 +2,14 @@
 title: Item Page
 aliases: [item, new item, add item, item details, item prices]
 touches: [page-paths, back-navigation, household-data-reads]
-last_updated_by: "#1"
+last_updated_by: "#14"
 status: active
 verification: verified
 ---
 
 # Item Page
 
-One Item page serves both a new item and an existing item, each at its own path. The page holds the item's details and, for an existing item with recorded prices, its prices. It is a full page, not a panel over the List.
+One Item page serves both a new item and an existing item, each at its own path. The page holds the item's details and, for an existing item with recorded prices, its prices. It is a full page, not a panel over the List. Done saves the item.
 
 ## How It Works
 
@@ -17,7 +17,7 @@ Choosing to add an item on the List page opens the Item page at its "new" path. 
 
 The page holds the item's name, quantity, note and photo. It also holds where the item sits in each store. For an existing item, the page reads these details and the item's recorded prices. Each price belongs to a store chain and carries the date it was observed. A new item has no prices to show.
 
-Finishing uses the up control, which leads to the List page. The List page then restores the scroll position it had. The page saves nothing yet.
+Finishing uses the up control, which leads to the List page. The List page then restores the scroll position it had. Done saves the item, then finishes. A new item goes on the list with no photo. An edit writes only the name, quantity, note and zones, so the list flag and photo stay as stored. Choosing "Not placed" for a store removes that store's zone. Done with no changes writes nothing, and leaving with unsaved changes asks to confirm.
 
 ## Key Invariants
 
@@ -25,7 +25,9 @@ Finishing uses the up control, which leads to the List page. The List page then 
 2. Choosing an item on the list opens the Item page for that item.
 3. The Item page of an existing item with recorded prices shows those prices.
 4. The Item page of a new item shows no prices.
-5. Finishing on the Item page returns to List, also when the page was opened from a saved link.
+5. ~~Finishing on the Item page returns to List, also when the page was opened from a saved link.~~ Superseded by 6.
+6. A confirmed save on the Item page returns to List, also when the page was opened from a saved link. A failed save stays on the page.
+7. A save waits up to 8 seconds for the server to confirm. A refused or unconfirmed save keeps the typed values and shows an error, and a retry never creates a second item. A blank name is refused before any write.
 
 ## Integration Points
 
@@ -38,3 +40,7 @@ Finishing uses the up control, which leads to the List page. The List page then 
 ### 2026-10-10 — #1 — One Item page with two paths, for a new item and an existing one
 
 The List page needs one way in for a new item and one for an existing item. The Item story needs one page that holds the details and the prices. Giving each way in its own path keeps both reloadable. The trade-off is that opening an item replaces the List page, so the List must restore its scroll position on return. The refuted alternative was to open the item as a panel over the List, with no path of its own. That is a common pattern in list apps and is quick to dismiss. It lost because it breaks reload and saved links for the Item page, and the photo and per-store place controls need a full page.
+
+### 2026-10-11 — #14 — Done saves the item and waits for the server
+
+Done now saves a new item onto the list and saves an edit to an existing item. The page waits up to 8 seconds for the server, so a refusal still shows an error while the typed values exist. The phone queues every write, so an unconfirmed save may arrive later, and the error says so. A new item gets its ID when the page opens, so a retry overwrites the same item. An edit writes only the fields the page shows, so it cannot undo a list change made on the other phone. Leaving with unsaved changes asks to confirm, because silent loss of typed values is the problem the epic opened with. The refuted alternative was to close at once on the local write and let the live reads show it. It works with no signal. It lost because a refused write would vanish after the page closed.

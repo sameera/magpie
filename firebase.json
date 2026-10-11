@@ -20,7 +20,7 @@
             "googleSignIn": {
                 "oAuthBrandDisplayName": "Magpie",
                 "supportEmail": "www.sameera@gmail.com",
-                "authorizedRedirectUris": ["https://awzm-magpie.web.app/__/auth/handler"]
+                "authorizedRedirectUris": ["https://awzmlist.web.app/__/auth/handler"]
             }
         }
     },

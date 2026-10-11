@@ -13,13 +13,21 @@ Product context, personas, and priorities: [docs/product/context.md](docs/produc
 
 ## Development
 
-Package manager is pnpm; local backend is the Firebase Emulator Suite.
+Package manager is pnpm. Local development uses the live Firebase backend configured in `.env.development` with `VITE_USE_EMULATORS=false`. Google sign-in uses a popup locally; `localhost` must be in Firebase Authentication's authorized domains.
 
-- `pnpm dev` — Vite dev server
+- `pnpm dev` — Vite dev server using the configured Firebase backend
 - `pnpm build` — type-check and production build (PWA)
 - `pnpm test` — type-check, unit tests, and security-rule tests on the Firestore/Storage emulators (needs Java 21+)
 - `pnpm emulators` — local Auth/Firestore/Storage emulators, seeded with a test household and data
 - `pnpm setup:household --project <id> --household <id> --member <email> --member <email>` — the one-time, by-hand set-up of the live household and its members
+
+To use emulators instead, configure `.env.development` with the demo Firebase config and `VITE_USE_EMULATORS=true`, and run `pnpm emulators` alongside `pnpm dev` (needs Java 21+).
+
+## Firebase deployment
+
+The live Firebase project is `awzmlist`, hosted at https://awzmlist.web.app. Both `.env.development` and `.env.production` use this project; keep these ignored files populated from `pnpm exec firebase apps:sdkconfig WEB --project awzmlist`. Use `awzmlist.web.app` as `VITE_FIREBASE_AUTH_DOMAIN` to keep production sign-in on the same origin.
+
+Deploy with `pnpm build` followed by `pnpm exec firebase deploy --only auth,firestore,hosting --project prod`. The default CLI project remains `demo-magpie` for emulator safety. Cloud Storage still needs a Blaze billing account, a default bucket, and deployment of `storage.rules` before photo uploads work.
 
 ## Technical Patterns and Standards
 

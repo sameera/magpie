@@ -51,24 +51,28 @@ service cloud.firestore {
 
             match /items/{itemId} {
                 function validFields(data) {
-                    return data.keys().hasOnly(['name', 'quantity', 'note', 'photoPath', 'onList', 'places'])
+                    return data.keys().hasAll(['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'])
+                        && data.keys().hasOnly(['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'])
                         && validName(data)
-                        && data.get('quantity', '') is string
-                        && data.get('quantity', '').size() <= 100
-                        && data.get('note', '') is string
-                        && data.get('note', '').size() <= 1000
-                        && data.get('onList', false) is bool
-                        && data.get('places', {}) is map;
+                        && data.quantityNeeded is int
+                        && data.quantityNeeded >= 1 && data.quantityNeeded <= 999
+                        && data.quantityRemaining is int && data.quantityRemaining == 0
+                        && data.category == ''
+                        && (data.photoPath == null || data.photoPath is string)
+                        && data.note is string && data.note.size() <= 1000
+                        && data.onList is bool
+                        && data.places is map;
                 }
 
                 allow create: if isMemberOf(householdId)
-                    && request.resource.data.keys().hasAll(['name', 'quantity', 'note', 'photoPath', 'onList', 'places'])
                     && validFields(request.resource.data)
                     && request.resource.data.photoPath == null;
 
                 allow update: if isMemberOf(householdId)
                     && validFields(request.resource.data)
-                    && request.resource.data.get('photoPath', null) == resource.data.get('photoPath', null);
+                    && request.resource.data.photoPath == resource.data.photoPath
+                    && request.resource.data.quantityRemaining == resource.data.quantityRemaining
+                    && request.resource.data.category == resource.data.category;
             }
 
             match /{document=**} {

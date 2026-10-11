@@ -57,3 +57,12 @@ describe("List page", () => {
         scrollTo.mockRestore();
     });
 });
+
+
+it("shows quantity needed and excludes inventory items off the list", () => {
+    const services = new FakeServices();
+    services.households.get("h1")!.items[1].onList = false;
+    renderApp(["/"], services);
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.queryByText("Bread")).toBeNull();
+});

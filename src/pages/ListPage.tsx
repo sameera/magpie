@@ -29,9 +29,9 @@ export function ListPage() {
                                 </span>
                                 <span className="flex min-w-0 flex-col">
                                     <span className="text-item">{item.name}</span>
-                                    {(item.quantity || item.note) && (
+                                    {(item.quantityNeeded || item.note) && (
                                         <span className="text-caption text-ink-muted">
-                                            {[item.quantity, item.note].filter(Boolean).join(" · ")}
+                                            {[item.quantityNeeded, item.note].filter(Boolean).join(" · ")}
                                         </span>
                                     )}
                                 </span>

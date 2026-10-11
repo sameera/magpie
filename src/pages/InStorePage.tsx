@@ -74,7 +74,7 @@ export function InStorePage() {
                     <li key={item.id} className="flex min-h-18 flex-col justify-center rounded-md bg-surface p-3 shadow-sticker">
                         <span className="text-item">{item.name}</span>
                         <span className="text-caption text-ink-muted">
-                            {[item.quantity, zoneOf(item, store.value)?.label].filter(Boolean).join(" · ")}
+                            {[item.quantityNeeded, zoneOf(item, store.value)?.label].filter(Boolean).join(" · ")}
                         </span>
                     </li>
                 ))}

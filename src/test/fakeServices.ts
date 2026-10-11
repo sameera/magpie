@@ -5,7 +5,7 @@ import type { AuthUser, DataService, Membership, Services, Watched } from "../se
 type Listener<T> = (value: T) => void;
 
 export function testItem(fields: Partial<Item> & { id: string; name: string }): Item {
-    return { quantity: "", note: "", photoPath: null, onList: true, places: {}, ...fields };
+    return { quantityNeeded: 1, quantityRemaining: 0, category: "", note: "", photoPath: null, onList: true, places: {}, ...fields };
 }
 
 export function testStore(fields: Partial<Store> & { id: string; name: string }): Store {
@@ -33,7 +33,7 @@ export class FakeServices implements Services {
         this.memberships.set("alex", { householdId: "h1" });
         this.households.set("h1", {
             items: [
-                testItem({ id: "i1", name: "Milk", quantity: "2 L", places: { s1: "z-dairy" } }),
+                testItem({ id: "i1", name: "Milk", quantityNeeded: 2, places: { s1: "z-dairy" } }),
                 testItem({ id: "i2", name: "Bread", note: "Sourdough", places: { s1: "z-bakery" } }),
             ],
             stores: [
@@ -118,10 +118,10 @@ export class FakeServices implements Services {
                 const household = this.household(householdId);
                 household.items = [...household.items.filter(existing => existing.id !== item.id), testItem({ ...item, onList: true })];
             }),
-        updateItem: (householdId, { id, name, quantity, note, places }) =>
+        updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
             this.save(() => {
                 const household = this.household(householdId);
-                household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantity, note, places } : existing);
+                household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, places } : existing);
             }),
         watchList: (householdId, listener) =>
             this.answer(

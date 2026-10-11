@@ -168,7 +168,7 @@ describe("store persistence through the application adapter", () => {
         const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, `adapter-${chain}`);
         try {
             const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
-            await createFirestoreData(writer, getStorage(app)).createStore("h1", { name: "New location", chain });
+            await createFirestoreData(writer, getStorage(app)).createStore("h1", { id: `store-${chain}`, name: "New location", chain });
             // Another member/client reads persisted data; no fake-service state is reused.
             const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
             const saved = await getDocs(collection(reader, "households/h1/stores"));

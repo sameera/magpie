@@ -1,10 +1,13 @@
 import { useId, useState } from "react";
+import { confirmDiscard, confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_MESSAGE } from "../app/saveWait";
 import { useHouseholdId, useServices } from "../app/session";
 
 export function AddStoreSheet({ chains, onClose }: { chains: string[]; onClose: () => void }) {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const listId = useId();
+    // Made once, so a retry of an unconfirmed save writes the same store.
+    const [storeId] = useState(newRecordId);
     const [name, setName] = useState("");
     const [chain, setChain] = useState("");
     const [expanded, setExpanded] = useState(false);
@@ -18,10 +21,15 @@ export function AddStoreSheet({ chains, onClose }: { chains: string[]; onClose: 
         setExpanded(false);
         setActive(-1);
     };
+    const leave = () => {
+        if (saving) return;
+        if ((name.trim() || chain) && !confirmDiscard()) return;
+        onClose();
+    };
     const inputClass = "h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-body";
 
     return (
-        <div className="fixed inset-0 z-40 flex items-end bg-scrim" onClick={() => !saving && onClose()}>
+        <div className="fixed inset-0 z-40 flex items-end bg-scrim" onClick={leave}>
             <form role="dialog" aria-label="Add store"
                 className="mx-auto flex max-h-[90dvh] w-full max-w-[560px] flex-col gap-4 overflow-y-auto rounded-t-lg bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-float"
                 onClick={e => e.stopPropagation()}
@@ -31,10 +39,10 @@ export function AddStoreSheet({ chains, onClose }: { chains: string[]; onClose: 
                     if (!name.trim()) { setError("Name is required."); return; }
                     setError("");
                     setSaving(true);
-                    // The Stores list updates from the local snapshot, including while offline.
-                    data.createStore(householdId, { name: name.trim(), chain }).then(onClose, () => {
+                    confirmSave(data.createStore(householdId, { id: storeId, name: name.trim(), chain })).then(result => {
+                        if (result === "saved") { onClose(); return; }
                         setSaving(false);
-                        setError("The store could not be saved. Try again.");
+                        setError(`The store ${result === "refused" ? REFUSED_MESSAGE : UNCONFIRMED_MESSAGE}`);
                     });
                 }}>
                 <h2 className="font-display text-heading">Add store</h2>
@@ -65,9 +73,9 @@ export function AddStoreSheet({ chains, onClose }: { chains: string[]; onClose: 
                         onPointerDown={e => e.preventDefault()} onClick={() => choose(value)}>{value}</li>)}
                 </ul>}
                 {error && <p role="alert" className="text-body text-danger">{error}</p>}
-                {saving && <p role="status" className="text-body text-ink-muted">Saving store… If you are offline, it will sync when you have signal.</p>}
+                {saving && <p role="status" className="text-body text-ink-muted">Saving store…</p>}
                 <button type="submit" disabled={saving} className="h-tap rounded-md bg-sheen text-button text-on-sheen">Save store</button>
-                <button type="button" disabled={saving} onClick={onClose} className="h-tap rounded-md border-2 border-line-strong bg-surface text-button">Close</button>
+                <button type="button" disabled={saving} onClick={leave} className="h-tap rounded-md border-2 border-line-strong bg-surface text-button">Close</button>
             </form>
         </div>
     );

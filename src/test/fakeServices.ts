@@ -88,14 +88,31 @@ export class FakeServices implements Services {
     }
 
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
-    private nextStoreId = 1;
+
+    // What the next saves do: "refuse" rejects them; "hang" never answers, as
+    // when the server cannot be reached.
+    saveBehavior: "accept" | "refuse" | "hang" = "accept";
+
+    // Applies a save the way Firestore does: the local view changes at once,
+    // the returned promise settles when the server answers.
+    private save(apply: () => void): Promise<void> {
+        if (this.saveBehavior === "refuse") {
+            return Promise.reject(new Error("permission-denied"));
+        }
+        apply();
+        if (this.saveBehavior === "hang") {
+            return new Promise<void>(() => undefined);
+        }
+        return Promise.resolve();
+    }
 
     data: DataService = {
-        createStore: async (householdId, store) => {
-            const household = this.household(householdId);
-            household.stores = [...household.stores, { id: `new-${this.nextStoreId++}`, ...store, map: null }];
-            this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
-        },
+        createStore: (householdId, store) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.stores = [...household.stores.filter(existing => existing.id !== store.id), { ...store, map: null }];
+                this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
+            }),
         watchList: (householdId, listener) =>
             this.answer(
                 listener,

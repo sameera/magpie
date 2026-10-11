@@ -23,7 +23,9 @@ export type Unsubscribe = () => void;
 
 // Access to one household's data. Writes are reflected by snapshot listeners.
 export interface DataService {
-    createStore(householdId: string, store: Pick<Store, "name" | "chain">): Promise<void>;
+    // Writes under the given ID, so saving again overwrites the same store.
+    // Resolves once the server accepts the write; rejects if it is refused.
+    createStore(householdId: string, store: Pick<Store, "id" | "name" | "chain">): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
     watchItem(householdId: string, itemId: string, listener: (item: Watched<Item>) => void): Unsubscribe;
     // Newest first.

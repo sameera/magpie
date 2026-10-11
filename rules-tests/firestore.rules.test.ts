@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, getDocs, collection, setDoc, updateDoc, query, where, type Firestore } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, getDocs, collection, setDoc, updateDoc, writeBatch, query, where, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { initializeApp, deleteApp } from "firebase/app";
 import { createFirestoreData } from "../src/services/firestoreData";
@@ -259,5 +259,31 @@ describe("inventory shape and household boundary", () => {
             await assertFails(setDoc(doc(db, "households/h1/items/i1"), partial));
         }
         await assertFails(deleteDoc(doc(db, "households/h1/items/i1")));
+    });
+});
+
+
+describe("atomic quick-add persistence", () => {
+    it("allows 50 items and same-ID retries through the application adapter", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules" }, "batch-adapter");
+        try {
+            const db = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+            const data = createFirestoreData(db, getStorage(app));
+            const items = Array.from({ length: 50 }, (_, i) => ({ id: `batch-${i}`, name: `Item ${i}`, quantityNeeded: 1, note: "", places: {} }));
+            await assertSucceeds(data.createItems("h1", items));
+            await assertSucceeds(data.createItems("h1", items));
+            const result = await getDocs(collection(db, "households/h1/items"));
+            if (result.docs.filter(d => d.id.startsWith("batch-")).length !== 50) throw new Error("Batch duplicated or lost items");
+        } finally { await deleteApp(app); }
+    });
+    it("refuses a batch with one invalid item and leaves none behind", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const batch = writeBatch(db);
+        batch.set(doc(db, "households/h1/items/batch-good"), validItem);
+        batch.set(doc(db, "households/h1/items/batch-bad"), { ...validItem, quantityNeeded: 0 });
+        await assertFails(batch.commit());
+        for (const id of ["batch-good", "batch-bad"]) {
+            if ((await getDoc(doc(db, `households/h1/items/${id}`))).exists()) throw new Error("Partial batch survived");
+        }
     });
 });

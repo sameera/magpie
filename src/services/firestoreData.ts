@@ -1,4 +1,4 @@
-import { setDoc, updateDoc, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
+import { writeBatch, setDoc, updateDoc, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
 import { itemConverter, priceConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import type { DataService } from "./types";
@@ -14,6 +14,13 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
     return {
         createStore: (householdId, { id, name, chain }) => setDoc(doc(stores(householdId), id), { id, name, chain, map: null }),
         createItem: (householdId, item) => setDoc(doc(items(householdId), item.id), { ...item, photoPath: null, onList: true, quantityRemaining: 0, category: "" }),
+        createItems: (householdId, drafts) => {
+            const batch = writeBatch(db);
+            for (const item of drafts) {
+                batch.set(doc(items(householdId), item.id), { ...item, photoPath: null, onList: true, quantityRemaining: 0, category: "" });
+            }
+            return batch.commit();
+        },
         updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
             updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, places }),
         watchList: (householdId, listener) =>

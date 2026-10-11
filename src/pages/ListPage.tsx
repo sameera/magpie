@@ -1,4 +1,6 @@
 import { Camera, Plus } from "lucide-react";
+import { useState } from "react";
+import { AddItemsSheet } from "./AddItemsSheet";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useList } from "../data/hooks";
@@ -6,6 +8,7 @@ import { PageHeader } from "./PageHeader";
 
 export function ListPage() {
     const list = useList();
+    const [adding, setAdding] = useState(false);
     useScrollMemory(list.status !== "loading");
 
     return (
@@ -40,13 +43,15 @@ export function ListPage() {
                     ))}
                 </ul>
             )}
-            <Link
-                to="/items/new"
+            <button
+                type="button"
+                onClick={() => setAdding(true)}
                 aria-label="Add item"
                 className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] z-10 flex size-fab items-center justify-center rounded-pill bg-sheen text-on-sheen shadow-press"
             >
                 <Plus aria-hidden="true" />
-            </Link>
+            </button>
+            <AddItemsSheet open={adding} onClose={() => setAdding(false)} />
         </>
     );
 }

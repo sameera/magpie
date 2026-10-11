@@ -87,6 +87,8 @@ export class FakeServices implements Services {
         return () => undefined;
     }
 
+    private listListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
+
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
     // What the next saves do: "refuse" rejects them; "hang" never answers, as
@@ -118,16 +120,23 @@ export class FakeServices implements Services {
                 const household = this.household(householdId);
                 household.items = [...household.items.filter(existing => existing.id !== item.id), testItem({ ...item, onList: true })];
             }),
+        createItems: (householdId, items) => this.save(() => {
+            const household = this.household(householdId);
+            household.items = [...household.items.filter(existing => !items.some(item => item.id === existing.id)), ...items.map(item => testItem(item))];
+            this.listListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.items.filter(item => item.onList) }));
+        }),
         updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
             this.save(() => {
                 const household = this.household(householdId);
                 household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, places } : existing);
             }),
-        watchList: (householdId, listener) =>
-            this.answer(
-                listener,
-                this.household(householdId).items.filter((item) => item.onList),
-            ),
+        watchList: (householdId, listener) => {
+            const listeners = this.listListeners.get(householdId) ?? new Set();
+            this.listListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, this.household(householdId).items.filter(item => item.onList));
+            return () => { listeners.delete(listener); };
+        },
         watchItem: (householdId, itemId, listener) =>
             this.answer(
                 listener,

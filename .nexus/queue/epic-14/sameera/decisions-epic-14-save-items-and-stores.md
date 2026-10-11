@@ -12,3 +12,8 @@
 - **Choice:** `newRecordId()` uses `crypto.randomUUID()`; the 8 s timer wraps the write promise in `confirmSave`, not in the Firestore adapter.
 - **Why:** Works offline with no Firebase import in pages; the adapter stays a plain `setDoc`.
 - **Refuted alternative:** Firestore `doc(collection).id` exposed via the DataService.
+
+## 2026-10-11 — Item page guards leaving with useBlocker
+- **Choice:** react-router `useBlocker` + `confirmDiscard()` covers back arrow, phone back and any in-app navigation; a ref disables it after a confirmed save.
+- **Why:** One hook covers every route out of the page, including the browser back action.
+- **Refuted alternative:** Per-control handlers plus a `beforeunload` listener.

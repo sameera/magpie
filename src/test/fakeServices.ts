@@ -113,6 +113,11 @@ export class FakeServices implements Services {
                 household.stores = [...household.stores.filter(existing => existing.id !== store.id), { ...store, map: null }];
                 this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
             }),
+        createItem: (householdId, item) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.items = [...household.items.filter(existing => existing.id !== item.id), testItem({ ...item, onList: true })];
+            }),
         watchList: (householdId, listener) =>
             this.answer(
                 listener,

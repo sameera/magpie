@@ -186,3 +186,21 @@ describe("store persistence through the application adapter", () => {
         } finally { await deleteApp(app); }
     });
 });
+
+describe("item persistence through the application adapter", () => {
+    it("lets a member create an item that another member reads back", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-items");
+        try {
+            const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+            const data = createFirestoreData(writer, getStorage(app));
+            const item = { id: "new-item", name: "Eggs", quantity: "12", note: "", places: { s1: "z1" } };
+            await data.createItem("h1", item);
+            await data.createItem("h1", item);
+            const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
+            const saved = await getDoc(doc(reader, "households/h1/items/new-item"));
+            if (saved.get("onList") !== true || saved.get("photoPath") !== null || saved.get("places")?.s1 !== "z1") {
+                throw new Error("Saved item did not survive a fresh read");
+            }
+        } finally { await deleteApp(app); }
+    });
+});

@@ -19,6 +19,34 @@ describe("reading item lines", () => {
     });
 });
 
+describe("reading a quantity in parentheses", () => {
+    it.each([
+        ["Whole Milk (3)", "Whole Milk", 3],
+        ["Whole Milk (3)   ", "Whole Milk", 3],
+        ["Whole Milk(12)", "Whole Milk", 12],
+        ["Eggs (999)", "Eggs", 999],
+        ["Eggs (1)", "Eggs", 1],
+        ["Milk (2%) (2)", "Milk (2%)", 2],
+    ])("reads %j as %j with quantity %i", (line, name, quantityNeeded) => {
+        expect(readItemLines(line)).toEqual([{ name, quantityNeeded }]);
+    });
+
+    it.each([
+        "Milk (2%) 1 gal",
+        "Milk (organic)",
+        "Milk (0)",
+        "Milk (1000)",
+        "Milk (1.5)",
+        "Milk (-2)",
+        "Milk ( 3 )",
+        "Milk ()",
+        "(3)",
+        "Milk 3)",
+    ])("keeps %j whole, with quantity 1", (line) => {
+        expect(readItemLines(line)).toEqual([{ name: line, quantityNeeded: 1 }]);
+    });
+});
+
 describe("line limits", () => {
     it("accepts up to 50 lines of names up to 100 characters", () => {
         expect(linesProblem(readItemLines(Array(50).fill("x".repeat(100)).join("\n")))).toBeNull();

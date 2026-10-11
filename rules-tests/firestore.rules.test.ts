@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, getDocs, collection, setDoc, type Firestore } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, getDocs, collection, setDoc, updateDoc, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { initializeApp, deleteApp } from "firebase/app";
 import { createFirestoreData } from "../src/services/firestoreData";
@@ -64,10 +64,11 @@ describe("household data", () => {
         await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "households/h1/items/i1")));
     });
 
-    it("cannot be saved from the app in this epic", async () => {
+    it("refuses writes to the household record, prices and memberships", async () => {
         const db = env.authenticatedContext("alex").firestore();
-        await assertFails(setDoc(doc(db, "households/h1/items/i2"), { name: "Bread" }));
         await assertFails(setDoc(doc(db, "households/h1"), { name: "Ours" }));
+        await assertFails(setDoc(doc(db, "households/h1/prices/p1"), { itemId: "i1", amount: 1 }));
+        await assertFails(setDoc(doc(db, "members/alex"), { householdId: "h1" }));
     });
 });
 
@@ -79,6 +80,21 @@ describe("creating stores", () => {
         await assertSucceeds(getDoc(ref));
         await assertFails(setDoc(ref, { ...store, chain: "Changed" }));
         await assertFails(deleteDoc(ref));
+    });
+    it("allows a member to retry a save with the same content, and nothing else", async () => {
+        const ref = doc(env.authenticatedContext("alex").firestore(), "households/h1/stores/new");
+        await assertSucceeds(setDoc(ref, store));
+        await assertSucceeds(setDoc(ref, store));
+        await assertFails(setDoc(ref, { ...store, name: "Renamed" }));
+        await assertFails(updateDoc(ref, { map: { width: 1, height: 1, zones: [], scanPath: null } }));
+    });
+    it("accepts an empty chain and refuses blank or over-long names", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertSucceeds(setDoc(doc(db, "households/h1/stores/a"), { ...store, chain: "" }));
+        await assertFails(setDoc(doc(db, "households/h1/stores/b"), { ...store, name: "   " }));
+        await assertFails(setDoc(doc(db, "households/h1/stores/c"), { ...store, name: "x".repeat(101) }));
+        const { name: _name, ...nameless } = store;
+        await assertFails(setDoc(doc(db, "households/h1/stores/d"), nameless));
     });
     it("denies cross-household, non-member and signed-out creates", async () => {
         for (const ctx of [env.authenticatedContext("olga"), env.authenticatedContext("stranger"), env.unauthenticatedContext()]) {
@@ -93,6 +109,59 @@ describe("creating stores", () => {
     });
 });
 
+
+describe("saving items", () => {
+    const item = { name: "Bread", quantity: "1", note: "", photoPath: null, onList: true, places: { s1: "z1" } };
+    const path = "households/h1/items/i2";
+    it("allows a member to create an item and update it, but not delete it", async () => {
+        const ref = doc(env.authenticatedContext("alex").firestore(), path);
+        await assertSucceeds(setDoc(ref, item));
+        await assertSucceeds(updateDoc(ref, { name: "Rye", quantity: "2", note: "x", places: {} }));
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("sam").firestore(), "households/h1/items/i1"), { name: "Oat milk" }));
+        await assertFails(deleteDoc(ref));
+    });
+    it("denies cross-household, non-member and signed-out saves and leaves the data unchanged", async () => {
+        for (const ctx of [env.authenticatedContext("olga"), env.authenticatedContext("stranger"), env.unauthenticatedContext()]) {
+            const db = ctx.firestore();
+            await assertFails(setDoc(doc(db, path), item));
+            await assertFails(updateDoc(doc(db, "households/h1/items/i1"), { name: "Changed" }));
+        }
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            const db = ctx.firestore();
+            if ((await getDoc(doc(db, path))).exists()) throw new Error("A refused create wrote data");
+            if ((await getDoc(doc(db, "households/h1/items/i1"))).get("name") !== "Milk") throw new Error("A refused update changed data");
+        });
+    });
+    it("refuses unknown fields, bad names and bad value types", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const bad = [
+            { ...item, createdAt: 1 },
+            { ...item, name: "" },
+            { ...item, name: "  " },
+            { ...item, name: "x".repeat(101) },
+            { ...item, quantity: 3 },
+            { ...item, note: 3 },
+            { ...item, onList: "yes" },
+            { ...item, places: "z1" },
+        ];
+        for (const value of bad) await assertFails(setDoc(doc(db, path), value));
+        const { name: _name, ...nameless } = item;
+        await assertFails(setDoc(doc(db, path), nameless));
+        await assertFails(updateDoc(doc(db, "households/h1/items/i1"), { name: "" }));
+        await assertFails(updateDoc(doc(db, "households/h1/items/i1"), { extra: 1 }));
+    });
+    it("refuses a new item with a photo and any change to an item's photo", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertFails(setDoc(doc(db, path), { ...item, photoPath: "photos/a.jpg" }));
+        await assertSucceeds(setDoc(doc(db, path), item));
+        await assertFails(updateDoc(doc(db, path), { photoPath: "photos/a.jpg" }));
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), "households/h1/items/i3"), { ...item, photoPath: "photos/b.jpg" });
+        });
+        await assertFails(updateDoc(doc(db, "households/h1/items/i3"), { photoPath: null }));
+        await assertSucceeds(updateDoc(doc(db, "households/h1/items/i3"), { name: "Same photo" }));
+    });
+});
 
 describe("store persistence through the application adapter", () => {
     it.each(["Costco", "New independent chain", "co"])("retains %s in a fresh household listener", async (chain) => {

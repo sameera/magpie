@@ -87,7 +87,15 @@ export class FakeServices implements Services {
         return () => undefined;
     }
 
+    private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
+    private nextStoreId = 1;
+
     data: DataService = {
+        createStore: async (householdId, store) => {
+            const household = this.household(householdId);
+            household.stores = [...household.stores, { id: `new-${this.nextStoreId++}`, ...store, map: null }];
+            this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
+        },
         watchList: (householdId, listener) =>
             this.answer(
                 listener,
@@ -105,7 +113,13 @@ export class FakeServices implements Services {
                     .prices.filter((price) => price.itemId === itemId)
                     .sort((a, b) => b.observedAt.getTime() - a.observedAt.getTime()),
             ),
-        watchStores: (householdId, listener) => this.answer(listener, this.household(householdId).stores),
+        watchStores: (householdId, listener) => {
+            const listeners = this.storeListeners.get(householdId) ?? new Set();
+            this.storeListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, this.household(householdId).stores);
+            return () => { listeners.delete(listener); };
+        },
         watchStore: (householdId, storeId, listener) =>
             this.answer(
                 listener,

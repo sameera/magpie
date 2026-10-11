@@ -2,6 +2,7 @@ import { ChevronRight, Plus } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { useStores } from "../data/hooks";
+import { AddStoreSheet } from "./AddStoreSheet";
 import { PageHeader } from "./PageHeader";
 
 export function StoresPage() {
@@ -46,40 +47,7 @@ export function StoresPage() {
                     ))}
                 </ul>
             )}
-            {adding && <AddStoreSheet onClose={() => setAdding(false)} />}
+            {adding && <AddStoreSheet chains={stores.status === "ready" ? stores.value.map(store => store.chain) : []} onClose={() => setAdding(false)} />}
         </>
-    );
-}
-
-// The way to add a store. Saving comes with the Stores feature epic.
-function AddStoreSheet({ onClose }: { onClose: () => void }) {
-    return (
-        <div className="fixed inset-0 z-40 flex items-end bg-scrim" onClick={onClose}>
-            <form
-                role="dialog"
-                aria-label="Add store"
-                className="mx-auto flex w-full max-w-[560px] flex-col gap-4 rounded-t-lg bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-float"
-                onClick={(e) => e.stopPropagation()}
-                onSubmit={(e) => e.preventDefault()}
-            >
-                <h2 className="font-display text-heading">Add store</h2>
-                <label className="flex flex-col gap-1 text-caption">
-                    Name
-                    <input className="h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-body" />
-                </label>
-                <label className="flex flex-col gap-1 text-caption">
-                    Chain
-                    <input className="h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-body" />
-                </label>
-                <p className="text-caption text-ink-muted">Saving new stores is coming soon.</p>
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="h-tap rounded-md border-2 border-line-strong bg-surface text-button"
-                >
-                    Close
-                </button>
-            </form>
-        </div>
     );
 }

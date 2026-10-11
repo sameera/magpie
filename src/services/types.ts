@@ -21,8 +21,9 @@ export type Watched<T> = { status: "loading" } | { status: "ready"; value: T } |
 
 export type Unsubscribe = () => void;
 
-// Read-only access to one household's data. No page in this epic saves.
+// Access to one household's data. Writes are reflected by snapshot listeners.
 export interface DataService {
+    createStore(householdId: string, store: Pick<Store, "name" | "chain">): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
     watchItem(householdId: string, itemId: string, listener: (item: Watched<Item>) => void): Unsubscribe;
     // Newest first.

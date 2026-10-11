@@ -24,6 +24,16 @@ service cloud.firestore {
             allow read: if isMemberOf(householdId);
             allow write: if false;
 
+            match /stores/{storeId} {
+                allow create: if isMemberOf(householdId)
+                    && request.resource.data.keys().hasAll(['name', 'chain', 'map'])
+                    && request.resource.data.keys().hasOnly(['name', 'chain', 'map'])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.matches('.*[^\\s].*')
+                    && request.resource.data.chain is string
+                    && request.resource.data.map == null;
+            }
+
             match /{document=**} {
                 allow read: if isMemberOf(householdId);
                 allow write: if false;

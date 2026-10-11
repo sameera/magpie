@@ -122,6 +122,16 @@ describe("Add items drawer", () => {
         expect(box()).toHaveValue("");
     });
 
+    it("reads a quantity from parentheses at the end of a line", async () => {
+        const { user, services } = await openDrawer();
+        await user.type(box(), "Whole Milk (3)  {Enter}Milk (2%) 1 gal{Enter}Milk (organic)");
+        await user.click(screen.getByRole("button", { name: "Add" }));
+        expect(items(services).find(i => i.name === "Whole Milk")).toMatchObject({ quantityNeeded: 3 });
+        expect(items(services).find(i => i.name === "Milk (2%) 1 gal")).toMatchObject({ quantityNeeded: 1 });
+        expect(items(services).find(i => i.name === "Milk (organic)")).toMatchObject({ quantityNeeded: 1 });
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Qty 3")).toBeInTheDocument();
+    });
+
     it("keeps the typed text when the drawer is closed and reopened", async () => {
         const { user } = await openDrawer();
         await user.type(box(), "Apples");

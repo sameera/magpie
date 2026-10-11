@@ -1,3 +1,5 @@
+import { parseQuantity } from "./model";
+
 // What one line of the Add drawer's text box adds.
 export interface ItemLine {
     name: string;
@@ -16,7 +18,18 @@ export function readItemLines(text: string): ItemLine[] {
         .map(readLine);
 }
 
+// A quantity suffix: digits in parentheses at the very end of a trimmed line.
+const QUANTITY_SUFFIX: RegExp = /^(.*)\((\d+)\)$/;
+
+// "Whole Milk (3)" is three of "Whole Milk". A suffix that is not a whole number
+// from 1 to 999, or has no name before it, leaves the whole line as the name.
 function readLine(line: string): ItemLine {
+    const match = QUANTITY_SUFFIX.exec(line);
+    const name = match?.[1].trim();
+    const quantity = match ? parseQuantity(match[2]) : null;
+    if (name && quantity !== null) {
+        return { name, quantityNeeded: quantity };
+    }
     return { name: line, quantityNeeded: 1 };
 }
 

@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, getDocs, collection, query, setDoc, updateDoc, where, type Firestore } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, getDocs, collection, query, setDoc, updateDoc, where, writeBatch, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { initializeApp, deleteApp } from "firebase/app";
 import type { Item } from "../src/data/model";
@@ -207,6 +207,62 @@ describe("saving items", () => {
         await assertFails(updateDoc(doc(db, "households/h1/items/i3"), { quantityRemaining: 0 }));
         await assertFails(updateDoc(doc(db, "households/h1/items/i3"), { category: null }));
         await assertSucceeds(updateDoc(doc(db, "households/h1/items/i3"), { name: "Same photo" }));
+    });
+});
+
+describe("adding several items in one write", () => {
+    function batchOf(db: Firestore, values: Record<string, unknown>[]) {
+        const batch = writeBatch(db);
+        values.forEach((value, index) => batch.set(doc(db, `households/h1/items/batch-${index}`), value));
+        return batch;
+    }
+    const fifty = () => Array.from({ length: 50 }, (_v, index) => validItem(`Item ${index}`));
+    const added = async () => {
+        let count = 0;
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            count = (await getDocs(collection(ctx.firestore(), "households/h1/items"))).docs.filter((d) => d.id.startsWith("batch-")).length;
+        });
+        return count;
+    };
+
+    it("lets a member write 50 new items at once, and re-send the same write", async () => {
+        const db = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+        await assertSucceeds(batchOf(db, fifty()).commit());
+        await assertSucceeds(batchOf(db, fifty()).commit());
+        if ((await added()) !== 50) throw new Error("Expected 50 items");
+    });
+
+    it("refuses a write holding one invalid item as a whole, leaving no item behind", async () => {
+        const db = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+        await assertFails(batchOf(db, [validItem("Apples"), { ...validItem("Jam"), quantityNeeded: 0 }, validItem("Eggs")]).commit());
+        if ((await added()) !== 0) throw new Error("A refused write left items behind");
+    });
+
+    it("refuses the write from other households, non-members and signed-out users", async () => {
+        for (const ctx of [env.authenticatedContext("olga"), env.authenticatedContext("stranger"), env.unauthenticatedContext()]) {
+            await assertFails(batchOf(ctx.firestore() as unknown as Firestore, [validItem("Apples")]).commit());
+        }
+        if ((await added()) !== 0) throw new Error("A refused write left items behind");
+    });
+});
+
+describe("adding several items through the application adapter", () => {
+    it("lets a member add items that another member reads back on the list", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-many");
+        try {
+            const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+            const data = createFirestoreData(writer, getStorage(app));
+            const items = [
+                { id: "q1", name: "Apples", quantityNeeded: 1, note: "", places: {} },
+                { id: "q2", name: "Jam", quantityNeeded: 1, note: "", places: {} },
+            ];
+            await data.createItems("h1", items);
+            await data.createItems("h1", items);
+            const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
+            const saved = await getDocs(query(collection(reader, "households/h1/items"), where("onList", "==", true)));
+            const names = saved.docs.map((d) => d.get("name")).sort();
+            if (names.join() !== "Apples,Jam,Milk") throw new Error(`Unexpected list: ${names.join()}`);
+        } finally { await deleteApp(app); }
     });
 });
 

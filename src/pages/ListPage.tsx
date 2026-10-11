@@ -2,6 +2,7 @@ import { Camera, Plus } from "lucide-react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useList } from "../data/hooks";
+import { quantityLabel } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
 export function ListPage() {
@@ -29,11 +30,9 @@ export function ListPage() {
                                 </span>
                                 <span className="flex min-w-0 flex-col">
                                     <span className="text-item">{item.name}</span>
-                                    {(item.quantity || item.note) && (
-                                        <span className="text-caption text-ink-muted">
-                                            {[item.quantity, item.note].filter(Boolean).join(" · ")}
-                                        </span>
-                                    )}
+                                    <span className="text-caption text-ink-muted">
+                                        {[quantityLabel(item), item.note].filter(Boolean).join(" · ")}
+                                    </span>
                                 </span>
                             </Link>
                         </li>

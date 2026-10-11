@@ -91,3 +91,17 @@ it("ignores blank input without writing", async () => {
     await user.click(screen.getByRole("button", { name: /^Add$/ }));
     expect(write).not.toHaveBeenCalled();
 });
+
+it("saves suffix quantities and literal parentheses from the drawer", async () => {
+    const { user, services } = await open();
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "Whole Milk (3)  \nMilk (2%) 1 gal\nMilk (organic)\nMilk (0)" } });
+    await user.click(screen.getByRole("button", { name: /^Add$/ }));
+    const added = services.households.get("h1")!.items.slice(2);
+    expect(added.map(({ name, quantityNeeded }) => ({ name, quantityNeeded }))).toEqual([
+        { name: "Whole Milk", quantityNeeded: 3 },
+        { name: "Milk (2%) 1 gal", quantityNeeded: 1 },
+        { name: "Milk (organic)", quantityNeeded: 1 },
+        { name: "Milk (0)", quantityNeeded: 1 },
+    ]);
+    expect(screen.getByText("Whole Milk")).toBeInTheDocument();
+});

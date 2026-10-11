@@ -1,13 +1,16 @@
 import { Camera } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { useParams } from "react-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useBlocker, useParams } from "react-router";
+import { useUp } from "../app/history";
+import { confirmDiscard, confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_MESSAGE } from "../app/saveWait";
+import { useHouseholdId, useServices } from "../app/session";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
 import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
 import type { Item, Price } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
-const newItem: Item = { id: "", name: "", quantity: "", note: "", photoPath: null, onList: true, places: {} };
+const emptyItem: Item = { id: "", name: "", quantity: "", note: "", photoPath: null, onList: true, places: {} };
 
 const money: Intl.NumberFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const day: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -15,7 +18,21 @@ const day: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", { month: "shor
 // One page for a new item (/items/new) and an existing one (/items/<id>).
 export function ItemPage() {
     const { itemId } = useParams();
-    return itemId ? <ExistingItem itemId={itemId} /> : <ItemDetails title="New item" item={newItem} />;
+    return itemId ? <ExistingItem itemId={itemId} /> : <NewItem />;
+}
+
+function NewItem() {
+    const householdId = useHouseholdId();
+    const { data } = useServices();
+    // Made once, so a retry of an unconfirmed save writes the same item.
+    const [id] = useState(newRecordId);
+    return (
+        <ItemDetails
+            title="New item"
+            item={{ ...emptyItem, id }}
+            save={(draft) => data.createItem(householdId, { id, name: draft.name, quantity: draft.quantity, note: draft.note, places: draft.places })}
+        />
+    );
 }
 
 function ExistingItem({ itemId }: { itemId: string }) {
@@ -44,9 +61,73 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     );
 }
 
-// Edits stay on this page: saving items comes with the Items feature epic.
-function ItemDetails({ title, item, children }: { title: string; item: Item; children?: ReactNode }) {
+function sameFields(a: Item, b: Item): boolean {
+    const keys = (item: Item) => Object.keys(item.places).sort().join();
+    return (
+        a.name === b.name &&
+        a.quantity === b.quantity &&
+        a.note === b.note &&
+        keys(a) === keys(b) &&
+        Object.keys(a.places).every((storeId) => a.places[storeId] === b.places[storeId])
+    );
+}
+
+// With `save`, Done writes the draft and waits for the server before going up to
+// List. Without it, the page saves nothing and Done only goes up.
+function ItemDetails({
+    title,
+    item,
+    save,
+    children,
+}: {
+    title: string;
+    item: Item;
+    save?: (draft: Item) => Promise<void>;
+    children?: ReactNode;
+}) {
     const [draft, setDraft] = useState<Item>(item);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
+    const up = useUp("/");
+    // Set once a save is confirmed, so going up afterwards is not treated as a discard.
+    const finished = useRef(false);
+    const dirty = save !== undefined && !sameFields(draft, item);
+    const blocker = useBlocker(() => dirty && !finished.current);
+    useEffect(() => {
+        if (blocker.state !== "blocked") return;
+        if (confirmDiscard()) {
+            blocker.proceed();
+        } else {
+            blocker.reset();
+        }
+    }, [blocker]);
+    const done = () => {
+        if (!save) {
+            up();
+            return;
+        }
+        if (saving) return;
+        const name = draft.name.trim();
+        if (!name) {
+            setError("Name is required.");
+            return;
+        }
+        setError("");
+        setSaving(true);
+        confirmSave(save({ ...draft, name })).then((result) => {
+            if (result === "saved") {
+                finished.current = true;
+                up();
+                return;
+            }
+            setSaving(false);
+            setError(`The item ${result === "refused" ? REFUSED_MESSAGE : UNCONFIRMED_MESSAGE}`);
+        });
+    };
+    const setPlace = (storeId: string, zoneId: string) => {
+        const { [storeId]: _removed, ...rest } = draft.places;
+        setDraft({ ...draft, places: zoneId ? { ...rest, [storeId]: zoneId } : rest });
+    };
     const stores = useStores();
     const photoUrl = useFileUrl(item.photoPath);
 
@@ -56,11 +137,21 @@ function ItemDetails({ title, item, children }: { title: string; item: Item; chi
                 title={title}
                 before={<UpButton to="/" label="Back to list" />}
                 after={
-                    <UpButton to="/" label="Done">
-                        Done
-                    </UpButton>
+                    <button
+                        type="button"
+                        onClick={done}
+                        disabled={saving}
+                        className="inline-flex h-tap min-w-tap items-center justify-center gap-2 rounded-md px-2 text-button text-sheen-ink"
+                    >
+                        {saving ? "Saving…" : "Done"}
+                    </button>
                 }
             />
+            {error && (
+                <p role="alert" className="mb-4 text-body text-danger">
+                    {error}
+                </p>
+            )}
             <section aria-label="Details" className="mb-6 flex flex-col gap-4">
                 <div className="flex size-24 items-center justify-center overflow-hidden rounded-md bg-surface-sunken text-ink-muted">
                     {photoUrl ? (
@@ -98,7 +189,7 @@ function ItemDetails({ title, item, children }: { title: string; item: Item; chi
                                 <select
                                     className={inputClass}
                                     value={draft.places[store.id] ?? ""}
-                                    onChange={(e) => setDraft({ ...draft, places: { ...draft.places, [store.id]: e.target.value } })}
+                                    onChange={(e) => setPlace(store.id, e.target.value)}
                                 >
                                     <option value="">Not placed</option>
                                     {(store.map?.zones ?? []).map((zone) => (

@@ -1,8 +1,8 @@
 ---
 title: Household Membership
 aliases: [membership record, household set-up, set-up step, security rules, authorization]
-touches: [sign-in-gate, household-data-reads]
-last_updated_by: "#1"
+touches: [sign-in-gate, household-data-reads, add-store-sheet]
+last_updated_by: "#20"
 status: active
 verification: verified
 ---
@@ -31,9 +31,14 @@ Against the local test setup the step also creates two test members and test dat
 
 - [sign-in-gate](sign-in-gate.md) — the gate reads the user's membership record to decide between the page and the "not in our household" state.
 - [household-data-reads](household-data-reads.md) — the household named in the membership record scopes every read, and the rules refuse a read of any other household.
+- [add-store-sheet](add-store-sheet.md) — the rules let a member create a store in the household, and accept only a name, a chain and no map.
 
 ## Decision Log
 
 ### 2026-10-10 — #1 — The household and its members are created by a set-up step run by hand
 
 The set-up step creates the household and both members' membership records. The security rules deny every write to membership records from the app. Sign-up for other households is not wanted, and a household page is out of scope, so nothing in the app can create a household. Without a household, nobody passes the sign-in gate. The trade-off is that nobody can sign in until someone runs the set-up step, and adding a member later means running it again. The refuted alternative was to bring a minimal household page forward into this epic, so members could be managed in the app. It lost because it adds a page, its security rules and its tests to an epic about the page map, for a household that changes almost never.
+
+### 2026-10-10 — #20 — Reciprocal link from add-store-sheet
+
+The Add store sheet creates a store under the rules this page describes. The rules allow that create only for a member of the household, and only with a name, a chain and no map. This page now lists the sheet as a neighbour, to match the sheet's own link to this page.

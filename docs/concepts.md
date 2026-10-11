@@ -4,7 +4,7 @@
 
 # Concept Atlas
 
-Orientation map of the concept store — 9 active concepts. Each links to its full page
+Orientation map of the concept store — 10 active concepts. Each links to its full page
 (behavior, invariants, decision history); code locations live in the matching
 `.nexus/anchors/<slug>.md` sidecar.
 
@@ -16,6 +16,7 @@ Orientation map of the concept store — 9 active concepts. Each links to its fu
 - [Page Frames](../.nexus/concepts/page-frames.md) — Pages come in two frames.
 - [Sign-in Gate](../.nexus/concepts/sign-in-gate.md) — Every page except Sign-in first checks that the user is signed in and is a member of the household.
 - [Trip Store](../.nexus/concepts/trip-store.md) — Shop starts at the store choice, and the chosen store is part of the in-store view's path.
+- [Household Membership](../.nexus/concepts/household-membership.md) — A membership record ties one signed-in account to one household.
 - [Item Page](../.nexus/concepts/item-page.md) — One Item page serves both a new item and an existing item, each at its own path.
 - [Map Editor Page](../.nexus/concepts/map-editor-page.md) — The Map editor is the page for drawing one store's map.
-- [Household Membership](../.nexus/concepts/household-membership.md) — A membership record ties one signed-in account to one household.
+- [Add Store Sheet](../.nexus/concepts/add-store-sheet.md) — The Add store sheet opens over the Stores page and saves a new store with a name and a chain.

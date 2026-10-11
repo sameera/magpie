@@ -1,6 +1,6 @@
 ---
 concept: household-membership
-source_sha: c86a754e79ff806c5089ef263c4326900e6091a3
+source_sha: 1ada638741d69f2cb7e7b4069ffee73b92fb5738
 generated: 2026-10-10
 ---
 
@@ -9,9 +9,9 @@ generated: 2026-10-10
 
 # Code Anchors: Household Membership
 
-- `firestore.rules` — database rules: members read their household, a user reads their own membership, the app writes nothing
+- `firestore.rules` — database rules: members read their household, a user reads their own membership, the app may only create a store (#23)
 - `storage.rules` — file rules that apply the same membership check
 - `scripts/setup-household.ts` — the set-up step: household, membership records and local test data
-- `rules-tests/firestore.rules.test.ts` — tests the rules against the local emulators
+- `rules-tests/firestore.rules.test.ts` — tests the rules against the local emulators, including store creation (#23)
 - `src/data/model.ts` — the shape of a membership record
 - `package.json` — the commands that run the set-up step and the rule tests

@@ -12,10 +12,7 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
     const stores = (householdId: string) => collection(db, "households", householdId, "stores").withConverter(storeConverter);
 
     return {
-        createStore: (householdId, store) => {
-            const target = doc(stores(householdId));
-            return setDoc(target, { id: target.id, ...store, map: null });
-        },
+        createStore: (householdId, { id, name, chain }) => setDoc(doc(stores(householdId), id), { id, name, chain, map: null }),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),

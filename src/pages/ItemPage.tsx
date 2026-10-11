@@ -36,6 +36,8 @@ function NewItem() {
 }
 
 function ExistingItem({ itemId }: { itemId: string }) {
+    const householdId = useHouseholdId();
+    const { data } = useServices();
     const item = useItem(itemId);
     if (item.status === "missing") {
         return <NotFound what="item" parent="/" parentLabel="Back to list" />;
@@ -44,7 +46,13 @@ function ExistingItem({ itemId }: { itemId: string }) {
         return <p className="text-body text-ink-muted">Loading the item…</p>;
     }
     return (
-        <ItemDetails key={item.value.id} title={item.value.name} item={item.value}>
+        <ItemDetails
+            key={item.value.id}
+            title={item.value.name}
+            item={item.value}
+            existing
+            save={(draft) => data.updateItem(householdId, { id: draft.id, name: draft.name, quantity: draft.quantity, note: draft.note, places: draft.places })}
+        >
             <Prices itemId={item.value.id} />
         </ItemDetails>
     );
@@ -72,17 +80,19 @@ function sameFields(a: Item, b: Item): boolean {
     );
 }
 
-// With `save`, Done writes the draft and waits for the server before going up to
-// List. Without it, the page saves nothing and Done only goes up.
+// Done writes the draft and waits for the server before going up to List. An
+// existing item with no changes writes nothing.
 function ItemDetails({
     title,
     item,
     save,
+    existing = false,
     children,
 }: {
     title: string;
     item: Item;
-    save?: (draft: Item) => Promise<void>;
+    save: (draft: Item) => Promise<void>;
+    existing?: boolean;
     children?: ReactNode;
 }) {
     const [draft, setDraft] = useState<Item>(item);
@@ -91,7 +101,7 @@ function ItemDetails({
     const up = useUp("/");
     // Set once a save is confirmed, so going up afterwards is not treated as a discard.
     const finished = useRef(false);
-    const dirty = save !== undefined && !sameFields(draft, item);
+    const dirty = !sameFields(draft, item);
     const blocker = useBlocker(() => dirty && !finished.current);
     useEffect(() => {
         if (blocker.state !== "blocked") return;
@@ -102,11 +112,11 @@ function ItemDetails({
         }
     }, [blocker]);
     const done = () => {
-        if (!save) {
+        if (saving) return;
+        if (existing && !dirty) {
             up();
             return;
         }
-        if (saving) return;
         const name = draft.name.trim();
         if (!name) {
             setError("Name is required.");

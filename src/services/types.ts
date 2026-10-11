@@ -29,6 +29,9 @@ export interface DataService {
     // Saves a new item onto the list, with no photo, under the given ID so saving
     // again overwrites the same item. Resolves once the server accepts the write.
     createItem(householdId: string, item: Pick<Item, "id" | "name" | "quantity" | "note" | "places">): Promise<void>;
+    // Changes only the fields the item form owns. Leaves the item's place on or off the
+    // list, and its photo, as stored. Resolves once the server accepts the write.
+    updateItem(householdId: string, item: Pick<Item, "id" | "name" | "quantity" | "note" | "places">): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
     watchItem(householdId: string, itemId: string, listener: (item: Watched<Item>) => void): Unsubscribe;
     // Newest first.

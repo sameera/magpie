@@ -1,7 +1,7 @@
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { FakeServices } from "../test/fakeServices";
+import { FakeServices, testItem } from "../test/fakeServices";
 import { renderApp } from "../test/renderApp";
 
 describe("List page", () => {
@@ -10,6 +10,16 @@ describe("List page", () => {
         const list = screen.getByRole("list", { name: "Shopping list" });
         expect(within(list).getByText("Milk")).toBeInTheDocument();
         expect(within(list).getByText("Bread")).toBeInTheDocument();
+    });
+
+    it("shows only items flagged as on the list, each with its quantity needed", () => {
+        const services = new FakeServices();
+        services.households.get("h1")!.items.push(testItem({ id: "i3", name: "Jam", onList: false }));
+        renderApp(["/"], services);
+        const list = screen.getByRole("list", { name: "Shopping list" });
+        expect(within(list).queryByText("Jam")).toBeNull();
+        expect(within(list).getByText("Qty 2")).toBeInTheDocument();
+        expect(within(list).getByText("Qty 1 · Sourdough")).toBeInTheDocument();
     });
 
     it("reads only the signed-in member's household", () => {

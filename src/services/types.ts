@@ -30,6 +30,10 @@ export interface DataService {
     // under the given ID so saving again overwrites the same item. Resolves once the
     // server accepts the write.
     createItem(householdId: string, item: ItemFields): Promise<void>;
+    // Saves several new items onto the list in one all-or-nothing write. Each is
+    // written under its given ID, so saving again overwrites the same items.
+    // Resolves once the server accepts the write.
+    createItems(householdId: string, items: ItemFields[]): Promise<void>;
     // Changes only the fields the item form owns. Leaves the item's place on or off the
     // list, its photo, quantity remaining and category as stored. Resolves once the
     // server accepts the write.

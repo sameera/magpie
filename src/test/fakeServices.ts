@@ -88,6 +88,15 @@ export class FakeServices implements Services {
     }
 
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
+    private listListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
+
+    private onList(householdId: string): Item[] {
+        return this.household(householdId).items.filter((item) => item.onList);
+    }
+
+    private itemsChanged(householdId: string): void {
+        this.listListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.onList(householdId) }));
+    }
 
     // What the next saves do: "refuse" rejects them; "hang" never answers, as
     // when the server cannot be reached.
@@ -117,17 +126,28 @@ export class FakeServices implements Services {
             this.save(() => {
                 const household = this.household(householdId);
                 household.items = [...household.items.filter(existing => existing.id !== item.id), newItem(item)];
+                this.itemsChanged(householdId);
+            }),
+        createItems: (householdId, list) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                const ids = new Set(list.map(item => item.id));
+                household.items = [...household.items.filter(existing => !ids.has(existing.id)), ...list.map(newItem)];
+                this.itemsChanged(householdId);
             }),
         updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
             this.save(() => {
                 const household = this.household(householdId);
                 household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, places } : existing);
+                this.itemsChanged(householdId);
             }),
-        watchList: (householdId, listener) =>
-            this.answer(
-                listener,
-                this.household(householdId).items.filter((item) => item.onList),
-            ),
+        watchList: (householdId, listener) => {
+            const listeners = this.listListeners.get(householdId) ?? new Set();
+            this.listListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, this.onList(householdId));
+            return () => { listeners.delete(listener); };
+        },
         watchItem: (householdId, itemId, listener) =>
             this.answer(
                 listener,

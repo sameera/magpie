@@ -177,3 +177,88 @@ describe("New item page saving", () => {
         expect(app.router.state.historyAction).toBe("REPLACE");
     });
 });
+
+describe("Existing item page saving", () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    function open(services = new FakeServices()) {
+        const app = renderApp(["/", "/items/i1"], services);
+        return { ...app, user: userEvent.setup() };
+    }
+    const milk = (services: FakeServices) => services.households.get("h1")!.items.find(i => i.id === "i1")!;
+
+    it("saves changed fields and shows them when the item is reopened", async () => {
+        const { user, router, services } = open();
+        await user.clear(screen.getByLabelText("Name"));
+        await user.type(screen.getByLabelText("Name"), "  Oat milk ");
+        await user.clear(screen.getByLabelText("Quantity"));
+        await user.type(screen.getByLabelText("Quantity"), "3 L");
+        await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-bakery");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(router.state.location.pathname).toBe("/");
+        expect(milk(services)).toMatchObject({ name: "Oat milk", quantity: "3 L", places: { s1: "z-bakery" } });
+        renderApp(["/items/i1"], services);
+        expect(screen.getAllByLabelText("Name").at(-1)).toHaveValue("Oat milk");
+    });
+
+    it("removes a store's zone when Not placed is chosen", async () => {
+        const { user, services } = open();
+        await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(milk(services).places).toEqual({});
+    });
+
+    it("leaves the on-the-list flag and the photo as stored", async () => {
+        const services = new FakeServices();
+        services.households.get("h1")!.items[0] = testItem({ id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg" });
+        const { user } = open(services);
+        await user.type(screen.getByLabelText("Note"), "x");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg" });
+    });
+
+    it("returns to List with no write and no error when nothing changed", async () => {
+        const { user, router, services } = open();
+        const update = vi.spyOn(services.data, "updateItem");
+        const confirm = vi.spyOn(window, "confirm");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(update).not.toHaveBeenCalled();
+        expect(confirm).not.toHaveBeenCalled();
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(router.state.location.pathname).toBe("/");
+    });
+
+    it("refuses a cleared name without writing", async () => {
+        const { user, router, services } = open();
+        const update = vi.spyOn(services.data, "updateItem");
+        await user.clear(screen.getByLabelText("Name"));
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(screen.getByRole("alert")).toHaveTextContent("Name is required");
+        expect(update).not.toHaveBeenCalled();
+        expect(router.state.location.pathname).toBe("/items/i1");
+    });
+
+    it("stays on the page with the edits when the save fails", async () => {
+        const services = new FakeServices();
+        services.saveBehavior = "refuse";
+        const { user, router } = open(services);
+        await user.type(screen.getByLabelText("Note"), "more");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("could not be saved");
+        expect(screen.getByLabelText("Note")).toHaveValue("more");
+        expect(router.state.location.pathname).toBe("/items/i1");
+    });
+
+    it("asks before discarding edits and writes nothing", async () => {
+        const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+        const { user, router, services } = open();
+        const update = vi.spyOn(services.data, "updateItem");
+        await user.type(screen.getByLabelText("Note"), "more");
+        await user.click(screen.getByRole("button", { name: "Back to list" }));
+        expect(router.state.location.pathname).toBe("/items/i1");
+        await user.click(screen.getByRole("button", { name: "Back to list" }));
+        expect(confirm).toHaveBeenCalledTimes(2);
+        expect(router.state.location.pathname).toBe("/");
+        expect(update).not.toHaveBeenCalled();
+    });
+});

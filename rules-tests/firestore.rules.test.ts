@@ -204,3 +204,22 @@ describe("item persistence through the application adapter", () => {
         } finally { await deleteApp(app); }
     });
 });
+
+describe("item edits through the application adapter", () => {
+    it("lets a member update the form's fields and leaves the list flag and photo as stored", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-edits");
+        try {
+            await env.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), "households/h1/items/i5"), {
+                    name: "Jam", quantity: "", note: "", photoPath: "p/i5.jpg", onList: false, places: { s1: "z1" },
+                });
+            });
+            const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+            await createFirestoreData(writer, getStorage(app)).updateItem("h1", { id: "i5", name: "Honey", quantity: "1", note: "n", places: {} });
+            const saved = await getDoc(doc(env.authenticatedContext("sam").firestore() as unknown as Firestore, "households/h1/items/i5"));
+            if (saved.get("name") !== "Honey" || saved.get("onList") !== false || saved.get("photoPath") !== "p/i5.jpg" || Object.keys(saved.get("places")).length !== 0) {
+                throw new Error("Edit did not keep the stored fields");
+            }
+        } finally { await deleteApp(app); }
+    });
+});

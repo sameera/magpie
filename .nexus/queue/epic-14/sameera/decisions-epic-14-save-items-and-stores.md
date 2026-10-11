@@ -17,3 +17,8 @@
 - **Choice:** react-router `useBlocker` + `confirmDiscard()` covers back arrow, phone back and any in-app navigation; a ref disables it after a confirmed save.
 - **Why:** One hook covers every route out of the page, including the browser back action.
 - **Refuted alternative:** Per-control handlers plus a `beforeunload` listener.
+
+## 2026-10-11 — Edit uses updateDoc with four fields
+- **Choice:** `updateItem` calls `updateDoc` with name, quantity, note and the whole places map.
+- **Why:** Leaves the list flag and photo as stored (D6), and replaces places so "Not placed" entries disappear.
+- **Refuted alternative:** `setDoc` of the whole item from the form.

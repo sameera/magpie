@@ -333,6 +333,7 @@ describe("item edits through the application adapter", () => {
 
 
 describe("inventory shape and household boundary", () => {
+    const item = validItem("Bread");
     it("allows the on-list query only for the household's members", async () => {
         for (const uid of ["alex", "sam"]) {
             await assertSucceeds(getDocs(query(collection(env.authenticatedContext(uid).firestore(), "households/h1/items"), where("onList", "==", true))));
@@ -341,7 +342,7 @@ describe("inventory shape and household boundary", () => {
             const db = ctx.firestore();
             await assertFails(getDoc(doc(db, "households/h1/items/i1")));
             await assertFails(getDocs(query(collection(db, "households/h1/items"), where("onList", "==", true))));
-            await assertFails(setDoc(doc(db, "households/h1/items/new"), validItem));
+            await assertFails(setDoc(doc(db, "households/h1/items/new"), item));
             await assertFails(updateDoc(doc(db, "households/h1/items/i1"), { quantityNeeded: 3 }));
             await assertFails(deleteDoc(doc(db, "households/h1/items/i1")));
         }
@@ -354,11 +355,11 @@ describe("inventory shape and household boundary", () => {
             { quantity: "2 L" }, { extra: true }, { name: " " }, { name: "x".repeat(101) },
         ];
         for (const patch of patches) {
-            await assertFails(setDoc(doc(db, "households/h1/items/new"), { ...validItem, ...patch }));
+            await assertFails(setDoc(doc(db, "households/h1/items/new"), { ...item, ...patch }));
             await assertFails(updateDoc(doc(db, "households/h1/items/i1"), patch));
         }
-        for (const key of Object.keys(validItem)) {
-            const partial = { ...validItem } as Record<string, unknown>;
+        for (const key of Object.keys(item)) {
+            const partial = { ...item } as Record<string, unknown>;
             delete partial[key];
             await assertFails(setDoc(doc(db, "households/h1/items/new"), partial));
             await assertFails(setDoc(doc(db, "households/h1/items/i1"), partial));
@@ -384,8 +385,8 @@ describe("atomic quick-add persistence", () => {
     it("refuses a batch with one invalid item and leaves none behind", async () => {
         const db = env.authenticatedContext("alex").firestore();
         const batch = writeBatch(db);
-        batch.set(doc(db, "households/h1/items/batch-good"), validItem);
-        batch.set(doc(db, "households/h1/items/batch-bad"), { ...validItem, quantityNeeded: 0 });
+        batch.set(doc(db, "households/h1/items/batch-good"), validItem("Bread"));
+        batch.set(doc(db, "households/h1/items/batch-bad"), { ...validItem("Jam"), quantityNeeded: 0 });
         await assertFails(batch.commit());
         for (const id of ["batch-good", "batch-bad"]) {
             if ((await getDoc(doc(db, `households/h1/items/${id}`))).exists()) throw new Error("Partial batch survived");

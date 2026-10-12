@@ -1,6 +1,6 @@
 ---
 concept: item-page
-source_sha: 701f8f82cfe70f443539b6f40770eceb81d36532
+source_sha: 970c12b519dff0e947e26bd1c55b14e9d0e8ecc5
 generated: 2026-10-11
 ---
 
@@ -9,9 +9,7 @@ generated: 2026-10-11
 
 # Code Anchors: Item Page
 
-- `src/pages/ItemPage.tsx` — the Item page for a new or an existing item: its prices, its save, and the discard prompt (#25)
-- `src/pages/ListPage.tsx` — the two ways in: add an item, or choose one on the list
+- `src/pages/ItemPage.tsx` — the Item page for a new or an existing item: its details and its prices
+- `src/pages/ListPage.tsx` — the ways in: Add with details in the add drawer, or choose an item on the list
 - `src/app/routes.tsx` — the two Item paths
-- `src/app/saveWait.ts` — the 8-second wait for the server, the retry-safe record ID and the discard prompt (#25)
-- `src/pages/ItemPage.test.tsx` — tests details, prices, saving, failed saves and leaving (#25)
-- `src/test/fakeServices.ts` — the test double that can refuse a save or never confirm it (#25)
+- `src/pages/ItemPage.test.tsx` — tests details and prices

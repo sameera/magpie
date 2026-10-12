@@ -1,6 +1,6 @@
 ---
 concept: add-store-sheet
-source_sha: 701f8f82cfe70f443539b6f40770eceb81d36532
+source_sha: 970c12b519dff0e947e26bd1c55b14e9d0e8ecc5
 generated: 2026-10-11
 ---
 
@@ -13,5 +13,5 @@ generated: 2026-10-11
 - `src/pages/AddStore.test.tsx` — tests for suggestions, choosing by touch and keyboard, typed chains, failed and unconfirmed saves (#25)
 - `src/app/saveWait.ts` — the 8-second wait, the retry-safe store ID and the discard prompt (#25)
 - `src/pages/StoresPage.tsx` — opens the sheet and passes it the household's chains (#23)
-- `src/services/firestoreData.ts` — creates the store with no map (#25)
-- `firestore.rules` — lets a member create a store with a name, a chain and no map, and rewrite it only with identical content (#25)
+- `src/services/firestoreData.ts` — creates the store with no map
+- `firestore.rules` — lets a member create a store with a name, a chain and no map, and rewrite it only with identical content

@@ -12,3 +12,8 @@
 - **Choice:** Patch the unused sheet's item shape in #36; delete it with its test in #37.
 - **Why:** The record's mechanism step 7 belongs with the add-box story; #36 must still type-check.
 - **Refuted alternative:** Delete it in #36.
+
+## 2026-10-12 — Add-box draft held by a provider inside the sign-in gate
+- **Choice:** `AddDraftProvider` in the gate holds the text and reserved IDs; the drawer reads it through `useAddDraft`.
+- **Why:** The provider unmounts on sign-out and on reload, which is exactly when the draft must clear.
+- **Refuted alternative:** A module-level store like the trip path, which would need an explicit clear on sign-out.

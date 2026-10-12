@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
+import { AddDraftProvider } from "./addDraft";
 import { HouseholdProvider, clearReturnPath, saveReturnPath, useSession } from "./session";
 import { Splash } from "./Splash";
 
@@ -28,7 +29,9 @@ export function SignInGate() {
         case "member":
             return (
                 <HouseholdProvider householdId={session.householdId}>
-                    <Outlet />
+                    <AddDraftProvider>
+                        <Outlet />
+                    </AddDraftProvider>
                 </HouseholdProvider>
             );
     }

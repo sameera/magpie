@@ -1,20 +1,18 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import { useAddDraft } from "../app/addDraft";
 import { confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_MESSAGE } from "../app/saveWait";
 import { useHouseholdId, useServices } from "../app/session";
 import { linesProblem, readItemLines } from "../data/itemLines";
 
 // A bottom drawer over the List page: one item per line, added in one write.
-// It stays mounted while closed, so the typed text is kept until the member
-// leaves the List page. It has no page path of its own.
+// The typed text is kept in the add-box draft, above the List page, so it is
+// still there after a trip to the full item form. It has no page path of its own.
 export function AddItemsDrawer({ open, onClose, onDetails }: { open: boolean; onClose: () => void; onDetails: () => void }) {
     const householdId = useHouseholdId();
     const { data } = useServices();
-    const [text, setText] = useState("");
+    const { text, setText, pendingIds } = useAddDraft();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-    // The IDs given to the lines on the first press of Add, reused on every
-    // retry until a save is confirmed, so a retry overwrites the same items.
-    const pendingIds = useRef<string[]>([]);
     if (!open) {
         return null;
     }
@@ -89,9 +87,9 @@ export function AddItemsDrawer({ open, onClose, onDetails }: { open: boolean; on
                     type="button"
                     disabled={saving}
                     onClick={onDetails}
-                    className="h-tap rounded-md border-2 border-line-strong bg-surface text-button"
+                    className="h-tap rounded-md text-button text-ink-muted underline"
                 >
-                    Add with details
+                    Add item with details (advanced)
                 </button>
                 <button type="button" disabled={saving} onClick={leave} className="h-tap rounded-md text-button text-sheen-ink">
                     Close

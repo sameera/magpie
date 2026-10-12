@@ -75,7 +75,7 @@ describe("Add items drawer", () => {
     const box = () => screen.getByLabelText("One item per line");
     const items = (services: FakeServices) => services.households.get("h1")!.items;
 
-    it("opens from the Add item button with the text box, Add and Add with details, adding no history entry", async () => {
+    it("opens from the Add item button with the text box, Add and the advanced option, adding no history entry", async () => {
         const services = new FakeServices();
         const app = renderApp(["/"], services);
         const before = app.router.state.location.key;
@@ -84,7 +84,7 @@ describe("Add items drawer", () => {
         const drawer = within(screen.getByRole("dialog", { name: "Add items" }));
         expect(drawer.getByLabelText("One item per line")).toBeInTheDocument();
         expect(drawer.getByRole("button", { name: "Add" })).toBeInTheDocument();
-        expect(drawer.getByRole("button", { name: "Add with details" })).toBeInTheDocument();
+        expect(drawer.getByRole("button", { name: "Add item with details (advanced)" })).toBeInTheDocument();
         expect(app.router.state.location.pathname).toBe("/");
         expect(app.router.state.location.key).toBe(before);
         await user.click(drawer.getByRole("button", { name: "Close" }));
@@ -93,14 +93,73 @@ describe("Add items drawer", () => {
         expect(app.router.state.location.key).toBe(before);
     });
 
-    it("opens the New item page from Add with details, and its up control returns to List", async () => {
+    it("opens the New item page from the advanced option, and its up control returns to List", async () => {
         const { user, router } = await openDrawer();
-        await user.click(screen.getByRole("button", { name: "Add with details" }));
+        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
         expect(screen.queryByRole("dialog")).toBeNull();
         expect(router.state.location.pathname).toBe("/items/new");
         await user.click(screen.getByRole("button", { name: "Back to list" }));
         expect(router.state.location.pathname).toBe("/");
         expect(router.state.historyAction).toBe("POP");
+    });
+
+    it("keeps Add as the only primary button and offers the advanced option below it", async () => {
+        await openDrawer();
+        const drawer = within(screen.getByRole("dialog", { name: "Add items" }));
+        const buttons = drawer.getAllByRole("button");
+        const names = buttons.map((b) => b.textContent);
+        expect(names.indexOf("Add")).toBeLessThan(names.indexOf("Add item with details (advanced)"));
+        expect(buttons.filter((b) => b.className.includes("bg-sheen")).map((b) => b.textContent)).toEqual(["Add"]);
+    });
+
+    it("opens the New item form for one empty new item at the new-item path", async () => {
+        const { user, router } = await openDrawer();
+        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
+        expect(router.state.location.pathname).toBe("/items/new");
+        expect(screen.getByRole("heading", { name: "New item" })).toBeInTheDocument();
+        expect(screen.getByLabelText("Name")).toHaveValue("");
+    });
+
+    it("keeps the typed text across the full form and back, restores scroll, and reuses reserved IDs", async () => {
+        const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
+        const services = new FakeServices();
+        services.saveBehavior = "hang";
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        const { user, router } = await openDrawer(services);
+        const createItems = vi.spyOn(services.data, "createItems");
+        Object.defineProperty(window, "scrollY", { value: 240, configurable: true });
+        window.dispatchEvent(new Event("scroll"));
+        await user.type(box(), "Apples{Enter}Jam");
+        await user.click(screen.getByRole("button", { name: "Add" }));
+        await act(async () => { await vi.advanceTimersByTimeAsync(8100); });
+        expect(screen.getByRole("alert")).toHaveTextContent("not confirmed yet");
+        vi.useRealTimers();
+        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
+        expect(router.state.location.pathname).toBe("/items/new");
+        await user.click(screen.getByRole("button", { name: "Back to list" }));
+        expect(router.state.location.pathname).toBe("/");
+        expect(router.state.historyAction).toBe("POP");
+        expect(scrollTo).toHaveBeenLastCalledWith(0, 240);
+        expect(screen.queryByRole("dialog")).toBeNull();
+        await user.click(screen.getByRole("button", { name: "Add item" }));
+        expect(box()).toHaveValue("Apples\nJam");
+        services.saveBehavior = "accept";
+        await user.click(screen.getByRole("button", { name: "Add" }));
+        expect(createItems.mock.calls[1][1].map((i) => i.id)).toEqual(createItems.mock.calls[0][1].map((i) => i.id));
+        expect(items(services).filter((i) => i.name === "Apples")).toHaveLength(1);
+        await user.click(screen.getByRole("button", { name: "Add item" }));
+        expect(box()).toHaveValue("");
+        scrollTo.mockRestore();
+    });
+
+    it("empties the add box on sign-out", async () => {
+        const { user, services } = await openDrawer();
+        await user.type(box(), "Apples");
+        await user.click(screen.getByRole("button", { name: "Close" }));
+        await act(async () => { services.setUser(null); });
+        await act(async () => { services.setUser({ uid: "alex", email: "alex@example.com" }); });
+        await user.click(await screen.findByRole("button", { name: "Add item" }));
+        expect(box()).toHaveValue("");
     });
 
     it("adds one item per line in one write, shows them on the list, then clears and closes", async () => {

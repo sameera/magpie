@@ -24,7 +24,7 @@ service cloud.firestore {
             allow read: if isMemberOf(householdId);
             allow write: if false;
 
-            // A member may create a store, create an item and update an item.
+            // A member may create a store, create items and update an item.
             // Nothing else is written from the app: no deletes, no store edits
             // (bar the same-content retry of a save), no prices.
             function validName(data) {
@@ -49,30 +49,42 @@ service cloud.firestore {
                     && request.resource.data.map == null;
             }
 
+            // The household inventory. Photo, quantity remaining and category are
+            // set on create and not changed from the app yet.
             match /items/{itemId} {
-                function validFields(data) {
-                    return data.keys().hasAll(['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'])
-                        && data.keys().hasOnly(['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'])
+                function itemFields() {
+                    return ['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'];
+                }
+
+                function validItem(data) {
+                    return data.keys().hasAll(itemFields())
+                        && data.keys().hasOnly(itemFields())
                         && validName(data)
                         && data.quantityNeeded is int
-                        && data.quantityNeeded >= 1 && data.quantityNeeded <= 999
-                        && data.quantityRemaining is int && data.quantityRemaining == 0
-                        && data.category == ''
-                        && (data.photoPath == null || data.photoPath is string)
-                        && data.note is string && data.note.size() <= 1000
+                        && data.quantityNeeded >= 1
+                        && data.quantityNeeded <= 999
+                        && data.quantityRemaining is int
+                        && data.note is string
+                        && data.note.size() <= 1000
                         && data.onList is bool
                         && data.places is map;
                 }
 
+                function unchanged(field) {
+                    return request.resource.data.get(field, null) == resource.data.get(field, null);
+                }
+
                 allow create: if isMemberOf(householdId)
-                    && validFields(request.resource.data)
+                    && validItem(request.resource.data)
+                    && request.resource.data.quantityRemaining == 0
+                    && request.resource.data.category == null
                     && request.resource.data.photoPath == null;
 
                 allow update: if isMemberOf(householdId)
-                    && validFields(request.resource.data)
-                    && request.resource.data.photoPath == resource.data.photoPath
-                    && request.resource.data.quantityRemaining == resource.data.quantityRemaining
-                    && request.resource.data.category == resource.data.category;
+                    && validItem(request.resource.data)
+                    && unchanged('photoPath')
+                    && unchanged('quantityRemaining')
+                    && unchanged('category');
             }
 
             match /{document=**} {

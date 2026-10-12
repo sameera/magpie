@@ -7,10 +7,10 @@ import { useHouseholdId, useServices } from "../app/session";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
 import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
-import type { Item, Price } from "../data/model";
+import { newItem, parseQuantity, type Item, type ItemFields, type Price } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
-const emptyItem: Item = { id: "", name: "", quantityNeeded: 1, quantityRemaining: 0, category: "", note: "", photoPath: null, onList: true, places: {} };
+export const QUANTITY_ERROR: string = "Quantity must be a whole number from 1 to 999.";
 
 const money: Intl.NumberFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const day: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -29,8 +29,8 @@ function NewItem() {
     return (
         <ItemDetails
             title="New item"
-            item={{ ...emptyItem, id }}
-            save={(draft) => data.createItem(householdId, { id, name: draft.name, quantityNeeded: draft.quantityNeeded, note: draft.note, places: draft.places })}
+            item={newItem({ id, name: "", quantityNeeded: 1, note: "", places: {} })}
+            save={(fields) => data.createItem(householdId, fields)}
         />
     );
 }
@@ -51,7 +51,7 @@ function ExistingItem({ itemId }: { itemId: string }) {
             title={item.value.name}
             item={item.value}
             existing
-            save={(draft) => data.updateItem(householdId, { id: draft.id, name: draft.name, quantityNeeded: draft.quantityNeeded, note: draft.note, places: draft.places })}
+            save={(fields) => data.updateItem(householdId, fields)}
         >
             <Prices itemId={item.value.id} />
         </ItemDetails>
@@ -69,11 +69,23 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     );
 }
 
-function sameFields(a: Item, b: Item): boolean {
-    const keys = (item: Item) => Object.keys(item.places).sort().join();
+// What the form edits. The quantity is kept as typed until Done checks it.
+interface Draft {
+    name: string;
+    quantity: string;
+    note: string;
+    places: Record<string, string>;
+}
+
+function draftOf(item: Item): Draft {
+    return { name: item.name, quantity: String(item.quantityNeeded), note: item.note, places: item.places };
+}
+
+function sameFields(a: Draft, b: Draft): boolean {
+    const keys = (draft: Draft) => Object.keys(draft.places).sort().join();
     return (
         a.name === b.name &&
-        a.quantityNeeded === b.quantityNeeded &&
+        a.quantity === b.quantity &&
         a.note === b.note &&
         keys(a) === keys(b) &&
         Object.keys(a.places).every((storeId) => a.places[storeId] === b.places[storeId])
@@ -91,18 +103,17 @@ function ItemDetails({
 }: {
     title: string;
     item: Item;
-    save: (draft: Item) => Promise<void>;
+    save: (fields: ItemFields) => Promise<void>;
     existing?: boolean;
     children?: ReactNode;
 }) {
-    const [draft, setDraft] = useState<Item>(item);
-    const [quantityText, setQuantityText] = useState(String(item.quantityNeeded));
+    const [draft, setDraft] = useState<Draft>(() => draftOf(item));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const up = useUp("/");
     // Set once a save is confirmed, so going up afterwards is not treated as a discard.
     const finished = useRef(false);
-    const dirty = !sameFields(draft, item) || quantityText !== String(item.quantityNeeded);
+    const dirty = !sameFields(draft, draftOf(item));
     const blocker = useBlocker(() => dirty && !finished.current);
     useEffect(() => {
         if (blocker.state !== "blocked") return;
@@ -123,14 +134,14 @@ function ItemDetails({
             setError("Name is required.");
             return;
         }
-        const quantityNeeded = Number(quantityText);
-        if (!quantityText.trim() || !Number.isInteger(quantityNeeded) || quantityNeeded < 1 || quantityNeeded > 999) {
-            setError("Quantity must be a whole number from 1 to 999.");
+        const quantityNeeded = parseQuantity(draft.quantity.trim());
+        if (quantityNeeded === null) {
+            setError(QUANTITY_ERROR);
             return;
         }
         setError("");
         setSaving(true);
-        confirmSave(save({ ...draft, name, quantityNeeded })).then((result) => {
+        confirmSave(save({ id: item.id, name, quantityNeeded, note: draft.note, places: draft.places })).then((result) => {
             if (result === "saved") {
                 finished.current = true;
                 up();
@@ -185,11 +196,11 @@ function ItemDetails({
                 <Field label="Quantity">
                     <input
                         className={inputClass}
-                        value={quantityText}
                         inputMode="numeric"
                         aria-invalid={error.startsWith("Quantity")}
                         aria-describedby={error.startsWith("Quantity") ? "quantity-error" : undefined}
-                        onChange={(e) => setQuantityText(e.target.value)}
+                        value={draft.quantity}
+                        onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
                     />
                 </Field>
                 <Field label="Note">

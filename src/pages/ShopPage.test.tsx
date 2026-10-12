@@ -28,6 +28,8 @@ describe("Shop page", () => {
         expect(within(next).getByText("Bakery")).toBeInTheDocument();
         const list = within(screen.getByRole("list", { name: "List in walking order" })).getAllByRole("listitem");
         expect(list.map((row) => row.textContent)).toEqual([expect.stringContaining("Bread"), expect.stringContaining("Milk")]);
+        expect(within(list[0]).getByText("Qty 1 · Bakery")).toBeInTheDocument();
+        expect(within(list[1]).getByText("Qty 2 · Dairy")).toBeInTheDocument();
     });
 
     it("reopens the in-store view from a saved link", () => {

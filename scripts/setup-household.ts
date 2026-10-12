@@ -49,9 +49,9 @@ async function writeTestData(db: Firestore, householdId: string): Promise<void> 
         name: "Milk",
         quantityNeeded: 2,
         quantityRemaining: 0,
-        category: "",
         note: "Lactose free",
         photoPath: null,
+        category: null,
         onList: true,
         places: { "test-store": "dairy" },
     });

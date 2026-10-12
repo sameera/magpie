@@ -5,7 +5,7 @@ import { setTripPath } from "../app/tripStore";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useList, useStore } from "../data/hooks";
-import { walkingOrder, zoneOf } from "../data/model";
+import { quantityLabel, walkingOrder, zoneOf } from "../data/model";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
@@ -74,7 +74,7 @@ export function InStorePage() {
                     <li key={item.id} className="flex min-h-18 flex-col justify-center rounded-md bg-surface p-3 shadow-sticker">
                         <span className="text-item">{item.name}</span>
                         <span className="text-caption text-ink-muted">
-                            {[item.quantityNeeded, zoneOf(item, store.value)?.label].filter(Boolean).join(" · ")}
+                            {[quantityLabel(item), zoneOf(item, store.value)?.label].filter(Boolean).join(" · ")}
                         </span>
                     </li>
                 ))}

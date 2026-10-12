@@ -41,6 +41,7 @@ describe("Item page", () => {
         renderApp(["/items/new"]);
         expect(screen.getByRole("heading", { name: "New item" })).toBeInTheDocument();
         expect(screen.getByLabelText("Name")).toHaveValue("");
+        expect(screen.getByLabelText("Quantity")).toHaveValue("1");
         expect(screen.queryByRole("region", { name: "Prices" })).toBeNull();
     });
 
@@ -93,7 +94,9 @@ describe("New item page saving", () => {
         await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-dairy");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/");
-        expect(saved(services)).toEqual([expect.objectContaining({ quantityNeeded: 12, note: "Free range", places: { s1: "z-dairy" }, onList: true, photoPath: null })]);
+        expect(saved(services)).toEqual([expect.objectContaining({
+            quantityNeeded: 12, quantityRemaining: 0, note: "Free range", places: { s1: "z-dairy" }, onList: true, photoPath: null, category: null,
+        })]);
         expect(await screen.findByText("Eggs")).toBeInTheDocument();
     });
 
@@ -106,6 +109,23 @@ describe("New item page saving", () => {
         expect(item.places).toEqual({ s1: "z-dairy" });
         renderApp([`/items/${item.id}`], services);
         expect(screen.getAllByLabelText("Costco Kirkland").at(-1)).toHaveValue("z-dairy");
+    });
+
+    it("saves quantity 1 when the quantity is left as it starts", async () => {
+        const { user, services } = await fill();
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(saved(services)).toEqual([expect.objectContaining({ quantityNeeded: 1 })]);
+    });
+
+    it.each(["", "0", "1.5", "1000", "-2", "two"])("refuses the quantity %j without writing", async (value) => {
+        const { user, router, services } = await fill();
+        const create = vi.spyOn(services.data, "createItem");
+        await user.clear(screen.getByLabelText("Quantity"));
+        if (value) await user.type(screen.getByLabelText("Quantity"), value);
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(screen.getByRole("alert")).toHaveTextContent("Quantity must be a whole number from 1 to 999.");
+        expect(create).not.toHaveBeenCalled();
+        expect(router.state.location.pathname).toBe("/items/new");
     });
 
     it("refuses a blank name without writing", async () => {
@@ -200,6 +220,7 @@ describe("Existing item page saving", () => {
         expect(milk(services)).toMatchObject({ name: "Oat milk", quantityNeeded: 3, places: { s1: "z-bakery" } });
         renderApp(["/items/i1"], services);
         expect(screen.getAllByLabelText("Name").at(-1)).toHaveValue("Oat milk");
+        expect(screen.getAllByLabelText("Quantity").at(-1)).toHaveValue("3");
     });
 
     it("removes a store's zone when Not placed is chosen", async () => {
@@ -209,13 +230,27 @@ describe("Existing item page saving", () => {
         expect(milk(services).places).toEqual({});
     });
 
-    it("leaves the on-the-list flag and the photo as stored", async () => {
+    it("leaves the on-the-list flag, photo, quantity remaining and category as stored", async () => {
         const services = new FakeServices();
-        services.households.get("h1")!.items[0] = testItem({ id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg" });
+        services.households.get("h1")!.items[0] = testItem({
+            id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy",
+        });
         const { user } = open(services);
         await user.type(screen.getByLabelText("Note"), "x");
         await user.click(screen.getByRole("button", { name: "Done" }));
-        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg" });
+        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy" });
+    });
+
+    it.each(["", "0", "2.5", "1000"])("refuses the quantity %j without writing", async (value) => {
+        const { user, router, services } = open();
+        const update = vi.spyOn(services.data, "updateItem");
+        await user.clear(screen.getByLabelText("Quantity"));
+        if (value) await user.type(screen.getByLabelText("Quantity"), value);
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(screen.getByRole("alert")).toHaveTextContent("Quantity must be a whole number from 1 to 999.");
+        expect(update).not.toHaveBeenCalled();
+        expect(router.state.location.pathname).toBe("/items/i1");
+        expect(milk(services).quantityNeeded).toBe(2);
     });
 
     it("returns to List with no write and no error when nothing changed", async () => {

@@ -1,13 +1,15 @@
 import { Camera, Plus } from "lucide-react";
 import { useState } from "react";
-import { AddItemsSheet } from "./AddItemsSheet";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useList } from "../data/hooks";
+import { quantityLabel } from "../data/model";
+import { AddItemsDrawer } from "./AddItemsDrawer";
 import { PageHeader } from "./PageHeader";
 
 export function ListPage() {
     const list = useList();
+    const navigate = useNavigate();
     const [adding, setAdding] = useState(false);
     useScrollMemory(list.status !== "loading");
 
@@ -32,11 +34,9 @@ export function ListPage() {
                                 </span>
                                 <span className="flex min-w-0 flex-col">
                                     <span className="text-item">{item.name}</span>
-                                    {(item.quantityNeeded || item.note) && (
-                                        <span className="text-caption text-ink-muted">
-                                            {[item.quantityNeeded, item.note].filter(Boolean).join(" · ")}
-                                        </span>
-                                    )}
+                                    <span className="text-caption text-ink-muted">
+                                        {[quantityLabel(item), item.note].filter(Boolean).join(" · ")}
+                                    </span>
                                 </span>
                             </Link>
                         </li>
@@ -51,7 +51,14 @@ export function ListPage() {
             >
                 <Plus aria-hidden="true" />
             </button>
-            <AddItemsSheet open={adding} onClose={() => setAdding(false)} />
+            <AddItemsDrawer
+                open={adding}
+                onClose={() => setAdding(false)}
+                onDetails={() => {
+                    setAdding(false);
+                    navigate("/items/new");
+                }}
+            />
         </>
     );
 }

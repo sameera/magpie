@@ -10,19 +10,43 @@ export const memberConverter: FirestoreDataConverter<Member> = {
     fromFirestore: (snap: QueryDocumentSnapshot) => ({ householdId: String(snap.get("householdId")) }),
 };
 
-// households/{householdId}/items/{itemId}
+// households/{householdId}/items/{itemId}: the household inventory. An item
+// shows on the list only while `onList` is true.
 export interface Item {
     id: string;
     name: string;
+    // A whole number from 1 to 999.
     quantityNeeded: number;
+    // Stored as 0; nothing reads or changes it yet.
     quantityRemaining: number;
-    category: string;
     note: string;
     // Cloud Storage path of the item's photo.
     photoPath: string | null;
+    // Stored empty; a later epic chooses it.
+    category: string | null;
     onList: boolean;
     // Zone the item sits in, per store: storeId → zoneId.
     places: Record<string, string>;
+}
+
+// The item fields the app writes.
+export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "places">;
+
+// A new item on the list, in the shape the security rules accept.
+export function newItem(fields: ItemFields): Item {
+    return { ...fields, quantityRemaining: 0, photoPath: null, category: null, onList: true };
+}
+
+export const MIN_QUANTITY: number = 1;
+export const MAX_QUANTITY: number = 999;
+
+// A quantity typed as text: digits only, from 1 to 999. null for anything else.
+export function parseQuantity(text: string): number | null {
+    if (!/^\d+$/.test(text)) {
+        return null;
+    }
+    const value = Number(text);
+    return value >= MIN_QUANTITY && value <= MAX_QUANTITY ? value : null;
 }
 
 function stringRecord(value: unknown): Record<string, string> {
@@ -39,11 +63,11 @@ export const itemConverter: FirestoreDataConverter<Item> = {
     fromFirestore: (snap: QueryDocumentSnapshot) => ({
         id: snap.id,
         name: String(snap.get("name") ?? ""),
-        quantityNeeded: Number(snap.get("quantityNeeded") ?? 1),
-        quantityRemaining: Number(snap.get("quantityRemaining") ?? 0),
-        category: String(snap.get("category") ?? ""),
+        quantityNeeded: typeof snap.get("quantityNeeded") === "number" ? snap.get("quantityNeeded") : MIN_QUANTITY,
+        quantityRemaining: typeof snap.get("quantityRemaining") === "number" ? snap.get("quantityRemaining") : 0,
         note: String(snap.get("note") ?? ""),
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,
+        category: typeof snap.get("category") === "string" ? snap.get("category") : null,
         onList: snap.get("onList") === true,
         places: stringRecord(snap.get("places")),
     }),
@@ -126,6 +150,10 @@ export function walkingOrder(items: Item[], store: Store): Item[] {
     const order = new Map<string, number>((store.map?.zones ?? []).map((zone) => [zone.id, zone.order]));
     const rank = (item: Item): number => order.get(item.places[store.id] ?? "") ?? Number.MAX_SAFE_INTEGER;
     return [...items].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+}
+
+export function quantityLabel(item: Item): string {
+    return `Qty ${item.quantityNeeded}`;
 }
 
 export function zoneOf(item: Item, store: Store): Zone | undefined {

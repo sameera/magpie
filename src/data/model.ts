@@ -10,6 +10,12 @@ export const memberConverter: FirestoreDataConverter<Member> = {
     fromFirestore: (snap: QueryDocumentSnapshot) => ({ householdId: String(snap.get("householdId")) }),
 };
 
+export type ZoneKind = "produce" | "dairy" | "bakery" | "meat" | "frozen" | "pantry";
+
+// The one list of kinds, for zones and for item categories. The item rules in
+// firestore.rules repeat it.
+export const zoneKinds: ZoneKind[] = ["produce", "dairy", "bakery", "meat", "frozen", "pantry"];
+
 // households/{householdId}/items/{itemId}: the household inventory. An item
 // shows on the list only while `onList` is true.
 export interface Item {
@@ -22,19 +28,19 @@ export interface Item {
     note: string;
     // Cloud Storage path of the item's photo.
     photoPath: string | null;
-    // Stored empty; a later epic chooses it.
-    category: string | null;
+    // The kind of zone the item sits in, in every store; null for none.
+    category: ZoneKind | null;
     onList: boolean;
-    // Zone the item sits in, per store: storeId → zoneId.
+    // Legacy per-store placement: stored as it was, never read or changed.
     places: Record<string, string>;
 }
 
 // The item fields the app writes.
-export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "places">;
+export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "category">;
 
 // A new item on the list, in the shape the security rules accept.
 export function newItem(fields: ItemFields): Item {
-    return { ...fields, quantityRemaining: 0, photoPath: null, category: null, onList: true };
+    return { ...fields, quantityRemaining: 0, photoPath: null, onList: true, places: {} };
 }
 
 export const MIN_QUANTITY: number = 1;
@@ -58,6 +64,10 @@ function stringRecord(value: unknown): Record<string, string> {
     );
 }
 
+function toCategory(value: unknown): ZoneKind | null {
+    return zoneKinds.includes(value as ZoneKind) ? (value as ZoneKind) : null;
+}
+
 export const itemConverter: FirestoreDataConverter<Item> = {
     toFirestore: ({ id: _id, ...item }: Item) => item,
     fromFirestore: (snap: QueryDocumentSnapshot) => ({
@@ -67,21 +77,18 @@ export const itemConverter: FirestoreDataConverter<Item> = {
         quantityRemaining: typeof snap.get("quantityRemaining") === "number" ? snap.get("quantityRemaining") : 0,
         note: String(snap.get("note") ?? ""),
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,
-        category: typeof snap.get("category") === "string" ? snap.get("category") : null,
+        category: toCategory(snap.get("category")),
         onList: snap.get("onList") === true,
         places: stringRecord(snap.get("places")),
     }),
 };
 
-export type ZoneKind = "produce" | "dairy" | "bakery" | "meat" | "frozen" | "pantry";
-
-const zoneKinds: ZoneKind[] = ["produce", "dairy", "bakery", "meat", "frozen", "pantry"];
-
 // A labelled area of a store map, in map units. `order` is its place in walking order.
 export interface Zone {
     id: string;
     label: string;
-    kind: ZoneKind;
+    // null when the stored kind is none of the six; such a zone places no item.
+    kind: ZoneKind | null;
     order: number;
     x: number;
     y: number;
@@ -107,7 +114,7 @@ export interface Store {
 
 function toZone(value: unknown, index: number): Zone {
     const z = (value ?? {}) as Record<string, unknown>;
-    const kind = zoneKinds.includes(z.kind as ZoneKind) ? (z.kind as ZoneKind) : "pantry";
+    const kind = toCategory(z.kind);
     const num = (v: unknown, fallback: number): number => (typeof v === "number" ? v : fallback);
     return {
         id: String(z.id ?? `zone-${index}`),
@@ -144,20 +151,26 @@ export const storeConverter: FirestoreDataConverter<Store> = {
     }),
 };
 
-// The list in walking order for one store: items placed in a zone follow the
-// zones' order; items with no place in this store come last.
+// The zone an item sits in at a store: the first zone, in walking order, whose
+// kind is the item's category. Nothing is stored per store.
+export function zoneOf(item: Item, store: Store): Zone | undefined {
+    if (!item.category) {
+        return undefined;
+    }
+    return (store.map?.zones ?? [])
+        .filter((zone) => zone.kind === item.category)
+        .reduce<Zone | undefined>((first, zone) => (first && first.order <= zone.order ? first : zone), undefined);
+}
+
+// The list in walking order for one store: items in a zone follow the zones'
+// order; the rest come last. Ties break by name.
 export function walkingOrder(items: Item[], store: Store): Item[] {
-    const order = new Map<string, number>((store.map?.zones ?? []).map((zone) => [zone.id, zone.order]));
-    const rank = (item: Item): number => order.get(item.places[store.id] ?? "") ?? Number.MAX_SAFE_INTEGER;
+    const rank = (item: Item): number => zoneOf(item, store)?.order ?? Number.MAX_SAFE_INTEGER;
     return [...items].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 }
 
 export function quantityLabel(item: Item): string {
     return `Qty ${item.quantityNeeded}`;
-}
-
-export function zoneOf(item: Item, store: Store): Zone | undefined {
-    return store.map?.zones.find((zone) => zone.id === item.places[store.id]);
 }
 
 // households/{householdId}/prices/{priceId}: one observation, append-only, per chain.

@@ -19,8 +19,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             list.forEach((item) => batch.set(doc(items(householdId), item.id), newItem(item)));
             return batch.commit();
         },
-        updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
-            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, places }),
+        updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
+            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category }),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),

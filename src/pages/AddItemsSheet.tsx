@@ -45,7 +45,7 @@ export function AddItemsSheet({ open, onClose }: { open: boolean; onClose: () =>
                     if (!lines.length) return;
                     const items = lines.map((line, index) => {
                         ids.current[index] ??= newRecordId();
-                        return { ...line, id: ids.current[index], note: "", places: {} };
+                        return { ...line, id: ids.current[index], note: "", category: null };
                     });
                     setError("");
                     setSaving(true);

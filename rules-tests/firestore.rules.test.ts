@@ -117,7 +117,7 @@ describe("creating stores", () => {
 
 
 describe("saving items", () => {
-    const item = { ...validItem("Bread"), places: { s1: "z1" } };
+    const item = validItem("Bread");
     const path = "households/h1/items/i2";
     const others = () => [env.authenticatedContext("olga"), env.authenticatedContext("stranger"), env.unauthenticatedContext()];
 
@@ -187,26 +187,67 @@ describe("saving items", () => {
         await assertSucceeds(setDoc(doc(db, path), { ...item, quantityNeeded: 999 }));
     });
 
-    it("refuses a new item with quantity remaining, a category or a photo", async () => {
+    it("refuses a new item with quantity remaining or a photo", async () => {
         const db = env.authenticatedContext("alex").firestore();
-        for (const value of [{ ...item, quantityRemaining: 1 }, { ...item, quantityRemaining: "0" }, { ...item, category: "dairy" }, { ...item, photoPath: "photos/a.jpg" }]) {
+        for (const value of [{ ...item, quantityRemaining: 1 }, { ...item, quantityRemaining: "0" }, { ...item, photoPath: "photos/a.jpg" }]) {
             await assertFails(setDoc(doc(db, path), value));
         }
     });
 
-    it("refuses an update that changes the photo, quantity remaining or category", async () => {
+    it("refuses an update that changes the photo or quantity remaining", async () => {
         const db = env.authenticatedContext("alex").firestore();
         await assertSucceeds(setDoc(doc(db, path), item));
         await assertFails(updateDoc(doc(db, path), { photoPath: "photos/a.jpg" }));
         await assertFails(updateDoc(doc(db, path), { quantityRemaining: 2 }));
-        await assertFails(updateDoc(doc(db, path), { category: "dairy" }));
         await env.withSecurityRulesDisabled(async (ctx) => {
             await setDoc(doc(ctx.firestore(), "households/h1/items/i3"), { ...item, photoPath: "photos/b.jpg", quantityRemaining: 3, category: "dairy" });
         });
         await assertFails(updateDoc(doc(db, "households/h1/items/i3"), { photoPath: null }));
         await assertFails(updateDoc(doc(db, "households/h1/items/i3"), { quantityRemaining: 0 }));
-        await assertFails(updateDoc(doc(db, "households/h1/items/i3"), { category: null }));
         await assertSucceeds(updateDoc(doc(db, "households/h1/items/i3"), { name: "Same photo" }));
+    });
+
+    it("accepts an empty category or each of the six kinds, on create and on update", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        for (const category of [null, "produce", "dairy", "bakery", "meat", "frozen", "pantry"]) {
+            await assertSucceeds(setDoc(doc(db, "households/h1/items/c-new"), { ...item, category }));
+            await assertSucceeds(updateDoc(doc(db, "households/h1/items/i1"), { category }));
+        }
+    });
+
+    it("refuses any other category, on create and on update", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        for (const category of ["snacks", "Dairy", "", "dairy ", 3, true, ["dairy"], { kind: "dairy" }]) {
+            await assertFails(setDoc(doc(db, "households/h1/items/c-new"), { ...item, category }));
+            await assertFails(updateDoc(doc(db, "households/h1/items/i1"), { category }));
+        }
+    });
+
+    it("refuses every save from signed-out users, non-members and other households, with or without a category", async () => {
+        for (const ctx of others()) {
+            const db = ctx.firestore();
+            for (const category of [null, "dairy"]) {
+                await assertFails(setDoc(doc(db, "households/h1/items/c-new"), { ...item, category }));
+                await assertFails(updateDoc(doc(db, "households/h1/items/i1"), { category }));
+            }
+        }
+    });
+
+    it("accepts a new item with no placement, refuses one with any entry, and refuses a changed placement", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const { places: _places, ...withoutPlaces } = item;
+        await assertFails(setDoc(doc(db, path), withoutPlaces));
+        await assertSucceeds(setDoc(doc(db, path), { ...item, places: {} }));
+        await assertFails(setDoc(doc(db, "households/h1/items/p-new"), { ...item, places: { s1: "z1" } }));
+        await assertFails(updateDoc(doc(db, path), { places: { s1: "z1" } }));
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), "households/h1/items/legacy"), { ...item, places: { s1: "z1" } });
+        });
+        const legacy = doc(db, "households/h1/items/legacy");
+        await assertFails(updateDoc(legacy, { places: {} }));
+        await assertFails(updateDoc(legacy, { places: { s1: "z2" } }));
+        await assertSucceeds(updateDoc(legacy, { places: { s1: "z1" }, category: "dairy" }));
+        await assertSucceeds(updateDoc(legacy, { name: "Kept placement" }));
     });
 });
 
@@ -253,8 +294,8 @@ describe("adding several items through the application adapter", () => {
             const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
             const data = createFirestoreData(writer, getStorage(app));
             const items = [
-                { id: "q1", name: "Apples", quantityNeeded: 1, note: "", places: {} },
-                { id: "q2", name: "Jam", quantityNeeded: 1, note: "", places: {} },
+                { id: "q1", name: "Apples", quantityNeeded: 1, note: "", category: null },
+                { id: "q2", name: "Jam", quantityNeeded: 1, note: "", category: null },
             ];
             await data.createItems("h1", items);
             await data.createItems("h1", items);
@@ -296,14 +337,14 @@ describe("item persistence through the application adapter", () => {
         try {
             const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
             const data = createFirestoreData(writer, getStorage(app));
-            const item = { id: "new-item", name: "Eggs", quantityNeeded: 12, note: "", places: { s1: "z1" } };
+            const item = { id: "new-item", name: "Eggs", quantityNeeded: 12, note: "", category: "dairy" as const };
             await data.createItem("h1", item);
             await data.createItem("h1", item);
             const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
             const saved = await getDoc(doc(reader, "households/h1/items/new-item"));
             if (
-                saved.get("onList") !== true || saved.get("photoPath") !== null || saved.get("places")?.s1 !== "z1"
-                || saved.get("quantityNeeded") !== 12 || saved.get("quantityRemaining") !== 0 || saved.get("category") !== null
+                saved.get("onList") !== true || saved.get("photoPath") !== null || Object.keys(saved.get("places")).length !== 0
+                || saved.get("quantityNeeded") !== 12 || saved.get("quantityRemaining") !== 0 || saved.get("category") !== "dairy"
                 || saved.get("note") !== ""
             ) {
                 throw new Error("Saved item did not survive a fresh read");
@@ -322,9 +363,9 @@ describe("item edits through the application adapter", () => {
                 });
             });
             const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
-            await createFirestoreData(writer, getStorage(app)).updateItem("h1", { id: "i5", name: "Honey", quantityNeeded: 4, note: "n", places: {} });
+            await createFirestoreData(writer, getStorage(app)).updateItem("h1", { id: "i5", name: "Honey", quantityNeeded: 4, note: "n", category: "bakery" });
             const saved = await getDoc(doc(env.authenticatedContext("sam").firestore() as unknown as Firestore, "households/h1/items/i5"));
-            if (saved.get("name") !== "Honey" || saved.get("quantityNeeded") !== 4 || saved.get("onList") !== false || saved.get("photoPath") !== "p/i5.jpg" || Object.keys(saved.get("places")).length !== 0) {
+            if (saved.get("name") !== "Honey" || saved.get("quantityNeeded") !== 4 || saved.get("onList") !== false || saved.get("photoPath") !== "p/i5.jpg" || saved.get("places")?.s1 !== "z1" || saved.get("category") !== "bakery") {
                 throw new Error("Edit did not keep the stored fields");
             }
         } finally { await deleteApp(app); }
@@ -351,7 +392,7 @@ describe("inventory shape and household boundary", () => {
         const db = env.authenticatedContext("alex").firestore();
         const patches = [
             ...[0, -1, 1.5, "2", 1000].map(quantityNeeded => ({ quantityNeeded })),
-            { quantityRemaining: 1 }, { category: "dairy" }, { photoPath: "p.jpg" },
+            { quantityRemaining: 1 }, { places: { s1: "z1" } }, { photoPath: "p.jpg" },
             { quantity: "2 L" }, { extra: true }, { name: " " }, { name: "x".repeat(101) },
         ];
         for (const patch of patches) {
@@ -375,7 +416,7 @@ describe("atomic quick-add persistence", () => {
         try {
             const db = env.authenticatedContext("alex").firestore() as unknown as Firestore;
             const data = createFirestoreData(db, getStorage(app));
-            const items = Array.from({ length: 50 }, (_, i) => ({ id: `batch-${i}`, name: `Item ${i}`, quantityNeeded: 1, note: "", places: {} }));
+            const items = Array.from({ length: 50 }, (_, i) => ({ id: `batch-${i}`, name: `Item ${i}`, quantityNeeded: 1, note: "", category: null }));
             await assertSucceeds(data.createItems("h1", items));
             await assertSucceeds(data.createItems("h1", items));
             const result = await getDocs(collection(db, "households/h1/items"));

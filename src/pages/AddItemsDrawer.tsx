@@ -35,7 +35,7 @@ export function AddItemsDrawer({ open, onClose, onDetails }: { open: boolean; on
         pendingIds.current = ids;
         setError("");
         setSaving(true);
-        const items = lines.map((line, index) => ({ id: ids[index], name: line.name, quantityNeeded: line.quantityNeeded, note: "", places: {} }));
+        const items = lines.map((line, index) => ({ id: ids[index], name: line.name, quantityNeeded: line.quantityNeeded, note: "", category: null }));
         confirmSave(data.createItems(householdId, items)).then((result) => {
             setSaving(false);
             if (result === "saved") {

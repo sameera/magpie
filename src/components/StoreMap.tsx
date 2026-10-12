@@ -34,7 +34,7 @@ export function StoreMap({ map, label, nextZoneId, scanUrl }: StoreMapProps) {
                         width={zone.width}
                         height={zone.height}
                         rx={1.5}
-                        fill={zoneFill[zone.kind]}
+                        fill={zoneFill[zone.kind ?? "pantry"]}
                         stroke={zone.id === nextZoneId ? "var(--trinket)" : "var(--zone-edge)"}
                         strokeWidth={zone.id === nextZoneId ? 1.5 : 0.4}
                     />

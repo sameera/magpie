@@ -5,7 +5,7 @@ import { FakeServices, testItem } from "../test/fakeServices";
 import { renderApp } from "../test/renderApp";
 
 describe("Item page", () => {
-    it("holds the item's name, quantityNeeded, note, photo and place in each store", async () => {
+    it("holds the item's name, quantityNeeded, note, photo and category", async () => {
         const services = new FakeServices();
         services.households.get("h1")!.items[0] = testItem({
             id: "i1",
@@ -13,7 +13,7 @@ describe("Item page", () => {
             quantityNeeded: 2,
             note: "Lactose free",
             photoPath: "households/h1/items/i1.jpg",
-            places: { s1: "z-dairy" },
+            category: "dairy",
         });
         renderApp(["/items/i1"], services);
         expect(screen.getByRole("heading", { name: "Milk" })).toBeInTheDocument();
@@ -24,9 +24,23 @@ describe("Item page", () => {
             "src",
             "https://files.test/households/h1/items/i1.jpg",
         );
-        const places = within(screen.getByRole("region", { name: "Where it sits" }));
-        expect(places.getByLabelText("Costco Kirkland")).toHaveValue("z-dairy");
-        expect(places.getByLabelText("Safeway Main St")).toHaveValue("");
+        expect(screen.getByLabelText("Category")).toHaveValue("dairy");
+    });
+
+    it("offers one category choice and no per-store zone choice", () => {
+        renderApp(["/items/new"]);
+        const options = within(screen.getByLabelText("Category")).getAllByRole("option");
+        expect(options.map((option) => option.textContent)).toEqual(["No category", "Produce", "Dairy", "Bakery", "Meat", "Frozen", "Pantry"]);
+        expect(screen.queryByRole("region", { name: "Where it sits" })).toBeNull();
+        expect(screen.queryByText("Where it sits")).toBeNull();
+        expect(screen.queryByLabelText("Costco Kirkland")).toBeNull();
+    });
+
+    it("reads no stores", () => {
+        const services = new FakeServices();
+        const watchStores = vi.spyOn(services.data, "watchStores");
+        renderApp(["/items/i1"], services);
+        expect(watchStores).not.toHaveBeenCalled();
     });
 
     it("shows the prices of an item with recorded prices", () => {
@@ -86,29 +100,36 @@ describe("New item page saving", () => {
     }
     const saved = (services: FakeServices) => services.households.get("h1")!.items.filter(i => i.name === "Eggs");
 
-    it("saves the item onto the list with its fields and zone, and returns to List", async () => {
+    it("saves the item onto the list with its fields and category, and returns to List", async () => {
         const { user, router, services } = await fill();
         await user.clear(screen.getByLabelText("Quantity"));
         await user.type(screen.getByLabelText("Quantity"), "12");
         await user.type(screen.getByLabelText("Note"), "Free range");
-        await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-dairy");
+        await user.selectOptions(screen.getByLabelText("Category"), "dairy");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/");
         expect(saved(services)).toEqual([expect.objectContaining({
-            quantityNeeded: 12, quantityRemaining: 0, note: "Free range", places: { s1: "z-dairy" }, onList: true, photoPath: null, category: null,
+            quantityNeeded: 12, quantityRemaining: 0, note: "Free range", places: {}, onList: true, photoPath: null, category: "dairy",
         })]);
         expect(await screen.findByText("Eggs")).toBeInTheDocument();
     });
 
-    it("keeps a chosen zone when the item is reopened, and drops Not placed", async () => {
+    it("keeps a chosen category when the item is reopened", async () => {
         const { user, services } = await fill();
-        await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-dairy");
-        await user.selectOptions(screen.getByLabelText("Safeway Main St"), "");
+        await user.selectOptions(screen.getByLabelText("Category"), "meat");
         await user.click(screen.getByRole("button", { name: "Done" }));
         const [item] = saved(services);
-        expect(item.places).toEqual({ s1: "z-dairy" });
+        expect(item.category).toBe("meat");
         renderApp([`/items/${item.id}`], services);
-        expect(screen.getAllByLabelText("Costco Kirkland").at(-1)).toHaveValue("z-dairy");
+        expect(screen.getAllByLabelText("Category").at(-1)).toHaveValue("meat");
+    });
+
+    it("saves No category as none", async () => {
+        const { user, services } = await fill();
+        await user.selectOptions(screen.getByLabelText("Category"), "meat");
+        await user.selectOptions(screen.getByLabelText("Category"), "");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(saved(services)[0].category).toBeNull();
     });
 
     it("saves quantity 1 when the quantity is left as it starts", async () => {
@@ -214,31 +235,43 @@ describe("Existing item page saving", () => {
         await user.type(screen.getByLabelText("Name"), "  Oat milk ");
         await user.clear(screen.getByLabelText("Quantity"));
         await user.type(screen.getByLabelText("Quantity"), "3");
-        await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-bakery");
+        await user.selectOptions(screen.getByLabelText("Category"), "bakery");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/");
-        expect(milk(services)).toMatchObject({ name: "Oat milk", quantityNeeded: 3, places: { s1: "z-bakery" } });
+        expect(milk(services)).toMatchObject({ name: "Oat milk", quantityNeeded: 3, category: "bakery" });
         renderApp(["/items/i1"], services);
         expect(screen.getAllByLabelText("Name").at(-1)).toHaveValue("Oat milk");
         expect(screen.getAllByLabelText("Quantity").at(-1)).toHaveValue("3");
     });
 
-    it("removes a store's zone when Not placed is chosen", async () => {
+    it("clears the category when No category is chosen", async () => {
         const { user, services } = open();
-        await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "");
+        await user.selectOptions(screen.getByLabelText("Category"), "");
         await user.click(screen.getByRole("button", { name: "Done" }));
-        expect(milk(services).places).toEqual({});
+        expect(milk(services).category).toBeNull();
     });
 
-    it("leaves the on-the-list flag, photo, quantity remaining and category as stored", async () => {
+    it("counts a changed category alone as an unsaved change: Done saves it and leaving asks first", async () => {
+        const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false);
+        const { user, router, services } = open();
+        await user.selectOptions(screen.getByLabelText("Category"), "frozen");
+        await user.click(screen.getByRole("button", { name: "Back to list" }));
+        expect(confirm).toHaveBeenCalledTimes(1);
+        expect(router.state.location.pathname).toBe("/items/i1");
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(milk(services).category).toBe("frozen");
+        expect(router.state.location.pathname).toBe("/");
+    });
+
+    it("leaves the on-the-list flag, photo, quantity remaining and any legacy placement as stored", async () => {
         const services = new FakeServices();
         services.households.get("h1")!.items[0] = testItem({
-            id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy",
+            id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy", places: { s1: "z-bakery" },
         });
         const { user } = open(services);
         await user.type(screen.getByLabelText("Note"), "x");
         await user.click(screen.getByRole("button", { name: "Done" }));
-        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy" });
+        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy", places: { s1: "z-bakery" } });
     });
 
     it.each(["", "0", "2.5", "1000"])("refuses the quantity %j without writing", async (value) => {

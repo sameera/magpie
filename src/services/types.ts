@@ -26,7 +26,7 @@ export interface DataService {
     // Writes under the given ID, so saving again overwrites the same store.
     // Resolves once the server accepts the write; rejects if it is refused.
     createStore(householdId: string, store: Pick<Store, "id" | "name" | "chain">): Promise<void>;
-    // Saves a new item onto the list, with no photo or category and quantity remaining 0,
+    // Saves a new item onto the list, with no photo and quantity remaining 0,
     // under the given ID so saving again overwrites the same item. Resolves once the
     // server accepts the write.
     createItem(householdId: string, item: ItemFields): Promise<void>;
@@ -35,7 +35,7 @@ export interface DataService {
     // Resolves once the server accepts the write.
     createItems(householdId: string, items: ItemFields[]): Promise<void>;
     // Changes only the fields the item form owns. Leaves the item's place on or off the
-    // list, its photo, quantity remaining and category as stored. Resolves once the
+    // list, its photo and quantity remaining as stored. Resolves once the
     // server accepts the write.
     updateItem(householdId: string, item: ItemFields): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;

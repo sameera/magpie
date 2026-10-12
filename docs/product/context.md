@@ -61,7 +61,7 @@ The owner, building a map once per store and correcting it when the store rearra
 - Big-box stores (Costco, Walmart) reorganize periodically — maps must be cheap to edit, not perfect.
 - Prices compare per **chain**, not per store location. <!-- Owner requirement -->
 - Unit price matters (Costco bulk packs vs. regular sizes). <!-- Inferred; TODO: Verify whether unit-price comparison is wanted -->
-- The same item maps to different zones in different stores; the item-to-zone link is per store.
+- An item has one category; in each store it sits in the zone of that kind, so the same item can sit in different places in different stores.
 
 ## Regulatory & Compliance
 

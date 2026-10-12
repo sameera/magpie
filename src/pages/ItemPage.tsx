@@ -6,8 +6,8 @@ import { confirmDiscard, confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_
 import { useHouseholdId, useServices } from "../app/session";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
-import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
-import { newItem, parseQuantity, type Item, type ItemFields, type Price } from "../data/model";
+import { useFileUrl, useItem, usePrices } from "../data/hooks";
+import { newItem, parseQuantity, zoneKinds, type Item, type ItemFields, type Price, type ZoneKind } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
 export const QUANTITY_ERROR: string = "Quantity must be a whole number from 1 to 999.";
@@ -29,7 +29,7 @@ function NewItem() {
     return (
         <ItemDetails
             title="New item"
-            item={newItem({ id, name: "", quantityNeeded: 1, note: "", places: {} })}
+            item={newItem({ id, name: "", quantityNeeded: 1, note: "", category: null })}
             save={(fields) => data.createItem(householdId, fields)}
         />
     );
@@ -74,22 +74,15 @@ interface Draft {
     name: string;
     quantity: string;
     note: string;
-    places: Record<string, string>;
+    category: ZoneKind | "";
 }
 
 function draftOf(item: Item): Draft {
-    return { name: item.name, quantity: String(item.quantityNeeded), note: item.note, places: item.places };
+    return { name: item.name, quantity: String(item.quantityNeeded), note: item.note, category: item.category ?? "" };
 }
 
 function sameFields(a: Draft, b: Draft): boolean {
-    const keys = (draft: Draft) => Object.keys(draft.places).sort().join();
-    return (
-        a.name === b.name &&
-        a.quantity === b.quantity &&
-        a.note === b.note &&
-        keys(a) === keys(b) &&
-        Object.keys(a.places).every((storeId) => a.places[storeId] === b.places[storeId])
-    );
+    return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category;
 }
 
 // Done writes the draft and waits for the server before going up to List. An
@@ -141,7 +134,7 @@ function ItemDetails({
         }
         setError("");
         setSaving(true);
-        confirmSave(save({ id: item.id, name, quantityNeeded, note: draft.note, places: draft.places })).then((result) => {
+        confirmSave(save({ id: item.id, name, quantityNeeded, note: draft.note, category: draft.category || null })).then((result) => {
             if (result === "saved") {
                 finished.current = true;
                 up();
@@ -151,11 +144,6 @@ function ItemDetails({
             setError(`The item ${result === "refused" ? REFUSED_MESSAGE : UNCONFIRMED_MESSAGE}`);
         });
     };
-    const setPlace = (storeId: string, zoneId: string) => {
-        const { [storeId]: _removed, ...rest } = draft.places;
-        setDraft({ ...draft, places: zoneId ? { ...rest, [storeId]: zoneId } : rest });
-    };
-    const stores = useStores();
     const photoUrl = useFileUrl(item.photoPath);
 
     return (
@@ -203,35 +191,23 @@ function ItemDetails({
                         onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
                     />
                 </Field>
+                <Field label="Category">
+                    <select
+                        className={inputClass}
+                        value={draft.category}
+                        onChange={(e) => setDraft({ ...draft, category: e.target.value as ZoneKind | "" })}
+                    >
+                        <option value="">No category</option>
+                        {zoneKinds.map((kind) => (
+                            <option key={kind} value={kind}>
+                                {kind[0].toUpperCase() + kind.slice(1)}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
                 <Field label="Note">
                     <input className={inputClass} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
                 </Field>
-            </section>
-            <section aria-label="Where it sits" className="mb-6">
-                <h2 className="mb-3 font-display text-heading">Where it sits</h2>
-                {stores.status === "ready" && stores.value.length === 0 && (
-                    <p className="text-body text-ink-muted">No stores yet.</p>
-                )}
-                {stores.status === "ready" && (
-                    <div className="flex flex-col gap-3">
-                        {stores.value.map((store) => (
-                            <Field key={store.id} label={store.name}>
-                                <select
-                                    className={inputClass}
-                                    value={draft.places[store.id] ?? ""}
-                                    onChange={(e) => setPlace(store.id, e.target.value)}
-                                >
-                                    <option value="">Not placed</option>
-                                    {(store.map?.zones ?? []).map((zone) => (
-                                        <option key={zone.id} value={zone.id}>
-                                            {zone.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </Field>
-                        ))}
-                    </div>
-                )}
             </section>
             {children}
         </>

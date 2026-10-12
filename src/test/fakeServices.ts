@@ -33,8 +33,8 @@ export class FakeServices implements Services {
         this.memberships.set("alex", { householdId: "h1" });
         this.households.set("h1", {
             items: [
-                testItem({ id: "i1", name: "Milk", quantityNeeded: 2, places: { s1: "z-dairy" } }),
-                testItem({ id: "i2", name: "Bread", note: "Sourdough", places: { s1: "z-bakery" } }),
+                testItem({ id: "i1", name: "Milk", quantityNeeded: 2, category: "dairy" }),
+                testItem({ id: "i2", name: "Bread", note: "Sourdough", category: "bakery" }),
             ],
             stores: [
                 testStore({
@@ -136,10 +136,10 @@ export class FakeServices implements Services {
                 household.items = [...household.items.filter(existing => !ids.has(existing.id)), ...list.map(newItem)];
                 this.itemsChanged(householdId);
             }),
-        updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
+        updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
             this.save(() => {
                 const household = this.household(householdId);
-                household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, places } : existing);
+                household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, category } : existing);
                 this.itemsChanged(householdId);
             }),
         watchList: (householdId, listener) => {

@@ -51,9 +51,9 @@ async function writeTestData(db: Firestore, householdId: string): Promise<void> 
         quantityRemaining: 0,
         note: "Lactose free",
         photoPath: null,
-        category: null,
+        category: "dairy",
         onList: true,
-        places: { "test-store": "dairy" },
+        places: {},
     });
     await household.collection("prices").doc("test-milk-costco").set({
         itemId: "test-milk",

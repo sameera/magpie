@@ -49,11 +49,19 @@ service cloud.firestore {
                     && request.resource.data.map == null;
             }
 
-            // The household inventory. Photo, quantity remaining and category are
-            // set on create and not changed from the app yet.
+            // The household inventory. Photo and quantity remaining are set on
+            // create and not changed from the app yet. The category is empty or one
+            // of the six zone kinds (also listed in src/data/model.ts). The legacy
+            // per-store placement may be left empty on a new item and is frozen
+            // on an update.
             match /items/{itemId} {
                 function itemFields() {
                     return ['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'];
+                }
+
+                function validCategory(data) {
+                    return data.category == null
+                        || data.category in ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry'];
                 }
 
                 function validItem(data) {
@@ -67,7 +75,8 @@ service cloud.firestore {
                         && data.note is string
                         && data.note.size() <= 1000
                         && data.onList is bool
-                        && data.places is map;
+                        && data.places is map
+                        && validCategory(data);
                 }
 
                 function unchanged(field) {
@@ -77,14 +86,14 @@ service cloud.firestore {
                 allow create: if isMemberOf(householdId)
                     && validItem(request.resource.data)
                     && request.resource.data.quantityRemaining == 0
-                    && request.resource.data.category == null
+                    && request.resource.data.places.size() == 0
                     && request.resource.data.photoPath == null;
 
                 allow update: if isMemberOf(householdId)
                     && validItem(request.resource.data)
                     && unchanged('photoPath')
                     && unchanged('quantityRemaining')
-                    && unchanged('category');
+                    && unchanged('places');
             }
 
             match /{document=**} {

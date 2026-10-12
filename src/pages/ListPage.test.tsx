@@ -32,10 +32,16 @@ describe("List page", () => {
         expect(screen.getByText("Nothing on the list. Tap + to add the first thing.")).toBeInTheDocument();
     });
 
-    it("opens the Item page for a new item from the add control", async () => {
+    it("opens the drawer and reaches the New item page with details", async () => {
         const { router } = renderApp(["/"]);
-        await userEvent.setup().click(screen.getByRole("link", { name: "Add item" }));
+        await userEvent.setup().click(screen.getByRole("button", { name: "Add item" }));
+        expect(router.state.location.pathname).toBe("/");
+        expect(screen.getByRole("dialog", { name: "Add items" })).toBeInTheDocument();
+        await userEvent.setup().click(screen.getByRole("button", { name: "Add with details" }));
         expect(router.state.location.pathname).toBe("/items/new");
+        expect(screen.queryByRole("dialog")).toBeNull();
+        await userEvent.setup().click(screen.getByRole("button", { name: "Back to list" }));
+        expect(router.state.location.pathname).toBe("/");
     });
 
     it("opens the Item page for the chosen item", async () => {
@@ -56,4 +62,13 @@ describe("List page", () => {
         expect(scrollTo).toHaveBeenLastCalledWith(0, 320);
         scrollTo.mockRestore();
     });
+});
+
+
+it("shows quantity needed and excludes inventory items off the list", () => {
+    const services = new FakeServices();
+    services.households.get("h1")!.items[1].onList = false;
+    renderApp(["/"], services);
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.queryByText("Bread")).toBeNull();
 });

@@ -5,7 +5,7 @@ import type { AuthUser, DataService, Membership, Services, Watched } from "../se
 type Listener<T> = (value: T) => void;
 
 export function testItem(fields: Partial<Item> & { id: string; name: string }): Item {
-    return { quantity: "", note: "", photoPath: null, onList: true, places: {}, ...fields };
+    return { quantityNeeded: 1, quantityRemaining: 0, category: "", note: "", photoPath: null, onList: true, places: {}, ...fields };
 }
 
 export function testStore(fields: Partial<Store> & { id: string; name: string }): Store {
@@ -33,7 +33,7 @@ export class FakeServices implements Services {
         this.memberships.set("alex", { householdId: "h1" });
         this.households.set("h1", {
             items: [
-                testItem({ id: "i1", name: "Milk", quantity: "2 L", places: { s1: "z-dairy" } }),
+                testItem({ id: "i1", name: "Milk", quantityNeeded: 2, places: { s1: "z-dairy" } }),
                 testItem({ id: "i2", name: "Bread", note: "Sourdough", places: { s1: "z-bakery" } }),
             ],
             stores: [
@@ -87,6 +87,8 @@ export class FakeServices implements Services {
         return () => undefined;
     }
 
+    private listListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
+
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
     // What the next saves do: "refuse" rejects them; "hang" never answers, as
@@ -118,16 +120,23 @@ export class FakeServices implements Services {
                 const household = this.household(householdId);
                 household.items = [...household.items.filter(existing => existing.id !== item.id), testItem({ ...item, onList: true })];
             }),
-        updateItem: (householdId, { id, name, quantity, note, places }) =>
+        createItems: (householdId, items) => this.save(() => {
+            const household = this.household(householdId);
+            household.items = [...household.items.filter(existing => !items.some(item => item.id === existing.id)), ...items.map(item => testItem(item))];
+            this.listListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.items.filter(item => item.onList) }));
+        }),
+        updateItem: (householdId, { id, name, quantityNeeded, note, places }) =>
             this.save(() => {
                 const household = this.household(householdId);
-                household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantity, note, places } : existing);
+                household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, places } : existing);
             }),
-        watchList: (householdId, listener) =>
-            this.answer(
-                listener,
-                this.household(householdId).items.filter((item) => item.onList),
-            ),
+        watchList: (householdId, listener) => {
+            const listeners = this.listListeners.get(householdId) ?? new Set();
+            this.listListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, this.household(householdId).items.filter(item => item.onList));
+            return () => { listeners.delete(listener); };
+        },
         watchItem: (householdId, itemId, listener) =>
             this.answer(
                 listener,

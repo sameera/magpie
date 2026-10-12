@@ -10,7 +10,7 @@ import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
 import type { Item, Price } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
-const emptyItem: Item = { id: "", name: "", quantity: "", note: "", photoPath: null, onList: true, places: {} };
+const emptyItem: Item = { id: "", name: "", quantityNeeded: 1, quantityRemaining: 0, category: "", note: "", photoPath: null, onList: true, places: {} };
 
 const money: Intl.NumberFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const day: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -30,7 +30,7 @@ function NewItem() {
         <ItemDetails
             title="New item"
             item={{ ...emptyItem, id }}
-            save={(draft) => data.createItem(householdId, { id, name: draft.name, quantity: draft.quantity, note: draft.note, places: draft.places })}
+            save={(draft) => data.createItem(householdId, { id, name: draft.name, quantityNeeded: draft.quantityNeeded, note: draft.note, places: draft.places })}
         />
     );
 }
@@ -51,7 +51,7 @@ function ExistingItem({ itemId }: { itemId: string }) {
             title={item.value.name}
             item={item.value}
             existing
-            save={(draft) => data.updateItem(householdId, { id: draft.id, name: draft.name, quantity: draft.quantity, note: draft.note, places: draft.places })}
+            save={(draft) => data.updateItem(householdId, { id: draft.id, name: draft.name, quantityNeeded: draft.quantityNeeded, note: draft.note, places: draft.places })}
         >
             <Prices itemId={item.value.id} />
         </ItemDetails>
@@ -73,7 +73,7 @@ function sameFields(a: Item, b: Item): boolean {
     const keys = (item: Item) => Object.keys(item.places).sort().join();
     return (
         a.name === b.name &&
-        a.quantity === b.quantity &&
+        a.quantityNeeded === b.quantityNeeded &&
         a.note === b.note &&
         keys(a) === keys(b) &&
         Object.keys(a.places).every((storeId) => a.places[storeId] === b.places[storeId])
@@ -96,12 +96,13 @@ function ItemDetails({
     children?: ReactNode;
 }) {
     const [draft, setDraft] = useState<Item>(item);
+    const [quantityText, setQuantityText] = useState(String(item.quantityNeeded));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const up = useUp("/");
     // Set once a save is confirmed, so going up afterwards is not treated as a discard.
     const finished = useRef(false);
-    const dirty = !sameFields(draft, item);
+    const dirty = !sameFields(draft, item) || quantityText !== String(item.quantityNeeded);
     const blocker = useBlocker(() => dirty && !finished.current);
     useEffect(() => {
         if (blocker.state !== "blocked") return;
@@ -122,9 +123,14 @@ function ItemDetails({
             setError("Name is required.");
             return;
         }
+        const quantityNeeded = Number(quantityText);
+        if (!quantityText.trim() || !Number.isInteger(quantityNeeded) || quantityNeeded < 1 || quantityNeeded > 999) {
+            setError("Quantity must be a whole number from 1 to 999.");
+            return;
+        }
         setError("");
         setSaving(true);
-        confirmSave(save({ ...draft, name })).then((result) => {
+        confirmSave(save({ ...draft, name, quantityNeeded })).then((result) => {
             if (result === "saved") {
                 finished.current = true;
                 up();
@@ -158,7 +164,7 @@ function ItemDetails({
                 }
             />
             {error && (
-                <p role="alert" className="mb-4 text-body text-danger">
+                <p id="quantity-error" role="alert" className="mb-4 text-body text-danger">
                     {error}
                 </p>
             )}
@@ -179,8 +185,11 @@ function ItemDetails({
                 <Field label="Quantity">
                     <input
                         className={inputClass}
-                        value={draft.quantity}
-                        onChange={(e) => setDraft({ ...draft, quantity: e.target.value })}
+                        value={quantityText}
+                        inputMode="numeric"
+                        aria-invalid={error.startsWith("Quantity")}
+                        aria-describedby={error.startsWith("Quantity") ? "quantity-error" : undefined}
+                        onChange={(e) => setQuantityText(e.target.value)}
                     />
                 </Field>
                 <Field label="Note">

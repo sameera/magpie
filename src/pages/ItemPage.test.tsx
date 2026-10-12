@@ -5,12 +5,12 @@ import { FakeServices, testItem } from "../test/fakeServices";
 import { renderApp } from "../test/renderApp";
 
 describe("Item page", () => {
-    it("holds the item's name, quantity, note, photo and place in each store", async () => {
+    it("holds the item's name, quantityNeeded, note, photo and place in each store", async () => {
         const services = new FakeServices();
         services.households.get("h1")!.items[0] = testItem({
             id: "i1",
             name: "Milk",
-            quantity: "2 L",
+            quantityNeeded: 2,
             note: "Lactose free",
             photoPath: "households/h1/items/i1.jpg",
             places: { s1: "z-dairy" },
@@ -18,7 +18,7 @@ describe("Item page", () => {
         renderApp(["/items/i1"], services);
         expect(screen.getByRole("heading", { name: "Milk" })).toBeInTheDocument();
         expect(screen.getByLabelText("Name")).toHaveValue("Milk");
-        expect(screen.getByLabelText("Quantity")).toHaveValue("2 L");
+        expect(screen.getByLabelText("Quantity")).toHaveValue("2");
         expect(screen.getByLabelText("Note")).toHaveValue("Lactose free");
         expect(await screen.findByRole("img", { name: "Photo of Milk" })).toHaveAttribute(
             "src",
@@ -87,12 +87,13 @@ describe("New item page saving", () => {
 
     it("saves the item onto the list with its fields and zone, and returns to List", async () => {
         const { user, router, services } = await fill();
+        await user.clear(screen.getByLabelText("Quantity"));
         await user.type(screen.getByLabelText("Quantity"), "12");
         await user.type(screen.getByLabelText("Note"), "Free range");
         await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-dairy");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/");
-        expect(saved(services)).toEqual([expect.objectContaining({ quantity: "12", note: "Free range", places: { s1: "z-dairy" }, onList: true, photoPath: null })]);
+        expect(saved(services)).toEqual([expect.objectContaining({ quantityNeeded: 12, note: "Free range", places: { s1: "z-dairy" }, onList: true, photoPath: null })]);
         expect(await screen.findByText("Eggs")).toBeInTheDocument();
     });
 
@@ -192,11 +193,11 @@ describe("Existing item page saving", () => {
         await user.clear(screen.getByLabelText("Name"));
         await user.type(screen.getByLabelText("Name"), "  Oat milk ");
         await user.clear(screen.getByLabelText("Quantity"));
-        await user.type(screen.getByLabelText("Quantity"), "3 L");
+        await user.type(screen.getByLabelText("Quantity"), "3");
         await user.selectOptions(screen.getByLabelText("Costco Kirkland"), "z-bakery");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/");
-        expect(milk(services)).toMatchObject({ name: "Oat milk", quantity: "3 L", places: { s1: "z-bakery" } });
+        expect(milk(services)).toMatchObject({ name: "Oat milk", quantityNeeded: 3, places: { s1: "z-bakery" } });
         renderApp(["/items/i1"], services);
         expect(screen.getAllByLabelText("Name").at(-1)).toHaveValue("Oat milk");
     });
@@ -259,6 +260,21 @@ describe("Existing item page saving", () => {
         await user.click(screen.getByRole("button", { name: "Back to list" }));
         expect(confirm).toHaveBeenCalledTimes(2);
         expect(router.state.location.pathname).toBe("/");
+        expect(update).not.toHaveBeenCalled();
+    });
+});
+
+
+describe("quantity needed validation", () => {
+    it.each(["", "0", "-1", "1.5", "1000", "milk"])("refuses %s without saving", async value => {
+        const services = new FakeServices();
+        const update = vi.spyOn(services.data, "updateItem");
+        renderApp(["/items/i1"], services);
+        const user = userEvent.setup();
+        await user.clear(screen.getByLabelText("Quantity"));
+        if (value) await user.type(screen.getByLabelText("Quantity"), value);
+        await user.click(screen.getByRole("button", { name: "Done" }));
+        expect(screen.getByRole("alert")).toHaveTextContent("whole number from 1 to 999");
         expect(update).not.toHaveBeenCalled();
     });
 });

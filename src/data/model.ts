@@ -14,7 +14,9 @@ export const memberConverter: FirestoreDataConverter<Member> = {
 export interface Item {
     id: string;
     name: string;
-    quantity: string;
+    quantityNeeded: number;
+    quantityRemaining: number;
+    category: string;
     note: string;
     // Cloud Storage path of the item's photo.
     photoPath: string | null;
@@ -37,7 +39,9 @@ export const itemConverter: FirestoreDataConverter<Item> = {
     fromFirestore: (snap: QueryDocumentSnapshot) => ({
         id: snap.id,
         name: String(snap.get("name") ?? ""),
-        quantity: String(snap.get("quantity") ?? ""),
+        quantityNeeded: Number(snap.get("quantityNeeded") ?? 1),
+        quantityRemaining: Number(snap.get("quantityRemaining") ?? 0),
+        category: String(snap.get("category") ?? ""),
         note: String(snap.get("note") ?? ""),
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,
         onList: snap.get("onList") === true,

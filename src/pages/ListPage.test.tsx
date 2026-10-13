@@ -77,7 +77,7 @@ describe("Add items drawer", () => {
     const addButton = () => screen.getByRole("button", { name: /^Add( \d+)?$/ });
     const items = (services: FakeServices) => services.households.get("h1")!.items;
 
-    it("opens from the Add item button with the text box, Add and the advanced option, adding no history entry", async () => {
+    it("opens from the Add item button with the text box and Add, adding no history entry", async () => {
         const services = new FakeServices();
         const app = renderApp(["/"], services);
         const before = app.router.state.location.key;
@@ -86,7 +86,7 @@ describe("Add items drawer", () => {
         const drawer = within(screen.getByRole("dialog", { name: "Add items" }));
         expect(drawer.getByLabelText("One item per line")).toBeInTheDocument();
         expect(drawer.getByRole("button", { name: "Add" })).toBeInTheDocument();
-        expect(drawer.getByRole("button", { name: "Add item with details (advanced)" })).toBeInTheDocument();
+        expect(drawer.queryByRole("button", { name: /with details/ })).toBeNull();
         expect(app.router.state.location.pathname).toBe("/");
         expect(app.router.state.location.key).toBe(before);
         await user.click(drawer.getByRole("button", { name: "Close" }));
@@ -95,63 +95,11 @@ describe("Add items drawer", () => {
         expect(app.router.state.location.key).toBe(before);
     });
 
-    it("opens the New item page from the advanced option, and its up control returns to List", async () => {
-        const { user, router } = await openDrawer();
-        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
-        expect(screen.queryByRole("dialog")).toBeNull();
-        expect(router.state.location.pathname).toBe("/items/new");
-        await user.click(screen.getByRole("button", { name: "Back to list" }));
-        expect(router.state.location.pathname).toBe("/");
-        expect(router.state.historyAction).toBe("POP");
-    });
-
-    it("keeps Add as the only primary button and offers the advanced option below it", async () => {
+    it("keeps Add as the only primary button", async () => {
         await openDrawer();
         const drawer = within(screen.getByRole("dialog", { name: "Add items" }));
         const buttons = drawer.getAllByRole("button");
-        const names = buttons.map((b) => b.textContent);
-        expect(names.indexOf("Add")).toBeLessThan(names.indexOf("Add item with details (advanced)"));
         expect(buttons.filter((b) => b.className.includes("bg-sheen")).map((b) => b.textContent)).toEqual(["Add"]);
-    });
-
-    it("opens the New item form for one empty new item at the new-item path", async () => {
-        const { user, router } = await openDrawer();
-        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
-        expect(router.state.location.pathname).toBe("/items/new");
-        expect(screen.getByRole("heading", { name: "New item" })).toBeInTheDocument();
-        expect(screen.getByLabelText("Name")).toHaveValue("");
-    });
-
-    it("keeps the typed text across the full form and back, restores scroll, and reuses reserved IDs", async () => {
-        const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
-        const services = new FakeServices();
-        services.saveBehavior = "hang";
-        vi.useFakeTimers({ shouldAdvanceTime: true });
-        const { user, router } = await openDrawer(services);
-        const addItems = vi.spyOn(services.data, "addItems");
-        Object.defineProperty(window, "scrollY", { value: 240, configurable: true });
-        window.dispatchEvent(new Event("scroll"));
-        await user.type(box(), "Apples{Enter}Jam");
-        await user.click(addButton());
-        await act(async () => { await vi.advanceTimersByTimeAsync(8100); });
-        expect(screen.getByRole("alert")).toHaveTextContent("not confirmed yet");
-        vi.useRealTimers();
-        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
-        expect(router.state.location.pathname).toBe("/items/new");
-        await user.click(screen.getByRole("button", { name: "Back to list" }));
-        expect(router.state.location.pathname).toBe("/");
-        expect(router.state.historyAction).toBe("POP");
-        expect(scrollTo).toHaveBeenLastCalledWith(0, 240);
-        expect(screen.queryByRole("dialog")).toBeNull();
-        await user.click(screen.getByRole("button", { name: "Add item" }));
-        expect(box()).toHaveValue("Apples\nJam");
-        services.saveBehavior = "accept";
-        await user.click(addButton());
-        expect(addItems.mock.calls[1][1].map((i) => i.id)).toEqual(addItems.mock.calls[0][1].map((i) => i.id));
-        expect(items(services).filter((i) => i.name === "Apples")).toHaveLength(1);
-        await user.click(screen.getByRole("button", { name: "Add item" }));
-        expect(box()).toHaveValue("");
-        scrollTo.mockRestore();
     });
 
     it("empties the add box on sign-out", async () => {
@@ -379,14 +327,13 @@ describe("Add items drawer suggestions", () => {
         expect(items(services).find((i) => i.name === "Oat milkshake")).toMatchObject({ onList: true });
     });
 
-    it("keeps the picked item across a trip to the full form", async () => {
+    it("keeps the picked item when the drawer is closed and opened again", async () => {
         const services = household();
         services.households.get("h1")!.items.push(testItem({ id: "oat-2", name: "Oat milk", category: "frozen", onList: false }));
         const { user } = await openDrawer(services);
         await user.type(box(), "oat");
         await user.click(within(listbox()).getByRole("option", { name: "Oat milk, Frozen" }));
-        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
-        await user.click(screen.getByRole("button", { name: "Back to list" }));
+        await user.click(screen.getByRole("button", { name: "Close" }));
         await user.click(screen.getByRole("button", { name: "Add item" }));
         await user.click(addButton());
         expect(items(services).find((i) => i.id === "oat-2")).toMatchObject({ onList: true });

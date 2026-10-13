@@ -3,7 +3,7 @@ import type { LineLinks } from "../data/itemMatch";
 
 // The add box's draft: the typed text, the existing items its lines were picked
 // from, and the item IDs reserved for its lines on the first press of Add. Held in memory above the List page, so it survives
-// the trip to the full item form and back. It goes when the items are added,
+// the drawer being closed and opened again. It goes when the items are added,
 // when the member signs out (the provider unmounts with the sign-in gate) and
 // when the app reloads.
 export interface AddDraft {

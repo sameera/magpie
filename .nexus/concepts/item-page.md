@@ -2,7 +2,7 @@
 title: Item Page
 aliases: [item, new item, add item, item details, item prices]
 touches: [page-paths, back-navigation, household-data-reads, add-items-drawer, item-save]
-last_updated_by: "#27"
+last_updated_by: "#31"
 status: active
 verification: verified
 ---
@@ -13,15 +13,15 @@ One Item page serves both a new item and an existing item, each at its own path.
 
 ## How It Works
 
-Choosing Add with details in the List page's add drawer opens the Item page at its "new" path. Choosing an item on the list opens the Item page at a path that carries that item's ID.
+Choosing the add box's advanced option on the List page opens the Item page at its "new" path. Choosing an item on the list opens the Item page at a path that carries that item's ID.
 
-The page holds the item's name, quantity needed, note and photo. It also holds where the item sits in each store. For an existing item, the page reads these details and the item's recorded prices. Each price belongs to a store chain and carries the date it was observed. A new item has no prices to show.
+The page holds the item's name, quantity needed, note and photo. It also holds the item's category: one of the six zone kinds, or none. In a store, the item sits in the first zone of that kind in walking order. For an existing item, the page reads these details and the item's recorded prices. Each price belongs to a store chain and carries the date it was observed. A new item has no prices to show.
 
-Finishing uses the up control, which leads to the List page. The List page then restores the scroll position it had. Done saves the item, then finishes.
+Finishing uses the up control, which leads to the List page. The List page then restores the scroll position it had. Done saves the item, then finishes. A new item goes on the list with no photo. An edit writes only the name, quantity, note and category, so the list flag, photo and any old per-store placement stay as stored. Choosing "No category" clears the item's category. Done with no changes writes nothing, and leaving with unsaved changes asks to confirm.
 
 ## Key Invariants
 
-1. Choosing to add an item opens the add drawer on the List page, and the drawer's Add with details button opens the Item page for a new item.
+1. Choosing the add box's advanced option opens the Item page for a new item.
 2. Choosing an item on the list opens the Item page for that item.
 3. The Item page of an existing item with recorded prices shows those prices.
 4. The Item page of a new item shows no prices.
@@ -34,7 +34,7 @@ Finishing uses the up control, which leads to the List page. The List page then 
 - [page-paths](page-paths.md) — the Item page has two paths, so both a new item and an existing item survive a reload.
 - [back-navigation](back-navigation.md) — finishing uses the up control to List, and the List restores its scroll position.
 - [household-data-reads](household-data-reads.md) — the page reads an existing item's details and prices, and shows "not found" when the item is missing.
-- [add-items-drawer](add-items-drawer.md) — the drawer's Add with details button closes the drawer and opens the Item page for a new item.
+- [add-items-drawer](add-items-drawer.md) — the add box's advanced option closes the drawer and opens the Item page for a new item.
 - [item-save](item-save.md) — Done on this page runs the save, and a confirmed save finishes the page with the up control to List.
 
 ## Decision Log
@@ -50,3 +50,7 @@ Done now saves a new item onto the list and saves an edit to an existing item. T
 ### 2026-10-11 — #27 — Adding starts in the add drawer, and saving moves to item-save
 
 Choosing to add an item now opens the add drawer on the List page, and the drawer's Add with details button opens this page for a new item. Invariant 1 is rewritten to say so. The quantity field now edits quantity needed, a whole number from 1 to 999. With that check added, the page's own content passed the 400-word cap, so saving the item is split into the item-save page. The seam is Done: this page keeps the two ways in, the details it holds and the prices, and item-save holds the checks, the wait for the server, the retry and the discard prompt. Invariants 6 and 7 are struck through here, because they now live on item-save. This page now lists the add drawer and item-save as neighbours, matching their links to this page. The refuted alternative was to keep saving on this page and drop older detail to fit the cap. It lost because the dropped detail is still true, and a task about the save can load item-save alone.
+
+### 2026-10-12 — #31 — An item has one category, and its store zone is worked out when the list is shown
+
+The Item page replaces the per-store "Where it sits" choices with one category: none, or one of the six zone kinds. At a store, the list matches the category to the first zone of that kind in walking order. Nothing is saved per store, so a new store or an edited map needs no step for each item. The full form is now reached from a quieter advanced control in the add box. Old per-store placements stay in the stored data. Nothing reads them, and the rules refuse any change to them, so an older cached copy of the app can still save. A zone whose stored kind is none of the six places no item. The typed add-box text is kept in memory for the session, so it survives the trip to this page and back. The refuted alternative was to store a zone on each item, worked out from its category when the item is saved. Reads would be cheap. It lost because the stored zones go stale whenever a map changes or a store is added, which brings back the per-store upkeep this change removes. The trade-off is that one item cannot sit in different kinds of zone at different chains. Until the author can choose a zone's kind, placement works only on maps created outside the app.

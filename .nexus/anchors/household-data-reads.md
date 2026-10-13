@@ -1,6 +1,6 @@
 ---
 concept: household-data-reads
-source_sha: 701f8f82cfe70f443539b6f40770eceb81d36532
+source_sha: 970c12b519dff0e947e26bd1c55b14e9d0e8ecc5
 generated: 2026-10-11
 ---
 
@@ -11,10 +11,12 @@ generated: 2026-10-11
 
 - `src/data/hooks.ts` — the household-scoped reads each page uses
 - `src/data/watch.ts` — turns a live read into loading, ready or missing
-- `src/data/model.ts` — the shapes of items, stores, maps, zones and prices
-- `src/services/firestoreData.ts` — the live reads of one household's data and files, and the creation and update of stores and items (#25)
-- `src/services/types.ts` — the data service, with store and item saves, and the three read states (#25)
+- `src/data/model.ts` — the shapes of items, stores, maps, zones and prices, and the quantity label
+- `src/services/firestoreData.ts` — the live reads of one household's data and files
+- `src/services/types.ts` — the data service's reads and the three read states
+- `src/pages/ListPage.tsx` — reads and shows the items flagged as on the list
+- `src/pages/InStorePage.tsx` — reads the chosen store and the items on the list
 - `src/pages/StoresPage.tsx` — lists the stores with their chains and opens the Add store sheet (#23)
 - `src/pages/StorePage.tsx` — shows one store's map and zones and a way to edit the map
 - `src/components/StoreMap.tsx` — draws a store's map and zones
-- `firestore.rules` — allows a member to create stores, create items and update items, and refuses every other write to household data from the app (#25)
+- `firestore.rules` — allows a read only to a member of the household

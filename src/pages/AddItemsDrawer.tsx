@@ -23,9 +23,9 @@ const zoneSwatch: Record<ZoneKind, string> = {
 // While a line is typed, the household's items that match it show below the
 // text box, above the on-screen keyboard; picking one puts that item back on
 // the list instead of adding a copy. The typed text and the picks are kept in
-// the add-box draft, above the List page, so they are still there after a trip
-// to the full item form. It has no page path of its own.
-export function AddItemsDrawer({ open, onClose, onDetails }: { open: boolean; onClose: () => void; onDetails: () => void }) {
+// the add-box draft, above the List page, so they are still there when the
+// drawer is closed and opened again. It has no page path of its own.
+export function AddItemsDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const items = useItems();
@@ -174,14 +174,6 @@ export function AddItemsDrawer({ open, onClose, onDetails }: { open: boolean; on
                     </p>
                 )}
                 <SuggestionTray id={listId} suggestions={suggestions} disabled={saving} onPick={pick} />
-                <button
-                    type="button"
-                    disabled={saving}
-                    onClick={onDetails}
-                    className="h-tap shrink-0 border-t border-line text-button text-ink-muted underline"
-                >
-                    Add item with details (advanced)
-                </button>
             </form>
         </div>
     );

@@ -1,6 +1,6 @@
 import { Camera, Plus } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useList } from "../data/hooks";
 import { quantityLabel } from "../data/model";
@@ -9,7 +9,6 @@ import { PageHeader } from "./PageHeader";
 
 export function ListPage() {
     const list = useList();
-    const navigate = useNavigate();
     const [adding, setAdding] = useState(false);
     useScrollMemory(list.status !== "loading");
 
@@ -51,14 +50,7 @@ export function ListPage() {
             >
                 <Plus aria-hidden="true" />
             </button>
-            <AddItemsDrawer
-                open={adding}
-                onClose={() => setAdding(false)}
-                onDetails={() => {
-                    setAdding(false);
-                    navigate("/items/new");
-                }}
-            />
+            <AddItemsDrawer open={adding} onClose={() => setAdding(false)} />
         </>
     );
 }

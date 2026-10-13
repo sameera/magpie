@@ -19,11 +19,23 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             list.forEach((item) => batch.set(doc(items(householdId), item.id), newItem(item)));
             return batch.commit();
         },
+        addItems: (householdId, created, relisted) => {
+            const batch = writeBatch(db);
+            created.forEach((item) => batch.set(doc(items(householdId), item.id), newItem(item)));
+            relisted.forEach(({ id, quantityNeeded }) => batch.update(doc(items(householdId), id), { onList: true, quantityNeeded }));
+            return batch.commit();
+        },
         updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
             updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category }),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),
+                (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()).sort(byName) }),
+                () => listener({ status: "missing" }),
+            ),
+        watchItems: (householdId, listener) =>
+            onSnapshot(
+                items(householdId),
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()).sort(byName) }),
                 () => listener({ status: "missing" }),
             ),

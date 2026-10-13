@@ -89,14 +89,21 @@ export class FakeServices implements Services {
 
     private listListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
 
+    private itemsListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
+
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
     private onList(householdId: string): Item[] {
         return this.household(householdId).items.filter((item) => item.onList);
     }
 
+    private allItems(householdId: string): Item[] {
+        return [...this.household(householdId).items].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     private itemsChanged(householdId: string): void {
         this.listListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.onList(householdId) }));
+        this.itemsListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.allItems(householdId) }));
     }
 
     // What the next saves do: "refuse" rejects them; "hang" never answers, as
@@ -136,6 +143,19 @@ export class FakeServices implements Services {
                 household.items = [...household.items.filter(existing => !ids.has(existing.id)), ...list.map(newItem)];
                 this.itemsChanged(householdId);
             }),
+        addItems: (householdId, created, relisted) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                const ids = new Set(created.map(item => item.id));
+                const quantities = new Map(relisted.map(({ id, quantityNeeded }) => [id, quantityNeeded]));
+                household.items = [
+                    ...household.items
+                        .filter(existing => !ids.has(existing.id))
+                        .map(existing => quantities.has(existing.id) ? { ...existing, onList: true, quantityNeeded: quantities.get(existing.id)! } : existing),
+                    ...created.map(newItem),
+                ];
+                this.itemsChanged(householdId);
+            }),
         updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
             this.save(() => {
                 const household = this.household(householdId);
@@ -147,6 +167,13 @@ export class FakeServices implements Services {
             this.listListeners.set(householdId, listeners);
             listeners.add(listener);
             this.answer(listener, this.onList(householdId));
+            return () => { listeners.delete(listener); };
+        },
+        watchItems: (householdId, listener) => {
+            const listeners = this.itemsListeners.get(householdId) ?? new Set();
+            this.itemsListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, this.allItems(householdId));
             return () => { listeners.delete(listener); };
         },
         watchItem: (householdId, itemId, listener) =>

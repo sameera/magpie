@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FakeServices, testItem } from "../test/fakeServices";
@@ -73,6 +73,8 @@ describe("Add items drawer", () => {
         return { ...app, user };
     }
     const box = () => screen.getByLabelText("One item per line");
+    // Add shows the line count: "Add", "Add 3".
+    const addButton = () => screen.getByRole("button", { name: /^Add( \d+)?$/ });
     const items = (services: FakeServices) => services.households.get("h1")!.items;
 
     it("opens from the Add item button with the text box, Add and the advanced option, adding no history entry", async () => {
@@ -126,11 +128,11 @@ describe("Add items drawer", () => {
         services.saveBehavior = "hang";
         vi.useFakeTimers({ shouldAdvanceTime: true });
         const { user, router } = await openDrawer(services);
-        const createItems = vi.spyOn(services.data, "createItems");
+        const addItems = vi.spyOn(services.data, "addItems");
         Object.defineProperty(window, "scrollY", { value: 240, configurable: true });
         window.dispatchEvent(new Event("scroll"));
         await user.type(box(), "Apples{Enter}Jam");
-        await user.click(screen.getByRole("button", { name: "Add" }));
+        await user.click(addButton());
         await act(async () => { await vi.advanceTimersByTimeAsync(8100); });
         expect(screen.getByRole("alert")).toHaveTextContent("not confirmed yet");
         vi.useRealTimers();
@@ -144,8 +146,8 @@ describe("Add items drawer", () => {
         await user.click(screen.getByRole("button", { name: "Add item" }));
         expect(box()).toHaveValue("Apples\nJam");
         services.saveBehavior = "accept";
-        await user.click(screen.getByRole("button", { name: "Add" }));
-        expect(createItems.mock.calls[1][1].map((i) => i.id)).toEqual(createItems.mock.calls[0][1].map((i) => i.id));
+        await user.click(addButton());
+        expect(addItems.mock.calls[1][1].map((i) => i.id)).toEqual(addItems.mock.calls[0][1].map((i) => i.id));
         expect(items(services).filter((i) => i.name === "Apples")).toHaveLength(1);
         await user.click(screen.getByRole("button", { name: "Add item" }));
         expect(box()).toHaveValue("");
@@ -164,10 +166,10 @@ describe("Add items drawer", () => {
 
     it("adds one item per line in one write, shows them on the list, then clears and closes", async () => {
         const { user, services } = await openDrawer();
-        const createItems = vi.spyOn(services.data, "createItems");
+        const addItems = vi.spyOn(services.data, "addItems");
         await user.type(box(), "Apples{Enter}{Enter}   {Enter}  Cheese  {Enter}Jam");
-        await user.click(screen.getByRole("button", { name: "Add" }));
-        expect(createItems).toHaveBeenCalledTimes(1);
+        await user.click(addButton());
+        expect(addItems).toHaveBeenCalledTimes(1);
         const list = within(screen.getByRole("list", { name: "Shopping list" }));
         for (const name of ["Apples", "Cheese", "Jam"]) {
             expect(list.getByText(name)).toBeInTheDocument();
@@ -184,7 +186,7 @@ describe("Add items drawer", () => {
     it("reads a quantity from parentheses at the end of a line", async () => {
         const { user, services } = await openDrawer();
         await user.type(box(), "Whole Milk (3)  {Enter}Milk (2%) 1 gal{Enter}Milk (organic)");
-        await user.click(screen.getByRole("button", { name: "Add" }));
+        await user.click(addButton());
         expect(items(services).find(i => i.name === "Whole Milk")).toMatchObject({ quantityNeeded: 3 });
         expect(items(services).find(i => i.name === "Milk (2%) 1 gal")).toMatchObject({ quantityNeeded: 1 });
         expect(items(services).find(i => i.name === "Milk (organic)")).toMatchObject({ quantityNeeded: 1 });
@@ -204,7 +206,7 @@ describe("Add items drawer", () => {
         services.saveBehavior = "refuse";
         const { user } = await openDrawer(services);
         await user.type(box(), "Apples{Enter}Jam");
-        await user.click(screen.getByRole("button", { name: "Add" }));
+        await user.click(addButton());
         expect(await screen.findByRole("alert")).toHaveTextContent("Your list of items could not be saved");
         expect(screen.getByRole("dialog", { name: "Add items" })).toBeInTheDocument();
         expect(box()).toHaveValue("Apples\nJam");
@@ -216,18 +218,18 @@ describe("Add items drawer", () => {
         services.saveBehavior = "hang";
         vi.useFakeTimers({ shouldAdvanceTime: true });
         const { user } = await openDrawer(services);
-        const createItems = vi.spyOn(services.data, "createItems");
+        const addItems = vi.spyOn(services.data, "addItems");
         await user.type(box(), "Apples{Enter}Jam");
-        await user.click(screen.getByRole("button", { name: "Add" }));
-        expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+        await user.click(addButton());
+        expect(addButton()).toBeDisabled();
         expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Apples")).toBeInTheDocument();
         await act(async () => { await vi.advanceTimersByTimeAsync(8100); });
         expect(screen.getByRole("alert")).toHaveTextContent("Your list of items is not confirmed yet");
         expect(box()).toHaveValue("Apples\nJam");
         vi.useRealTimers();
         services.saveBehavior = "accept";
-        await user.click(screen.getByRole("button", { name: "Add" }));
-        expect(createItems.mock.calls[1][1].map(i => i.id)).toEqual(createItems.mock.calls[0][1].map(i => i.id));
+        await user.click(addButton());
+        expect(addItems.mock.calls[1][1].map(i => i.id)).toEqual(addItems.mock.calls[0][1].map(i => i.id));
         expect(items(services).filter(i => i.name === "Apples")).toHaveLength(1);
         expect(items(services).filter(i => i.name === "Jam")).toHaveLength(1);
         expect(screen.queryByRole("dialog")).toBeNull();
@@ -235,29 +237,160 @@ describe("Add items drawer", () => {
 
     it("refuses more than 50 lines or a name over 100 characters, writing nothing and keeping the text", async () => {
         const { user, services } = await openDrawer();
-        const createItems = vi.spyOn(services.data, "createItems");
+        const addItems = vi.spyOn(services.data, "addItems");
         const many = Array.from({ length: 51 }, (_v, i) => `Item ${i}`).join("\n");
         await user.click(box());
         await user.paste(many);
-        await user.click(screen.getByRole("button", { name: "Add" }));
+        await user.click(addButton());
         expect(screen.getByRole("alert")).toHaveTextContent("Add at most 50 items at a time.");
         expect(box()).toHaveValue(many);
         await user.clear(box());
         await user.click(box());
         await user.paste("x".repeat(101));
-        await user.click(screen.getByRole("button", { name: "Add" }));
+        await user.click(addButton());
         expect(screen.getByRole("alert")).toHaveTextContent("An item name can be at most 100 characters.");
         expect(box()).toHaveValue("x".repeat(101));
-        expect(createItems).not.toHaveBeenCalled();
+        expect(addItems).not.toHaveBeenCalled();
         expect(items(services)).toHaveLength(2);
     });
 
     it("creates nothing from blank text", async () => {
         const { user, services } = await openDrawer();
-        const createItems = vi.spyOn(services.data, "createItems");
+        const addItems = vi.spyOn(services.data, "addItems");
         await user.type(box(), "   {Enter}  ");
-        await user.click(screen.getByRole("button", { name: "Add" }));
-        expect(createItems).not.toHaveBeenCalled();
+        await user.click(addButton());
+        expect(addItems).not.toHaveBeenCalled();
         expect(screen.getByRole("alert")).toHaveTextContent("Type an item to add.");
     });
 });
+
+describe("Add items drawer suggestions", () => {
+    // Milk (on the list, 2 needed, dairy) and Bread (on the list, bakery) come with
+    // the fake household; these are off the list.
+    function household() {
+        const services = new FakeServices();
+        services.households.get("h1")!.items.push(
+            testItem({ id: "oat", name: "Oat milk", category: "dairy", onList: false }),
+            testItem({ id: "choc", name: "Milk chocolate", category: "pantry", onList: false }),
+            testItem({ id: "rice", name: "Basmati rice", onList: false }),
+        );
+        return services;
+    }
+    async function openDrawer(services = household()) {
+        const app = renderApp(["/"], services);
+        const user = userEvent.setup();
+        await user.click(screen.getByRole("button", { name: "Add item" }));
+        return { ...app, user };
+    }
+    const box = () => screen.getByLabelText("One item per line");
+    const addButton = () => screen.getByRole("button", { name: /^Add( \d+)?$/ });
+    const listbox = () => screen.getByRole("listbox", { name: "Matching items" });
+    const options = () => within(listbox()).queryAllByRole("option").map((o) => o.querySelector(".text-item")!.textContent);
+    const items = (services: FakeServices) => services.households.get("h1")!.items;
+
+    it("shows the household's items matching the line under the cursor, starts-with first", async () => {
+        const { user } = await openDrawer();
+        expect(box()).toHaveAttribute("aria-controls", listbox().id);
+        expect(box()).toHaveAttribute("aria-autocomplete", "list");
+        await user.type(box(), "bread{Enter}mil");
+        expect(options()).toEqual(["Milk chocolate", "Milk", "Oat milk"]);
+        expect(screen.getByText("From your items")).toBeInTheDocument();
+        expect(screen.getByText("3 matches")).toBeInTheDocument();
+        const milk = within(listbox()).getByRole("option", { name: "Milk, Dairy · 2 needed, On list" });
+        expect(milk).toHaveTextContent("Dairy · 2 needed");
+        expect(within(milk).getByText("On list")).toBeInTheDocument();
+        expect(within(milk).getByText("Mil").tagName).toBe("B");
+        expect(addButton()).toHaveTextContent("Add 2");
+    });
+
+    it("offers items that are not on the list when the line is empty", async () => {
+        await openDrawer();
+        expect(screen.getByText("Not on the list")).toBeInTheDocument();
+        expect(screen.getByText("Tap to add")).toBeInTheDocument();
+        expect(options()).toEqual(["Basmati rice", "Milk chocolate", "Oat milk"]);
+    });
+
+    it("says a line with no match will be added as a new item", async () => {
+        const { user } = await openDrawer();
+        await user.type(box(), "saffron (2)");
+        expect(options()).toEqual([]);
+        expect(listbox().parentElement).toHaveTextContent("No match in your items. saffron will be added as a new item.");
+    });
+
+    it("replaces the line with the picked item, keeps its quantity and the keyboard, and starts a new line", async () => {
+        const { user } = await openDrawer();
+        await user.type(box(), "oat (2)");
+        const oat = within(listbox()).getByRole("option", { name: /Oat milk/ });
+        expect(fireEvent.pointerDown(oat)).toBe(false);
+        expect(fireEvent.mouseDown(oat)).toBe(false);
+        await user.click(oat);
+        expect(box()).toHaveValue("Oat milk (2)\n");
+        expect(box()).toHaveFocus();
+        expect((box() as HTMLTextAreaElement).selectionStart).toBe("Oat milk (2)\n".length);
+        await user.type(box(), "ri");
+        expect(box()).toHaveValue("Oat milk (2)\nri");
+        expect(options()).toEqual(["Basmati rice"]);
+    });
+
+    it("puts a picked item back on the list with the line's quantity, in one write and with no copy", async () => {
+        const { user, services } = await openDrawer();
+        const addItems = vi.spyOn(services.data, "addItems");
+        await user.type(box(), "oat (2)");
+        await user.click(within(listbox()).getByRole("option", { name: /Oat milk/ }));
+        await user.type(box(), "jam");
+        await user.click(addButton());
+        expect(addItems).toHaveBeenCalledTimes(1);
+        const [, created, relisted] = addItems.mock.calls[0];
+        expect(created.map((i) => i.name)).toEqual(["jam"]);
+        expect(relisted).toEqual([{ id: "oat", quantityNeeded: 2 }]);
+        expect(items(services).filter((i) => i.name === "Oat milk")).toEqual([
+            expect.objectContaining({ id: "oat", onList: true, quantityNeeded: 2, category: "dairy" }),
+        ]);
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Oat milk")).toBeInTheDocument();
+    });
+
+    it("updates a picked item that is already on the list instead of adding a copy", async () => {
+        const { user, services } = await openDrawer();
+        await user.type(box(), "mi (5)");
+        await user.click(within(listbox()).getByRole("option", { name: "Milk, Dairy · 2 needed, On list" }));
+        expect(box()).toHaveValue("Milk (5)\n");
+        await user.click(addButton());
+        expect(items(services).filter((i) => i.name === "Milk")).toEqual([expect.objectContaining({ id: "i1", quantityNeeded: 5, onList: true })]);
+        expect(items(services)).toHaveLength(5);
+    });
+
+    it("puts an existing item on the list when its name is typed in full", async () => {
+        const { user, services } = await openDrawer();
+        await user.type(box(), " basmati RICE (3) ");
+        expect(listbox().parentElement).toHaveTextContent("Basmati rice is in your items. It will go on the list.");
+        await user.click(addButton());
+        expect(items(services).filter((i) => i.name.toLowerCase() === "basmati rice")).toEqual([
+            expect.objectContaining({ id: "rice", onList: true, quantityNeeded: 3 }),
+        ]);
+    });
+
+    it("drops the link when the picked line's name is edited, and adds a new item", async () => {
+        const { user, services } = await openDrawer();
+        await user.type(box(), "oat");
+        await user.click(within(listbox()).getByRole("option", { name: /Oat milk/ }));
+        await user.type(box(), "{Backspace}shake");
+        await user.click(addButton());
+        expect(items(services).find((i) => i.id === "oat")).toMatchObject({ onList: false });
+        expect(items(services).find((i) => i.name === "Oat milkshake")).toMatchObject({ onList: true });
+    });
+
+    it("keeps the picked item across a trip to the full form", async () => {
+        const services = household();
+        services.households.get("h1")!.items.push(testItem({ id: "oat-2", name: "Oat milk", category: "frozen", onList: false }));
+        const { user } = await openDrawer(services);
+        await user.type(box(), "oat");
+        await user.click(within(listbox()).getByRole("option", { name: "Oat milk, Frozen" }));
+        await user.click(screen.getByRole("button", { name: /with details \(advanced\)/ }));
+        await user.click(screen.getByRole("button", { name: "Back to list" }));
+        await user.click(screen.getByRole("button", { name: "Add item" }));
+        await user.click(addButton());
+        expect(items(services).find((i) => i.id === "oat-2")).toMatchObject({ onList: true });
+        expect(items(services).find((i) => i.id === "oat")).toMatchObject({ onList: false });
+    });
+});
+

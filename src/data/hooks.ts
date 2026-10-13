@@ -10,6 +10,13 @@ export function useList(): Watched<Item[]> {
     return useWatched(`list/${householdId}`, (listener) => data.watchList(householdId, listener));
 }
 
+// Every item in the household, for matching typed names.
+export function useItems(): Watched<Item[]> {
+    const householdId = useHouseholdId();
+    const { data } = useServices();
+    return useWatched(`items/${householdId}`, (listener) => data.watchItems(householdId, listener));
+}
+
 export function useItem(itemId: string): Watched<Item> {
     const householdId = useHouseholdId();
     const { data } = useServices();

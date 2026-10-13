@@ -22,15 +22,21 @@ export function readItemLines(text: string): ItemLine[] {
 const QUANTITY_SUFFIX: RegExp = /^(.*)\((\d+)\)$/;
 
 // "Whole Milk (3)" is three of "Whole Milk". A suffix that is not a whole number
-// from 1 to 999, or has no name before it, leaves the whole line as the name.
-function readLine(line: string): ItemLine {
+// from 1 to 999, or has no name before it, leaves the whole line as the name and
+// the quantity null. Reads one trimmed line.
+export function splitQuantity(line: string): { name: string; quantity: number | null } {
     const match = QUANTITY_SUFFIX.exec(line);
     const name = match?.[1].trim();
     const quantity = match ? parseQuantity(match[2]) : null;
     if (name && quantity !== null) {
-        return { name, quantityNeeded: quantity };
+        return { name, quantity };
     }
-    return { name: line, quantityNeeded: 1 };
+    return { name: line, quantity: null };
+}
+
+function readLine(line: string): ItemLine {
+    const { name, quantity } = splitQuantity(line);
+    return { name, quantityNeeded: quantity ?? 1 };
 }
 
 // Why these lines cannot be added as one write, or null when they can.

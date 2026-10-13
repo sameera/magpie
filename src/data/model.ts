@@ -38,6 +38,9 @@ export interface Item {
 // The item fields the app writes.
 export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "category">;
 
+// An existing item put back on the list with a new quantity needed.
+export type ListedItem = Pick<Item, "id" | "quantityNeeded">;
+
 // A new item on the list, in the shape the security rules accept.
 export function newItem(fields: ItemFields): Item {
     return { ...fields, quantityRemaining: 0, photoPath: null, onList: true, places: {} };

@@ -434,3 +434,90 @@ describe("atomic quick-add persistence", () => {
         }
     });
 });
+
+describe("putting existing items back on the list", () => {
+    const relist = { onList: true, quantityNeeded: 3 };
+    beforeEach(async () => {
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), "households/h1/items/off"), {
+                ...validItem("Oat milk"), onList: false, category: "dairy", photoPath: "p/off.jpg", places: { s1: "z1" },
+            });
+        });
+    });
+    const stored = async (path: string) => {
+        let data: Record<string, unknown> | undefined;
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            data = (await getDoc(doc(ctx.firestore(), path))).data();
+        });
+        return data!;
+    };
+
+    it("lets a member set the list flag and quantity needed, keeping the other fields", async () => {
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("alex").firestore(), "households/h1/items/off"), relist));
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("sam").firestore(), "households/h1/items/i1"), { onList: true, quantityNeeded: 999 }));
+        const saved = await stored("households/h1/items/off");
+        if (saved.onList !== true || saved.quantityNeeded !== 3 || saved.name !== "Oat milk" || saved.photoPath !== "p/off.jpg" || saved.category !== "dairy") {
+            throw new Error("Relisting changed more than the list flag and quantity");
+        }
+    });
+
+    it("lets a member read every item, on the list or not", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertSucceeds(getDocs(collection(db, "households/h1/items")));
+    });
+
+    it("denies signed-out users, non-members and other households, and leaves the item unchanged", async () => {
+        for (const ctx of [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("olga")]) {
+            const db = ctx.firestore();
+            await assertFails(updateDoc(doc(db, "households/h1/items/off"), relist));
+            await assertFails(getDocs(collection(db, "households/h1/items")));
+        }
+        await assertFails(updateDoc(doc(env.authenticatedContext("alex").firestore(), "households/h2/items/i9"), relist));
+        await assertFails(getDocs(collection(env.authenticatedContext("alex").firestore(), "households/h2/items")));
+        if ((await stored("households/h1/items/off")).onList !== false) throw new Error("A refused relist changed data");
+        if ((await stored("households/h2/items/i9")).quantityNeeded !== 1) throw new Error("A refused relist changed data");
+    });
+
+    it("refuses a quantity that is not a whole number from 1 to 999, a bad flag and extra fields", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const bad = [
+            ...[0, -1, 1.5, "2", 1000, null].map((quantityNeeded) => ({ onList: true, quantityNeeded })),
+            { onList: "yes", quantityNeeded: 2 },
+            { ...relist, extra: true },
+            { ...relist, photoPath: null },
+            { ...relist, places: {} },
+            { ...relist, quantityRemaining: 3 },
+        ];
+        for (const patch of bad) await assertFails(updateDoc(doc(db, "households/h1/items/off"), patch));
+        if ((await stored("households/h1/items/off")).onList !== false) throw new Error("A refused relist changed data");
+    });
+
+    it("adds new items and relists existing ones in one write through the application adapter", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-relist");
+        try {
+            const writer = env.authenticatedContext("alex").firestore() as unknown as Firestore;
+            const data = createFirestoreData(writer, getStorage(app));
+            const created = [{ id: "new-jam", name: "Jam", quantityNeeded: 1, note: "", category: null }];
+            await assertSucceeds(data.addItems("h1", created, [{ id: "off", quantityNeeded: 2 }]));
+            await assertSucceeds(data.addItems("h1", created, [{ id: "off", quantityNeeded: 2 }]));
+            const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
+            const saved = await getDocs(query(collection(reader, "households/h1/items"), where("onList", "==", true)));
+            const names = saved.docs.map((d) => `${d.get("name")} ${d.get("quantityNeeded")}`).sort();
+            if (names.join() !== "Jam 1,Milk 1,Oat milk 2") throw new Error(`Unexpected list: ${names.join()}`);
+        } finally { await deleteApp(app); }
+    });
+
+    it("refuses the whole write when one relist is invalid, leaving no new item behind", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-relist-bad");
+        try {
+            const data = createFirestoreData(env.authenticatedContext("alex").firestore() as unknown as Firestore, getStorage(app));
+            const created = [{ id: "new-jam", name: "Jam", quantityNeeded: 1, note: "", category: null }];
+            await assertFails(data.addItems("h1", created, [{ id: "off", quantityNeeded: 0 }]));
+            await assertFails(data.addItems("h1", created, [{ id: "missing", quantityNeeded: 1 }]));
+            await assertFails(data.addItems("h2", [], [{ id: "i9", quantityNeeded: 2 }]));
+            await env.withSecurityRulesDisabled(async (ctx) => {
+                if ((await getDoc(doc(ctx.firestore(), "households/h1/items/new-jam"))).exists()) throw new Error("Partial write survived");
+            });
+        } finally { await deleteApp(app); }
+    });
+});

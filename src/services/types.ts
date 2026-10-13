@@ -1,4 +1,4 @@
-import type { Item, ItemFields, Price, Store } from "../data/model";
+import type { Item, ItemFields, ListedItem, Price, Store } from "../data/model";
 
 export interface AuthUser {
     uid: string;
@@ -34,11 +34,18 @@ export interface DataService {
     // written under its given ID, so saving again overwrites the same items.
     // Resolves once the server accepts the write.
     createItems(householdId: string, items: ItemFields[]): Promise<void>;
+    // The add box's save, in one all-or-nothing write: creates the new items as
+    // createItems does, and puts existing items back on the list with the given
+    // quantity needed, leaving their other fields as stored. Saving again
+    // overwrites the same items. Resolves once the server accepts the write.
+    addItems(householdId: string, created: ItemFields[], relisted: ListedItem[]): Promise<void>;
     // Changes only the fields the item form owns. Leaves the item's place on or off the
     // list, its photo and quantity remaining as stored. Resolves once the
     // server accepts the write.
     updateItem(householdId: string, item: ItemFields): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
+    // Every item in the household, on the list or not. Sorted by name.
+    watchItems(householdId: string, listener: (items: Watched<Item[]>) => void): Unsubscribe;
     watchItem(householdId: string, itemId: string, listener: (item: Watched<Item>) => void): Unsubscribe;
     // Newest first.
     watchPrices(householdId: string, itemId: string, listener: (prices: Watched<Price[]>) => void): Unsubscribe;

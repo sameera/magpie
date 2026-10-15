@@ -1,8 +1,8 @@
 ---
 title: Household Data Reads
 aliases: [household data, data reads, read-only pages, household scoping, live reads, household inventory]
-touches: [page-paths, sign-in-gate, household-membership, item-page, trip-store, add-store-sheet, household-data-writes]
-last_updated_by: "#27"
+touches: [page-paths, sign-in-gate, household-membership, item-page, trip-store, add-store-sheet, household-data-writes, add-box-suggestions]
+last_updated_by: "#41"
 status: active
 verification: verified
 ---
@@ -15,7 +15,7 @@ Each page reads real data from the signed-in member's household, and reads only 
 
 Every read is scoped to one household. The household comes from the membership record the sign-in gate resolved.
 
-The household's items are its inventory, and each item carries a flag for whether it is on the list. Each page reads what it shows. List reads only the items flagged as on the list, and shows each one's quantity needed. Item reads the item's details and its prices, newest first. Stores and the store choice read the stores with their chains. Store and the Map editor read one store with its map and zones. The in-store view reads the store and the same flagged items.
+The household's items are its inventory, and each item carries a flag for whether it is on the list. Each page reads what it shows. List reads only the items flagged as on the list, and shows each one's quantity needed. Item reads the item's details and its prices, newest first. Stores and the store choice read the stores with their chains. Store and the Map editor read one store with its map and zones. The in-store view reads the store and the same flagged items. The add drawer reads every item, to suggest matches.
 
 Reads are live, so a page updates when the data changes. The Stores and List pages show a saved store or item through the live read. A read has three states: loading, ready and missing. A read is missing when the item or store does not exist, or when the user is not allowed to read it. The page then shows the "not found" message.
 
@@ -40,6 +40,7 @@ Item photos and scanned maps are files. A page shows such a file once it resolve
 - [trip-store](trip-store.md) — the in-store view reads the chosen store and the list, and records the trip store only once the store is found.
 - [add-store-sheet](add-store-sheet.md) — the sheet suggests chains from the stores read here, and a store it saves appears on the Stores page through the live read.
 - [household-data-writes](household-data-writes.md) — a store or item saved by another screen reaches the pages through the live reads described here.
+- [add-box-suggestions](add-box-suggestions.md) — the suggestions read every household item, on the list or not, and the offline copy serves that read.
 
 ## Decision Log
 
@@ -58,3 +59,7 @@ The Item page now creates and updates items, so invariant 6 is struck through an
 ### 2026-10-11 — #27 — The item collection is the inventory, and saving moves to household-data-writes
 
 The household's existing item collection is now its inventory, and the on-list flag decides what the List page and the in-store view show. Both pages keep the read they already had and show quantity needed. The collection and the flag were already the List page's source, and prices and Item page links already use item IDs in this collection. The List page's add drawer is now a third screen that saves household data. With that added, the page's own content passed the 400-word cap, so which screens save, and what the rules let them write, is split into the household-data-writes page. The seam is the save: this page keeps what each page reads and the three read states. Invariant 7 is struck through here, because it now lives on household-data-writes. The refuted alternative was a separate inventory collection beside the list. It would keep the inventory apart from what is on the list. It lost because the flag already separates the two, and a second collection needs its own rules, reads and links to prices.
+
+### 2026-10-15 — #41 — The add drawer reads every item, and links to add-box-suggestions
+
+The add drawer's suggestions now read every item in the household, on the list or not. The list read holds only items on the list, and an empty line must offer items that are off it. The phone's offline copy serves the new read, so suggestions show offline. The refuted alternative was to widen the List page's read to every item and filter it on the page. It lost because the List page and the in-store view would then load the whole inventory to show only the list. This page now lists add-box-suggestions as a neighbour, matching that page's link to this one.

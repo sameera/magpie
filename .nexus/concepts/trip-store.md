@@ -1,8 +1,8 @@
 ---
 title: Trip Store
 aliases: [chosen store, store choice, Shop page, in-store view, change store]
-touches: [page-paths, page-frames, back-navigation, household-data-reads]
-last_updated_by: "#1"
+touches: [page-paths, page-frames, back-navigation, household-data-reads, item-category]
+last_updated_by: "#41"
 status: active
 verification: verified
 ---
@@ -39,9 +39,14 @@ The in-store view has a "change store" control. It returns to the store choice b
 - [page-frames](page-frames.md) — the Shop entry in the main navigation opens the trip store, or the store choice when there is none.
 - [back-navigation](back-navigation.md) — changing store replaces the history entry instead of adding one.
 - [household-data-reads](household-data-reads.md) — the store choice reads the stores, and the in-store view reads the chosen store and the list.
+- [item-category](item-category.md) — the in-store view orders the list by each item's zone, found from its category, at the chosen store.
 
 ## Decision Log
 
 ### 2026-10-10 — #1 — The chosen store lives in the path, and the Shop entry returns to the trip store
 
 The path keeps the in-store view reloadable and linkable. Returning to the trip store saves taps for a shopper who looks at List in the middle of a trip. Not keeping the trip store across sessions means next week's trip starts at the store choice, which the Shop story requires. Replacing the entry on a store change stops the back action from stepping through stores. Remembering a "last trip" store across sessions is left to the Shop feature epic, as a hint on the store choice. The trade-off is that a shopper who closes the app in the middle of a trip lands on List and picks the store again. The refuted alternative was to keep the last store on the device and open it from the Shop entry every time. It saves a tap on repeat trips to the same store. It lost because it contradicts the Shop story's first criterion, and it opens the wrong store on a trip to a different one.
+
+### 2026-10-15 — #41 — Reciprocal link from item-category
+
+The item-category page, split from item-page, holds the rule that places an item in a store's zones. The in-store view orders the list by that rule. This page now lists item-category as a neighbour, to match that page's link to this one.

@@ -17,6 +17,7 @@ Package manager is pnpm; local backend is the Firebase Emulator Suite.
 
 - `pnpm dev` — Vite dev server
 - `pnpm build` — type-check and production build (PWA)
+- `pnpm run deploy` — build, test security rules (needs Java 21+), and deploy Hosting and Firestore rules to `awzmlist` (Storage rules are not deployed until the bucket is created in the console), the project configured in `.env.production` and the `.firebaserc` `prod` alias. Use `run` because pnpm reserves `deploy` for its built-in workspace command.
 - `pnpm test` — type-check, unit tests, and security-rule tests on the Firestore/Storage emulators (needs Java 21+)
 - `pnpm emulators` — local Auth/Firestore/Storage emulators, seeded with a test household and data
 - `pnpm setup:household --project <id> --household <id> --member <email> --member <email>` — the one-time, by-hand set-up of the live household and its members

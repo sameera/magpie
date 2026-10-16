@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc -b && vite build",
+        "deploy": "pnpm build && pnpm test:rules && firebase deploy --only hosting,firestore:rules --project awzmlist",
         "preview": "vite preview",
         "typecheck": "tsc -b && tsc --noEmit -p tsconfig.node.json",
         "test": "pnpm typecheck && pnpm test:unit && pnpm test:rules",

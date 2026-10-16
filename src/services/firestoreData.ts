@@ -27,6 +27,7 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
         },
         updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
             updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category }),
+        setOnList: (householdId, itemId, onList) => updateDoc(doc(items(householdId), itemId), { onList }),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),

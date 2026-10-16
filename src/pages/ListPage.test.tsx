@@ -341,3 +341,199 @@ describe("Add items drawer suggestions", () => {
     });
 });
 
+
+describe("List row actions", () => {
+    afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+    const items = (services: FakeServices) => services.households.get("h1")!.items;
+    const rowOf = (name: string) => screen.getByText(name).closest("li")!;
+    const menu = (name: string) => screen.getByRole("menu", { name: `Actions for ${name}` });
+
+    // jsdom has no layout: give every element a 300px width.
+    function rowWidth() {
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+            x: 0, y: 0, left: 0, top: 0, right: 300, bottom: 72, width: 300, height: 72, toJSON: () => ({}),
+        });
+    }
+
+    // A drag from the row's right edge by (dx, dy), one move then release.
+    function drag(row: HTMLElement, dx: number, dy = 0) {
+        fireEvent.pointerDown(row, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 250, clientY: 40 });
+        fireEvent.pointerMove(row, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 250 + dx, clientY: 40 + dy });
+        fireEvent.pointerUp(row, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 250 + dx, clientY: 40 + dy });
+    }
+
+    it("gives each row a button for its actions next to the link to the item page", () => {
+        renderApp(["/"]);
+        const row = within(rowOf("Milk"));
+        expect(row.getByRole("link", { name: /Milk/ })).toBeInTheDocument();
+        const button = row.getByRole("button", { name: "Actions for Milk" });
+        expect(button).toHaveAttribute("aria-haspopup", "menu");
+        expect(button.closest("a")).toBeNull();
+    });
+
+    it("opens a menu over the row with Remove item from list only, without leaving the page", async () => {
+        const { router } = renderApp(["/"]);
+        await userEvent.setup().click(screen.getByRole("button", { name: "Actions for Milk" }));
+        const actions = within(menu("Milk"));
+        expect(actions.getByRole("menuitem", { name: "Remove item from list" })).toBeInTheDocument();
+        expect(actions.queryByRole("menuitem", { name: "Remove item as purchased" })).toBeNull();
+        expect(rowOf("Milk")).toContainElement(menu("Milk"));
+        expect(router.state.location.pathname).toBe("/");
+    });
+
+    it("still opens the item page from the rest of the row", async () => {
+        const { router } = renderApp(["/"]);
+        await userEvent.setup().click(screen.getByRole("link", { name: /Bread/ }));
+        expect(router.state.location.pathname).toBe("/items/i2");
+    });
+
+    it("closes the menu with Escape or Cancel, changing nothing", async () => {
+        const services = new FakeServices();
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.keyboard("{Escape}");
+        expect(screen.queryByRole("menu")).toBeNull();
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("button", { name: "Cancel" }));
+        expect(screen.queryByRole("menu")).toBeNull();
+        expect(items(services).every((item) => item.onList)).toBe(true);
+    });
+
+    it("removes the item from the list with Remove item from list, leaving every other detail and no Undo", async () => {
+        const services = new FakeServices();
+        const milk = { ...items(services)[0], quantityRemaining: 3, note: "Whole", places: {} };
+        items(services)[0] = milk;
+        const setOnList = vi.spyOn(services.data, "setOnList");
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("menuitem", { name: "Remove item from list" }));
+        expect(setOnList).toHaveBeenCalledWith("h1", "i1", false);
+        const list = screen.getByRole("list", { name: "Shopping list" });
+        expect(within(list).queryByText("Milk")).toBeNull();
+        expect(screen.queryByRole("menu")).toBeNull();
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+        expect(items(services).find((item) => item.id === "i1")).toEqual({ ...milk, onList: false });
+    });
+
+    it("removes the item at once while the server never answers, with no status message", async () => {
+        const services = new FakeServices();
+        services.saveBehavior = "hang";
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("menuitem", { name: "Remove item from list" }));
+        expect(screen.queryByText("Milk")).toBeNull();
+        expect(screen.queryByRole("alert")).toBeNull();
+        expect(screen.queryByRole("status")).toBeNull();
+    });
+
+    it("keeps a removed item in the household's items, found again through the add box", async () => {
+        const services = new FakeServices();
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("menuitem", { name: "Remove item from list" }));
+        await user.click(screen.getByRole("button", { name: "Add item" }));
+        expect(within(screen.getByRole("listbox", { name: "Matching items" })).getByRole("option", { name: /Milk/ })).toBeInTheDocument();
+    });
+
+    it("removes an item swiped left past a third of the row, then offers Undo", async () => {
+        rowWidth();
+        const services = new FakeServices();
+        const { router } = renderApp(["/"], services);
+        drag(rowOf("Milk"), -120);
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).queryByText("Milk")).toBeNull();
+        expect(items(services).find((item) => item.id === "i1")).toMatchObject({ onList: false, quantityNeeded: 2 });
+        expect(screen.getByRole("status")).toHaveTextContent("Milk removed");
+        expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+        expect(router.state.location.pathname).toBe("/");
+    });
+
+    it("puts the item back with its list quantity when Undo is chosen within 5 seconds", async () => {
+        rowWidth();
+        const services = new FakeServices();
+        renderApp(["/"], services);
+        drag(rowOf("Milk"), -150);
+        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Qty 2")).toBeInTheDocument();
+        expect(items(services).find((item) => item.id === "i1")).toMatchObject({ onList: true, quantityNeeded: 2, quantityRemaining: 0 });
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    });
+
+    it("takes the Undo away after 5 seconds", async () => {
+        rowWidth();
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        renderApp(["/"]);
+        drag(rowOf("Milk"), -150);
+        await act(async () => { await vi.advanceTimersByTimeAsync(4900); });
+        expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+        await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    });
+
+    it("leaves the item alone for a short swipe, a right swipe or a mostly vertical drag", () => {
+        rowWidth();
+        const services = new FakeServices();
+        renderApp(["/"], services);
+        drag(rowOf("Milk"), -60);
+        drag(rowOf("Milk"), 150);
+        drag(rowOf("Milk"), -120, 200);
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Milk")).toBeInTheDocument();
+        expect(items(services).every((item) => item.onList)).toBe(true);
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    });
+
+    it("does not open the item page from the tap that ends a swipe", async () => {
+        rowWidth();
+        const { router } = renderApp(["/"]);
+        const link = screen.getByRole("link", { name: /Milk/ });
+        drag(rowOf("Milk"), -60);
+        fireEvent.click(link);
+        expect(router.state.location.pathname).toBe("/");
+        await userEvent.setup().click(link);
+        expect(router.state.location.pathname).toBe("/items/i1");
+    });
+
+    it("keeps vertical scrolling to the browser", () => {
+        renderApp(["/"]);
+        expect(rowOf("Milk").className).toContain("touch-pan-y");
+    });
+
+    it("names the item when the server refuses a removal and the item is still on the list", async () => {
+        const services = new FakeServices();
+        services.saveBehavior = "refuse";
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("menuitem", { name: "Remove item from list" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be removed. It is still on the list.");
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Milk")).toBeInTheDocument();
+    });
+
+    it("shows nothing when the server refuses a removal but the item is already off the list", async () => {
+        const services = new FakeServices();
+        vi.spyOn(services.data, "setOnList").mockImplementation(async () => {
+            items(services).find((item) => item.id === "i1")!.onList = false;
+            throw new Error("permission-denied");
+        });
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("menuitem", { name: "Remove item from list" }));
+        await act(async () => { await Promise.resolve(); });
+        expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("names the item when the server refuses an Undo", async () => {
+        rowWidth();
+        const services = new FakeServices();
+        renderApp(["/"], services);
+        drag(rowOf("Milk"), -150);
+        services.saveBehavior = "refuse";
+        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be put back");
+    });
+});

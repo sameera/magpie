@@ -43,6 +43,10 @@ export interface DataService {
     // list, its photo and quantity remaining as stored. Resolves once the
     // server accepts the write.
     updateItem(householdId: string, item: ItemFields): Promise<void>;
+    // Takes the item off the list, or puts it back, changing nothing else: not its
+    // list quantity, inventory or any other detail. Resolves once the server
+    // accepts the write; rejects if it is refused. Callers do not wait for it.
+    setOnList(householdId: string, itemId: string, onList: boolean): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
     // Every item in the household, on the list or not. Sorted by name.
     watchItems(householdId: string, listener: (items: Watched<Item[]>) => void): Unsubscribe;

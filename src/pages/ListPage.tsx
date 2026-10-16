@@ -1,16 +1,70 @@
-import { Camera, Plus } from "lucide-react";
-import { useState } from "react";
+import { Camera, EllipsisVertical, Plus } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
+import { useHouseholdId, useServices } from "../app/session";
 import { useList } from "../data/hooks";
-import { quantityLabel } from "../data/model";
+import { readItemNow } from "../data/itemNow";
+import { quantityLabel, type Item } from "../data/model";
 import { AddItemsDrawer } from "./AddItemsDrawer";
 import { PageHeader } from "./PageHeader";
 
+const UNDO_MS = 5000;
+// A drag counts as a swipe once it moves this far, and removes the row past a third of its width.
+const SWIPE_START_PX = 8;
+const SWIPE_REMOVE_FRACTION = 1 / 3;
+
 export function ListPage() {
+    const householdId = useHouseholdId();
+    const { data } = useServices();
     const list = useList();
     const [adding, setAdding] = useState(false);
+    const [menuFor, setMenuFor] = useState<string | null>(null);
+    const [undo, setUndo] = useState<Item | null>(null);
+    const [refusal, setRefusal] = useState("");
     useScrollMemory(list.status !== "loading");
+
+    useEffect(() => {
+        if (!undo) return;
+        const timer = setTimeout(() => setUndo(null), UNDO_MS);
+        return () => clearTimeout(timer);
+    }, [undo]);
+
+    useEffect(() => {
+        if (!menuFor) return;
+        const close = (e: Event) => {
+            if (!(e.target instanceof Element) || !e.target.closest("[role=menu],[data-actions-button]")) setMenuFor(null);
+        };
+        document.addEventListener("pointerdown", close);
+        return () => document.removeEventListener("pointerdown", close);
+    }, [menuFor]);
+
+    // Sends the write without waiting for it: the list shows the change from the
+    // phone's own copy. When the server refuses, say so only if the item did not
+    // end up where the shopper put it.
+    const setOnList = (item: Item, onList: boolean, refused: string) => {
+        data.setOnList(householdId, item.id, onList).catch(async (error: unknown) => {
+            console.error("List change failed", error);
+            const now = await readItemNow(data, householdId, item.id);
+            if (now && now.onList !== onList) setRefusal(refused);
+        });
+    };
+    const remove = (item: Item) => setOnList(item, false, `${item.name} could not be removed. It is still on the list.`);
+    const swipeRemove = (item: Item) => {
+        setRefusal("");
+        setUndo(item);
+        remove(item);
+    };
+    const chooseRemove = (item: Item) => {
+        setRefusal("");
+        setMenuFor(null);
+        remove(item);
+    };
+    const putBack = (item: Item) => {
+        setUndo(null);
+        setRefusal("");
+        setOnList(item, true, `${item.name} could not be put back on the list.`);
+    };
 
     return (
         <>
@@ -23,24 +77,37 @@ export function ListPage() {
             {list.status === "ready" && list.value.length > 0 && (
                 <ul aria-label="Shopping list" className="flex flex-col gap-3">
                     {list.value.map((item) => (
-                        <li key={item.id}>
-                            <Link
-                                to={`/items/${item.id}`}
-                                className="flex min-h-18 items-center gap-3 rounded-md bg-surface p-3 shadow-sticker"
-                            >
-                                <span className="flex size-thumb shrink-0 items-center justify-center rounded-sm bg-surface-sunken text-ink-muted">
-                                    <Camera aria-hidden="true" />
-                                </span>
-                                <span className="flex min-w-0 flex-col">
-                                    <span className="text-item">{item.name}</span>
-                                    <span className="text-caption text-ink-muted">
-                                        {[quantityLabel(item), item.note].filter(Boolean).join(" · ")}
-                                    </span>
-                                </span>
-                            </Link>
-                        </li>
+                        <ListRow
+                            key={item.id}
+                            item={item}
+                            menuOpen={menuFor === item.id}
+                            onToggleMenu={() => setMenuFor(menuFor === item.id ? null : item.id)}
+                            onCloseMenu={() => setMenuFor(null)}
+                            onRemove={() => chooseRemove(item)}
+                            onSwipe={() => swipeRemove(item)}
+                        />
                     ))}
                 </ul>
+            )}
+            {(undo || refusal) && (
+                <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem+var(--spacing-fab)+0.75rem)] left-[max(1rem,calc(50%-280px+1rem))] z-10 flex flex-col gap-2">
+                    {refusal && (
+                        <p role="alert" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
+                            <span className="flex-1">{refusal}</span>
+                            <button type="button" onClick={() => setRefusal("")} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                                Dismiss
+                            </button>
+                        </p>
+                    )}
+                    {undo && (
+                        <p role="status" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body shadow-float">
+                            <span className="min-w-0 flex-1">{undo.name} removed</span>
+                            <button type="button" onClick={() => putBack(undo)} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                                Undo
+                            </button>
+                        </p>
+                    )}
+                </div>
             )}
             <button
                 type="button"
@@ -52,5 +119,131 @@ export function ListPage() {
             </button>
             <AddItemsDrawer open={adding} onClose={() => setAdding(false)} />
         </>
+    );
+}
+
+// One List row. The link opens the item page; the button on the right opens the
+// actions menu over the row. A leftward drag past a third of the row removes it.
+function ListRow({
+    item,
+    menuOpen,
+    onToggleMenu,
+    onCloseMenu,
+    onRemove,
+    onSwipe,
+}: {
+    item: Item;
+    menuOpen: boolean;
+    onToggleMenu: () => void;
+    onCloseMenu: () => void;
+    onRemove: () => void;
+    onSwipe: () => void;
+}) {
+    const row = useRef<HTMLLIElement>(null);
+    const drag = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null);
+    // Set once a drag has turned sideways, so the click that ends it does not open the item page.
+    const dragged = useRef(false);
+    const [offset, setOffset] = useState(0);
+
+    const start = (e: PointerEvent) => {
+        dragged.current = false;
+        if (menuOpen || (e.pointerType === "mouse" && e.button !== 0)) return;
+        drag.current = { x: e.clientX, y: e.clientY, axis: null };
+    };
+    const move = (e: PointerEvent) => {
+        const state = drag.current;
+        if (!state) return;
+        const dx = e.clientX - state.x;
+        const dy = e.clientY - state.y;
+        if (!state.axis && Math.max(Math.abs(dx), Math.abs(dy)) >= SWIPE_START_PX) {
+            state.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+            if (state.axis === "x") {
+                dragged.current = true;
+                row.current?.setPointerCapture?.(e.pointerId);
+            }
+        }
+        if (state.axis === "x") setOffset(Math.min(0, dx));
+    };
+    const end = (e: PointerEvent) => {
+        const state = drag.current;
+        drag.current = null;
+        setOffset(0);
+        if (state?.axis !== "x") return;
+        const dx = e.clientX - state.x;
+        const width = row.current?.getBoundingClientRect().width ?? 0;
+        if (width > 0 && -dx >= width * SWIPE_REMOVE_FRACTION && Math.abs(dx) > Math.abs(e.clientY - state.y)) onSwipe();
+    };
+    const cancel = () => {
+        drag.current = null;
+        setOffset(0);
+    };
+
+    return (
+        <li
+            ref={row}
+            className="relative touch-pan-y"
+            style={offset ? { transform: `translateX(${offset}px)` } : undefined}
+            onPointerDown={start}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={cancel}
+        >
+            <div className="flex min-h-18 items-stretch rounded-md bg-surface shadow-sticker">
+                <Link
+                    to={`/items/${item.id}`}
+                    onClick={(e) => {
+                        if (dragged.current) {
+                            e.preventDefault();
+                            dragged.current = false;
+                        }
+                    }}
+                    className="flex min-w-0 flex-1 items-center gap-3 p-3"
+                >
+                    <span className="flex size-thumb shrink-0 items-center justify-center rounded-sm bg-surface-sunken text-ink-muted">
+                        <Camera aria-hidden="true" />
+                    </span>
+                    <span className="flex min-w-0 flex-col">
+                        <span className="text-item">{item.name}</span>
+                        <span className="text-caption text-ink-muted">
+                            {[quantityLabel(item), item.note].filter(Boolean).join(" · ")}
+                        </span>
+                    </span>
+                </Link>
+                <button
+                    type="button"
+                    data-actions-button
+                    aria-label={`Actions for ${item.name}`}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    onClick={onToggleMenu}
+                    className="flex w-tap shrink-0 items-center justify-center rounded-md text-ink-muted"
+                >
+                    <EllipsisVertical aria-hidden="true" />
+                </button>
+            </div>
+            {menuOpen && (
+                <div
+                    role="menu"
+                    aria-label={`Actions for ${item.name}`}
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") onCloseMenu();
+                    }}
+                    className="absolute inset-0 flex items-center gap-2 rounded-md border-2 border-line-strong bg-surface p-2 shadow-float"
+                >
+                    <button
+                        type="button"
+                        role="menuitem"
+                        autoFocus
+                        onClick={onRemove}
+                        className="h-tap min-w-0 flex-1 rounded-md border-2 border-line-strong bg-surface px-3 text-button"
+                    >
+                        Remove item from list
+                    </button>
+                    <button type="button" onClick={onCloseMenu} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                        Cancel
+                    </button>
+                </div>
+            )}
+        </li>
     );
 }

@@ -521,3 +521,89 @@ describe("putting existing items back on the list", () => {
         } finally { await deleteApp(app); }
     });
 });
+
+describe("removing items from the list", () => {
+    const path = "households/h1/items/i1";
+    const removal = { onList: false };
+    const stored = async (itemPath: string) => {
+        let data: Record<string, unknown> | undefined;
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            data = (await getDoc(doc(ctx.firestore(), itemPath))).data();
+        });
+        return data!;
+    };
+    beforeEach(async () => {
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), path), {
+                ...validItem("Milk"), quantityNeeded: 4, quantityRemaining: 2, note: "Whole", category: "dairy", photoPath: "p/i1.jpg", places: { s1: "z1" },
+            });
+        });
+    });
+
+    it("lets a member read the item and take it off the list, leaving every other field as stored", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertSucceeds(getDoc(doc(db, path)));
+        await assertSucceeds(updateDoc(doc(db, path), removal));
+        const saved = await stored(path);
+        const expected = { ...validItem("Milk"), quantityNeeded: 4, quantityRemaining: 2, note: "Whole", category: "dairy", photoPath: "p/i1.jpg", places: { s1: "z1" }, onList: false };
+        if (JSON.stringify(saved, Object.keys(saved).sort()) !== JSON.stringify(expected, Object.keys(expected).sort())) {
+            throw new Error("Removal changed more than the list flag");
+        }
+    });
+
+    it("lets another member put the item back on the list, and re-send either write", async () => {
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("alex").firestore(), path), removal));
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("alex").firestore(), path), removal));
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("sam").firestore(), path), { onList: true }));
+        const saved = await stored(path);
+        if (saved.onList !== true || saved.quantityNeeded !== 4 || saved.quantityRemaining !== 2) throw new Error("Undo changed more than the list flag");
+    });
+
+    it("denies signed-out users, non-members and other households, and leaves the item unchanged", async () => {
+        for (const ctx of [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("olga")]) {
+            const db = ctx.firestore();
+            await assertFails(getDoc(doc(db, path)));
+            await assertFails(updateDoc(doc(db, path), removal));
+        }
+        await assertFails(updateDoc(doc(env.authenticatedContext("alex").firestore(), "households/h2/items/i9"), removal));
+        if ((await stored(path)).onList !== true) throw new Error("A refused removal changed data");
+        if ((await stored("households/h2/items/i9")).onList !== true) throw new Error("A refused removal changed data");
+    });
+
+    it("refuses deleting the item, for a member and for everyone else", async () => {
+        for (const ctx of [env.authenticatedContext("alex"), env.authenticatedContext("olga"), env.unauthenticatedContext()]) {
+            await assertFails(deleteDoc(doc(ctx.firestore(), path)));
+        }
+        if (!(await stored(path))) throw new Error("A refused delete removed the item");
+    });
+
+    it("refuses malformed removals", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const bad = [
+            { onList: "no" },
+            { onList: null },
+            { onList: 0 },
+            { onList: false, extra: true },
+            { onList: false, photoPath: null },
+            { onList: false, places: {} },
+            { onList: false, quantityRemaining: 0 },
+            { onList: false, quantityNeeded: 0 },
+        ];
+        for (const patch of bad) await assertFails(updateDoc(doc(db, path), patch));
+        if ((await stored(path)).onList !== true) throw new Error("A refused removal changed data");
+    });
+
+    it("lets a member remove and relist through the application adapter, and another member reads the result", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-remove");
+        try {
+            const data = createFirestoreData(env.authenticatedContext("alex").firestore() as unknown as Firestore, getStorage(app));
+            await assertSucceeds(data.setOnList("h1", "i1", false));
+            const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
+            const onList = () => getDocs(query(collection(reader, "households/h1/items"), where("onList", "==", true)));
+            if ((await onList()).size !== 0) throw new Error("The item is still on the list");
+            await assertSucceeds(data.setOnList("h1", "i1", true));
+            if ((await onList()).size !== 1) throw new Error("The item is not back on the list");
+            await assertFails(createFirestoreData(env.authenticatedContext("olga").firestore() as unknown as Firestore, getStorage(app)).setOnList("h1", "i1", false));
+        } finally { await deleteApp(app); }
+    });
+});

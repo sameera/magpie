@@ -162,6 +162,12 @@ export class FakeServices implements Services {
                 household.items = household.items.map(existing => existing.id === id ? { ...existing, name, quantityNeeded, note, category } : existing);
                 this.itemsChanged(householdId);
             }),
+        setOnList: (householdId, itemId, onList) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.map(existing => existing.id === itemId ? { ...existing, onList } : existing);
+                this.itemsChanged(householdId);
+            }),
         watchList: (householdId, listener) => {
             const listeners = this.listListeners.get(householdId) ?? new Set();
             this.listListeners.set(householdId, listeners);

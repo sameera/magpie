@@ -2,6 +2,14 @@
 
 Read and follow [CLAUDE.md](CLAUDE.md) for project context, development commands, standards, and decision recording.
 
+## Test-first development
+
+- Use test-first development for application changes, including bug fixes and UI changes: write or update a meaningful test for the requested behavior before changing implementation code.
+- Run the test and verify that it fails because the requested behavior is missing, then make the smallest implementation change that makes it pass. Refactor only with the test passing, and run the relevant regression checks afterward.
+- Test observable behavior rather than mirroring implementation details. For visual layout changes, use an appropriate browser or visual check that can demonstrate the failure before implementation and verify the result afterward.
+- Passing existing tests after implementation alone does not count as test-first development. Report which check failed before the change and passed afterward.
+- Documentation-only changes do not require tests. If a suitable test or visual check cannot be run, state the limitation explicitly; do not claim test-first verification.
+
 ## Firebase rules for data operations
 
 - Whenever a new or changed data operation is planned, decided, or implemented, include its Firebase security rules in the same scope of work. This applies to reads, queries, creates, updates, deletes, and file access in Firestore or Cloud Storage.

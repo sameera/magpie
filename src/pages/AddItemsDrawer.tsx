@@ -19,12 +19,12 @@ const zoneSwatch: Record<ZoneKind, string> = {
     pantry: "bg-zone-pantry",
 };
 
-// A bottom drawer over the List page: one item per line, added in one write.
+// A right sheet over the List page: one item per line, added in one write.
 // While a line is typed, the household's items that match it show below the
 // text box, above the on-screen keyboard; picking one puts that item back on
 // the list instead of adding a copy. The typed text and the picks are kept in
 // the add-box draft, above the List page, so they are still there when the
-// drawer is closed and opened again. It has no page path of its own.
+// sheet is closed and opened again. It has no page path of its own.
 export function AddItemsDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
     const householdId = useHouseholdId();
     const { data } = useServices();
@@ -113,7 +113,7 @@ export function AddItemsDrawer({ open, onClose }: { open: boolean; onClose: () =
 
     return (
         <div
-            className="fixed inset-0 z-40 flex items-end bg-scrim"
+            className="fixed inset-0 z-40 flex justify-end bg-scrim"
             // With the keyboard up, cover only the part of the screen it leaves visible.
             style={keyboard ? { top: keyboard.top, height: keyboard.height, bottom: "auto" } : undefined}
             onClick={leave}
@@ -121,8 +121,8 @@ export function AddItemsDrawer({ open, onClose }: { open: boolean; onClose: () =
             <form
                 role="dialog"
                 aria-label="Add items"
-                className={`mx-auto flex w-full max-w-[560px] flex-col overflow-hidden rounded-t-lg bg-surface shadow-float ${
-                    keyboard ? "h-[calc(100%-1rem)]" : "h-[90dvh] pb-[env(safe-area-inset-bottom)]"
+                className={`flex h-full w-full max-w-[560px] flex-col overflow-hidden rounded-l-lg bg-surface shadow-float ${
+                    keyboard ? "" : "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
                 }`}
                 onClick={(e) => e.stopPropagation()}
                 onSubmit={(e) => {

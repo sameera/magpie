@@ -607,3 +607,147 @@ describe("removing items from the list", () => {
         } finally { await deleteApp(app); }
     });
 });
+
+describe("recording a purchase", () => {
+    const path = "households/h1/items/i1";
+    const stored = async (itemPath: string) => {
+        let data: Record<string, unknown> | undefined;
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            data = (await getDoc(doc(ctx.firestore(), itemPath))).data();
+        });
+        return data!;
+    };
+    const asStored = (item: Record<string, unknown>) => JSON.stringify(item, Object.keys(item).sort());
+    const purchase = (total: number) => ({ onList: false, quantityRemaining: total });
+    const others = () => [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("olga")];
+    beforeEach(async () => {
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), path), {
+                ...validItem("Milk"), quantityNeeded: 4, quantityRemaining: 2, note: "Whole", category: "dairy", photoPath: "p/i1.jpg", places: { s1: "z1" },
+            });
+        });
+    });
+
+    it("lets a member take the item off the list and add 1 to 999 to inventory, changing nothing else", async () => {
+        await assertSucceeds(updateDoc(doc(env.authenticatedContext("alex").firestore(), path), purchase(3)));
+        const before = { ...validItem("Milk"), quantityNeeded: 4, quantityRemaining: 3, note: "Whole", category: "dairy", photoPath: "p/i1.jpg", places: { s1: "z1" }, onList: false };
+        if (asStored(await stored(path)) !== asStored(before)) throw new Error("A purchase changed more than the list flag and inventory");
+        // The bounds: an increase of 1 and an increase of 999 are both accepted.
+        for (const [id, increase] of [["min", 1], ["max", 999]] as const) {
+            await env.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), `households/h1/items/${id}`), { ...validItem(id), quantityRemaining: 2 });
+            });
+            await assertSucceeds(updateDoc(doc(env.authenticatedContext("sam").firestore(), `households/h1/items/${id}`), purchase(2 + increase)));
+        }
+    });
+
+    it("adds to existing inventory and accepts a purchase from empty stock", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertSucceeds(updateDoc(doc(db, path), purchase(2 + 4)));
+        if ((await stored(path)).quantityRemaining !== 6) throw new Error("The purchase did not add to the existing quantity");
+        await assertSucceeds(updateDoc(doc(db, "households/h1/items/i1"), { onList: true }));
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), "households/h1/items/empty"), validItem("Eggs"));
+        });
+        await assertSucceeds(updateDoc(doc(db, "households/h1/items/empty"), purchase(1)));
+    });
+
+    it("refuses a second purchase of the same listing, so a resend, replay or concurrent buy counts once", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertSucceeds(updateDoc(doc(db, path), purchase(5)));
+        // A resent increment arrives as a higher total on an item that is already off the list.
+        await assertFails(updateDoc(doc(db, path), purchase(8)));
+        await assertFails(updateDoc(doc(env.authenticatedContext("sam").firestore(), path), purchase(9)));
+        if ((await stored(path)).quantityRemaining !== 5) throw new Error("A second purchase changed inventory");
+    });
+
+    it("refuses a purchase of an item that is not on the list", async () => {
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), path), { ...validItem("Milk"), onList: false, quantityRemaining: 2 });
+        });
+        await assertFails(updateDoc(doc(env.authenticatedContext("alex").firestore(), path), purchase(5)));
+        await assertFails(updateDoc(doc(env.authenticatedContext("alex").firestore(), path), { onList: true, quantityRemaining: 5 }));
+    });
+
+    it("refuses inventory changes that are not a purchase: replacement, decrease, no change and no list transition", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const bad = [
+            { onList: true, quantityRemaining: 5 },
+            { quantityRemaining: 5 },
+            purchase(1),
+            purchase(0),
+            purchase(-3),
+            purchase(2 + 1000),
+            purchase(2 + 1000000),
+            purchase(2.5),
+            purchase(3.5),
+            { onList: false, quantityRemaining: "5" },
+            { onList: false, quantityRemaining: null },
+            { onList: false, quantityRemaining: true },
+            { onList: "no", quantityRemaining: 5 },
+        ];
+        for (const patch of bad) await assertFails(updateDoc(doc(db, path), patch));
+        if (asStored(await stored(path)) !== asStored({ ...validItem("Milk"), quantityNeeded: 4, quantityRemaining: 2, note: "Whole", category: "dairy", photoPath: "p/i1.jpg", places: { s1: "z1" } })) {
+            throw new Error("A refused purchase changed data");
+        }
+    });
+
+    it("refuses a purchase that changes anything besides the list flag and inventory", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        const bad = [
+            { ...purchase(3), name: "Oat milk" },
+            { ...purchase(3), quantityNeeded: 5 },
+            { ...purchase(3), note: "x" },
+            { ...purchase(3), category: "pantry" },
+            { ...purchase(3), photoPath: null },
+            { ...purchase(3), places: {} },
+            { ...purchase(3), extra: true },
+        ];
+        for (const patch of bad) await assertFails(updateDoc(doc(db, path), patch));
+        if ((await stored(path)).onList !== true) throw new Error("A refused purchase changed data");
+    });
+
+    it("keeps editing and relisting from changing inventory", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertSucceeds(updateDoc(doc(db, path), { name: "Oat milk", quantityNeeded: 9 }));
+        await assertSucceeds(updateDoc(doc(db, path), { onList: false }));
+        await assertSucceeds(updateDoc(doc(db, path), { onList: true, quantityNeeded: 3 }));
+        await assertFails(updateDoc(doc(db, path), { name: "Oat milk", quantityRemaining: 3 }));
+        if ((await stored(path)).quantityRemaining !== 2) throw new Error("An edit or relist changed inventory");
+    });
+
+    it("denies signed-out users, non-members and other households, and leaves the item unchanged", async () => {
+        for (const ctx of others()) await assertFails(updateDoc(doc(ctx.firestore(), path), purchase(3)));
+        await assertFails(updateDoc(doc(env.authenticatedContext("alex").firestore(), "households/h2/items/i9"), purchase(1)));
+        if ((await stored(path)).onList !== true) throw new Error("A refused purchase changed data");
+        if ((await stored("households/h2/items/i9")).onList !== true) throw new Error("A refused purchase changed data");
+    });
+
+    it("still refuses deleting the item and writing memberships", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertFails(deleteDoc(doc(db, path)));
+        await assertFails(setDoc(doc(db, "members/alex"), { householdId: "h1" }));
+    });
+
+    it("records a purchase through the application adapter as a server-side increment, once", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-rules", storageBucket: "demo-magpie-rules.appspot.com" }, "adapter-purchase");
+        try {
+            const data = createFirestoreData(env.authenticatedContext("alex").firestore() as unknown as Firestore, getStorage(app));
+            await assertSucceeds(data.recordPurchase("h1", "i1", 3));
+            const saved = await stored(path);
+            if (saved.onList !== false || saved.quantityRemaining !== 5 || saved.quantityNeeded !== 4) throw new Error("The purchase was not recorded as expected");
+            await assertFails(data.recordPurchase("h1", "i1", 3));
+            // Another member bought stock after this phone last synced: the increment keeps it.
+            await env.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), path), { ...validItem("Milk"), quantityRemaining: 10 });
+            });
+            await assertSucceeds(data.recordPurchase("h1", "i1", 1));
+            if ((await stored(path)).quantityRemaining !== 11) throw new Error("The purchase replaced inventory");
+            await env.withSecurityRulesDisabled(async (ctx) => {
+                await setDoc(doc(ctx.firestore(), path), { ...validItem("Milk"), quantityRemaining: 10 });
+            });
+            await assertFails(data.recordPurchase("h1", "i1", 1000));
+            await assertFails(createFirestoreData(env.authenticatedContext("olga").firestore() as unknown as Firestore, getStorage(app)).recordPurchase("h1", "i1", 1));
+        } finally { await deleteApp(app); }
+    });
+});

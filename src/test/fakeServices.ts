@@ -168,6 +168,18 @@ export class FakeServices implements Services {
                 household.items = household.items.map(existing => existing.id === itemId ? { ...existing, onList } : existing);
                 this.itemsChanged(householdId);
             }),
+        // Like the rules, refuses a purchase of an item that is not on the list.
+        recordPurchase: (householdId, itemId, amount) => {
+            if (!this.household(householdId).items.some(existing => existing.id === itemId && existing.onList)) {
+                return Promise.reject(new Error("permission-denied"));
+            }
+            return this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.map(existing =>
+                    existing.id === itemId ? { ...existing, onList: false, quantityRemaining: existing.quantityRemaining + amount } : existing);
+                this.itemsChanged(householdId);
+            });
+        },
         watchList: (householdId, listener) => {
             const listeners = this.listListeners.get(householdId) ?? new Set();
             this.listListeners.set(householdId, listeners);

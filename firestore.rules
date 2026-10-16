@@ -50,7 +50,8 @@ service cloud.firestore {
             }
 
             // The household inventory. Photo and quantity remaining are set on
-            // create and not changed from the app yet. The category is empty or one
+            // create. Photo and places are not changed from the app; quantity
+            // remaining changes only in a purchase (see isPurchase). The category is empty or one
             // of the six zone kinds (also listed in src/data/model.ts). The legacy
             // per-store placement may be left empty on a new item and is frozen
             // on an update.
@@ -89,11 +90,30 @@ service cloud.firestore {
                     && request.resource.data.places.size() == 0
                     && request.resource.data.photoPath == null;
 
+                // Edits and relisting leave inventory, photo and places as stored.
+                function isEditOrRelist() {
+                    return unchanged('photoPath')
+                        && unchanged('quantityRemaining')
+                        && unchanged('places');
+                }
+
+                // A purchase takes an item that is on the list off it and adds a
+                // whole number from 1 to 999 to inventory, changing nothing else.
+                // The stored item must be on the list, so a resent, replayed or
+                // concurrent second purchase of the same listing is refused.
+                function isPurchase() {
+                    return resource.data.onList == true
+                        && request.resource.data.onList == false
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onList', 'quantityRemaining'])
+                        && resource.data.quantityRemaining is int
+                        && request.resource.data.quantityRemaining >= 0
+                        && request.resource.data.quantityRemaining - resource.data.quantityRemaining >= 1
+                        && request.resource.data.quantityRemaining - resource.data.quantityRemaining <= 999;
+                }
+
                 allow update: if isMemberOf(householdId)
                     && validItem(request.resource.data)
-                    && unchanged('photoPath')
-                    && unchanged('quantityRemaining')
-                    && unchanged('places');
+                    && (isEditOrRelist() || isPurchase());
             }
 
             match /{document=**} {

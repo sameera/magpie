@@ -372,12 +372,11 @@ describe("List row actions", () => {
         expect(button.closest("a")).toBeNull();
     });
 
-    it("opens a menu over the row with Remove item from list only, without leaving the page", async () => {
+    it("opens a menu over the row with the removal choices, without leaving the page", async () => {
         const { router } = renderApp(["/"]);
         await userEvent.setup().click(screen.getByRole("button", { name: "Actions for Milk" }));
         const actions = within(menu("Milk"));
         expect(actions.getByRole("menuitem", { name: "Remove item from list" })).toBeInTheDocument();
-        expect(actions.queryByRole("menuitem", { name: "Remove item as purchased" })).toBeNull();
         expect(rowOf("Milk")).toContainElement(menu("Milk"));
         expect(router.state.location.pathname).toBe("/");
     });
@@ -535,5 +534,154 @@ describe("List row actions", () => {
         services.saveBehavior = "refuse";
         await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
         expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be put back");
+    });
+});
+
+describe("Recording a purchase from a row", () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    const items = (services: FakeServices) => services.households.get("h1")!.items;
+    const stored = (services: FakeServices, id: string) => items(services).find((item) => item.id === id)!;
+    const menu = (name: string) => screen.getByRole("menu", { name: `Actions for ${name}` });
+    const quantity = () => screen.getByRole("spinbutton", { name: "Quantity bought" });
+    const confirm = () => screen.getByRole("button", { name: "Confirm purchase" });
+
+    async function chooseBought(name: string, services = new FakeServices()) {
+        const user = userEvent.setup();
+        const app = renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: `Actions for ${name}` }));
+        await user.click(within(menu(name)).getByRole("menuitem", { name: "Remove item as purchased" }));
+        return { ...app, user, services };
+    }
+
+    it("offers Remove item as purchased next to Remove item from list", async () => {
+        renderApp(["/"]);
+        await userEvent.setup().click(screen.getByRole("button", { name: "Actions for Milk" }));
+        const actions = within(menu("Milk"));
+        expect(actions.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Remove item from list", "Remove item as purchased"]);
+    });
+
+    it("asks for the quantity, set to the list quantity, before recording anything", async () => {
+        const { services } = await chooseBought("Milk");
+        expect(quantity()).toHaveValue(2);
+        expect(within(menu("Milk")).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+        expect(stored(services, "i1")).toMatchObject({ onList: true, quantityRemaining: 0 });
+    });
+
+    it("adds the list quantity to inventory and takes the item off the list, in one write", async () => {
+        const services = new FakeServices();
+        const recordPurchase = vi.spyOn(services.data, "recordPurchase");
+        const setOnList = vi.spyOn(services.data, "setOnList");
+        const { user } = await chooseBought("Milk", services);
+        await user.click(confirm());
+        expect(recordPurchase).toHaveBeenCalledTimes(1);
+        expect(recordPurchase).toHaveBeenCalledWith("h1", "i1", 2);
+        expect(setOnList).not.toHaveBeenCalled();
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).queryByText("Milk")).toBeNull();
+        expect(stored(services, "i1")).toMatchObject({ onList: false, quantityRemaining: 2, quantityNeeded: 2, name: "Milk", category: "dairy" });
+        expect(screen.queryByRole("menu")).toBeNull();
+    });
+
+    it("adds a changed quantity from 1 to 999 and leaves the list quantity alone", async () => {
+        const { user, services } = await chooseBought("Milk");
+        await user.clear(quantity());
+        await user.type(quantity(), "999");
+        await user.click(confirm());
+        expect(stored(services, "i1")).toMatchObject({ onList: false, quantityRemaining: 999, quantityNeeded: 2 });
+    });
+
+    it("steps the quantity with buttons, never below 1 or above 999", async () => {
+        const { user } = await chooseBought("Bread");
+        await user.click(screen.getByRole("button", { name: "Decrease quantity" }));
+        expect(quantity()).toHaveValue(1);
+        await user.click(screen.getByRole("button", { name: "Increase quantity" }));
+        expect(quantity()).toHaveValue(2);
+        await user.clear(quantity());
+        await user.type(quantity(), "999");
+        await user.click(screen.getByRole("button", { name: "Increase quantity" }));
+        expect(quantity()).toHaveValue(999);
+    });
+
+    it("adds to the inventory already held", async () => {
+        const services = new FakeServices();
+        items(services)[0] = { ...items(services)[0], quantityRemaining: 3 };
+        const { user } = await chooseBought("Milk", services);
+        await user.click(confirm());
+        expect(stored(services, "i1").quantityRemaining).toBe(5);
+    });
+
+    it("cannot submit a quantity that is not a whole number from 1 to 999", async () => {
+        const services = new FakeServices();
+        const recordPurchase = vi.spyOn(services.data, "recordPurchase");
+        const { user } = await chooseBought("Milk", services);
+        for (const text of ["0", "1000", "1.5", "-2", "", "e"]) {
+            await user.clear(quantity());
+            if (text) await user.type(quantity(), text);
+            expect(confirm()).toBeDisabled();
+            await user.click(confirm());
+        }
+        fireEvent.submit(quantity().closest("form")!);
+        expect(recordPurchase).not.toHaveBeenCalled();
+        expect(stored(services, "i1")).toMatchObject({ onList: true, quantityRemaining: 0 });
+    });
+
+    it("sends one write for a repeated tap on Confirm", async () => {
+        const services = new FakeServices();
+        const recordPurchase = vi.spyOn(services.data, "recordPurchase");
+        const { user } = await chooseBought("Milk", services);
+        await user.dblClick(confirm());
+        expect(recordPurchase).toHaveBeenCalledTimes(1);
+        expect(stored(services, "i1").quantityRemaining).toBe(2);
+    });
+
+    it("leaves the row on the list when the quantity step is cancelled", async () => {
+        const { user, services } = await chooseBought("Milk");
+        await user.click(within(menu("Milk")).getByRole("button", { name: "Cancel" }));
+        expect(screen.queryByRole("menu")).toBeNull();
+        expect(stored(services, "i1")).toMatchObject({ onList: true, quantityRemaining: 0 });
+    });
+
+    it("takes the row off the list at once while the server never answers, with no confirmation message", async () => {
+        const services = new FakeServices();
+        services.saveBehavior = "hang";
+        const { user } = await chooseBought("Milk", services);
+        await user.click(confirm());
+        expect(screen.queryByText("Milk")).toBeNull();
+        expect(screen.queryByRole("alert")).toBeNull();
+        expect(screen.queryByRole("status")).toBeNull();
+        expect(screen.queryByText(/purchase(d)? (recorded|saved)/i)).toBeNull();
+    });
+
+    it("names the item when the server refuses a purchase and the item is still on the list", async () => {
+        const services = new FakeServices();
+        services.saveBehavior = "refuse";
+        const { user } = await chooseBought("Milk", services);
+        await user.click(confirm());
+        expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be recorded as purchased. It is still on the list.");
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Milk")).toBeInTheDocument();
+        expect(stored(services, "i1")).toMatchObject({ onList: true, quantityRemaining: 0 });
+    });
+
+    it("shows nothing when the server refuses a repeat purchase because another member already bought the item", async () => {
+        const services = new FakeServices();
+        vi.spyOn(services.data, "recordPurchase").mockImplementation(async () => {
+            items(services).find((item) => item.id === "i1")!.onList = false;
+            throw new Error("permission-denied");
+        });
+        const { user } = await chooseBought("Milk", services);
+        await user.click(confirm());
+        await act(async () => { await Promise.resolve(); });
+        expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("does not record a purchase for a removal or a swipe", async () => {
+        const services = new FakeServices();
+        const recordPurchase = vi.spyOn(services.data, "recordPurchase");
+        const user = userEvent.setup();
+        renderApp(["/"], services);
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        await user.click(within(menu("Milk")).getByRole("menuitem", { name: "Remove item from list" }));
+        expect(recordPurchase).not.toHaveBeenCalled();
+        expect(stored(services, "i1").quantityRemaining).toBe(0);
     });
 });

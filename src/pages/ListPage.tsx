@@ -1,11 +1,11 @@
-import { Camera, EllipsisVertical, Plus } from "lucide-react";
+import { Camera, EllipsisVertical, Minus, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useHouseholdId, useServices } from "../app/session";
 import { useList } from "../data/hooks";
 import { readItemNow } from "../data/itemNow";
-import { quantityLabel, type Item } from "../data/model";
+import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, quantityLabel, type Item } from "../data/model";
 import { AddItemsDrawer } from "./AddItemsDrawer";
 import { PageHeader } from "./PageHeader";
 
@@ -42,14 +42,15 @@ export function ListPage() {
     // Sends the write without waiting for it: the list shows the change from the
     // phone's own copy. When the server refuses, say so only if the item did not
     // end up where the shopper put it.
-    const setOnList = (item: Item, onList: boolean, refused: string) => {
-        data.setOnList(householdId, item.id, onList).catch(async (error: unknown) => {
+    const send = (item: Item, write: Promise<void>, onList: boolean, refused: string) => {
+        write.catch(async (error: unknown) => {
             console.error("List change failed", error);
             const now = await readItemNow(data, householdId, item.id);
             if (now && now.onList !== onList) setRefusal(refused);
         });
     };
-    const remove = (item: Item) => setOnList(item, false, `${item.name} could not be removed. It is still on the list.`);
+    const remove = (item: Item) =>
+        send(item, data.setOnList(householdId, item.id, false), false, `${item.name} could not be removed. It is still on the list.`);
     const swipeRemove = (item: Item) => {
         setRefusal("");
         setUndo(item);
@@ -63,7 +64,17 @@ export function ListPage() {
     const putBack = (item: Item) => {
         setUndo(null);
         setRefusal("");
-        setOnList(item, true, `${item.name} could not be put back on the list.`);
+        send(item, data.setOnList(householdId, item.id, true), true, `${item.name} could not be put back on the list.`);
+    };
+    const purchase = (item: Item, amount: number) => {
+        setRefusal("");
+        setMenuFor(null);
+        send(
+            item,
+            data.recordPurchase(householdId, item.id, amount),
+            false,
+            `${item.name} could not be recorded as purchased. It is still on the list.`,
+        );
     };
 
     return (
@@ -84,6 +95,7 @@ export function ListPage() {
                             onToggleMenu={() => setMenuFor(menuFor === item.id ? null : item.id)}
                             onCloseMenu={() => setMenuFor(null)}
                             onRemove={() => chooseRemove(item)}
+                            onPurchase={(amount) => purchase(item, amount)}
                             onSwipe={() => swipeRemove(item)}
                         />
                     ))}
@@ -130,6 +142,7 @@ function ListRow({
     onToggleMenu,
     onCloseMenu,
     onRemove,
+    onPurchase,
     onSwipe,
 }: {
     item: Item;
@@ -137,6 +150,7 @@ function ListRow({
     onToggleMenu: () => void;
     onCloseMenu: () => void;
     onRemove: () => void;
+    onPurchase: (amount: number) => void;
     onSwipe: () => void;
 }) {
     const row = useRef<HTMLLIElement>(null);
@@ -221,29 +235,87 @@ function ListRow({
                     <EllipsisVertical aria-hidden="true" />
                 </button>
             </div>
-            {menuOpen && (
-                <div
-                    role="menu"
-                    aria-label={`Actions for ${item.name}`}
-                    onKeyDown={(e) => {
-                        if (e.key === "Escape") onCloseMenu();
+            {menuOpen && <RowMenu item={item} onRemove={onRemove} onPurchase={onPurchase} onClose={onCloseMenu} />}
+        </li>
+    );
+}
+
+// The menu over a row. Remove item as purchased asks for the quantity bought
+// first: it starts at the list quantity and stays a whole number from 1 to 999.
+function RowMenu({
+    item,
+    onRemove,
+    onPurchase,
+    onClose,
+}: {
+    item: Item;
+    onRemove: () => void;
+    onPurchase: (amount: number) => void;
+    onClose: () => void;
+}) {
+    const [asking, setAsking] = useState(false);
+    const [text, setText] = useState(String(item.quantityNeeded));
+    const amount = parseQuantity(text);
+    const step = (by: number) => setText(String(Math.min(MAX_QUANTITY, Math.max(MIN_QUANTITY, (amount ?? MIN_QUANTITY) + by))));
+    const choice = "h-tap min-w-0 flex-1 rounded-md border-2 border-line-strong bg-surface px-3 text-button";
+
+    return (
+        <div
+            role="menu"
+            aria-label={`Actions for ${item.name}`}
+            onKeyDown={(e) => {
+                if (e.key === "Escape") onClose();
+            }}
+            className="absolute inset-x-0 top-0 z-10 flex min-h-full flex-wrap items-center gap-2 rounded-md border-2 border-line-strong bg-surface p-2 shadow-float"
+        >
+            {asking ? (
+                <form
+                    className="flex w-full flex-wrap items-center gap-2"
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        if (amount !== null) onPurchase(amount);
                     }}
-                    className="absolute inset-0 flex items-center gap-2 rounded-md border-2 border-line-strong bg-surface p-2 shadow-float"
                 >
-                    <button
-                        type="button"
-                        role="menuitem"
-                        autoFocus
-                        onClick={onRemove}
-                        className="h-tap min-w-0 flex-1 rounded-md border-2 border-line-strong bg-surface px-3 text-button"
-                    >
-                        Remove item from list
+                    <label className="flex w-full items-center gap-2 text-caption">
+                        Quantity bought
+                        <button type="button" aria-label="Decrease quantity" onClick={() => step(-1)} className="flex size-tap shrink-0 items-center justify-center rounded-md border-2 border-line-strong">
+                            <Minus aria-hidden="true" />
+                        </button>
+                        <input
+                            type="number"
+                            min={MIN_QUANTITY}
+                            max={MAX_QUANTITY}
+                            step={1}
+                            autoFocus
+                            aria-label="Quantity bought"
+                            value={text}
+                            onChange={(e) => setText(e.target.value)}
+                            className="h-tap w-20 rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-center text-body"
+                        />
+                        <button type="button" aria-label="Increase quantity" onClick={() => step(1)} className="flex size-tap shrink-0 items-center justify-center rounded-md border-2 border-line-strong">
+                            <Plus aria-hidden="true" />
+                        </button>
+                    </label>
+                    <button type="submit" disabled={amount === null} className="h-tap min-w-0 flex-1 rounded-md bg-sheen px-3 text-button text-on-sheen shadow-press disabled:opacity-50">
+                        Confirm purchase
                     </button>
-                    <button type="button" onClick={onCloseMenu} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                    <button type="button" onClick={onClose} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
                         Cancel
                     </button>
-                </div>
+                </form>
+            ) : (
+                <>
+                    <button type="button" role="menuitem" autoFocus onClick={onRemove} className={choice}>
+                        Remove item from list
+                    </button>
+                    <button type="button" role="menuitem" onClick={() => setAsking(true)} className={choice}>
+                        Remove item as purchased
+                    </button>
+                    <button type="button" onClick={onClose} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                        Cancel
+                    </button>
+                </>
             )}
-        </li>
+        </div>
     );
 }

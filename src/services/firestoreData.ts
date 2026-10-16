@@ -1,4 +1,4 @@
-import { setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
+import { increment, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
 import { itemConverter, newItem, priceConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import type { DataService } from "./types";
@@ -28,6 +28,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
         updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
             updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category }),
         setOnList: (householdId, itemId, onList) => updateDoc(doc(items(householdId), itemId), { onList }),
+        recordPurchase: (householdId, itemId, amount) =>
+            updateDoc(doc(items(householdId), itemId), { onList: false, quantityRemaining: increment(amount) }),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),

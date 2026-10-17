@@ -1,8 +1,8 @@
 ---
 title: Page Paths
 aliases: [page map, navigation map, routes, saved links, shell fallback]
-touches: [page-frames, back-navigation, sign-in-gate, item-page, trip-store, map-editor-page, household-data-reads]
-last_updated_by: "#1"
+touches: [page-frames, back-navigation, sign-in-gate, item-page, trip-store, map-editor-page, household-data-reads, inventory-page]
+last_updated_by: "#55"
 status: active
 verification: verified
 ---
@@ -13,7 +13,7 @@ Every page in Magpie has its own path, and the path also names the item or store
 
 ## How It Works
 
-The app has nine page paths. List is the home page and sits at the root path. The Item page has one path for a new item and one path that carries an item's ID. Shop has one path for the store choice and one path that carries the chosen store's ID. Stores has a path. Each Store page has a path that carries the store's ID. The Map editor's path extends its store's path. Sign-in has its own path.
+The app has ten page paths. List is the home page and sits at the root path. The Item page has one path for a new item and one path that carries an item's ID. Shop has one path for the store choice and one path that carries the chosen store's ID. Stores has a path, and Inventory has a path. Each Store page has a path that carries the store's ID. The Map editor's path extends its store's path. Sign-in has its own path.
 
 Two rules answer any page path with the app. One rule is the hosting rewrite. The other rule is the installed app's offline navigation fallback. Both rules leave out the paths Firebase reserves for its sign-in handler.
 
@@ -36,6 +36,7 @@ An unknown path is replaced by the List path. A path that names an item or store
 - [trip-store](trip-store.md) — the in-store path carries the chosen store, so the in-store view survives a reload.
 - [map-editor-page](map-editor-page.md) — the Map editor's path extends its store's path, so the editor opens for that store.
 - [household-data-reads](household-data-reads.md) — a data read that reports an item or store as missing produces the "not found" message.
+- [inventory-page](inventory-page.md) — the Inventory page takes one of the ten paths, so a reload or a saved link opens it again.
 
 ## Decision Log
 
@@ -44,3 +45,7 @@ An unknown path is replaced by the List path. A path that names an item or store
 Each page has a clean path with no "#" in it, and the path carries the item or store ID. The epic's success metric says every page can be opened again from a saved link or after a reload. That requires the path to name the page and what it shows. Firebase Hosting supports a catch-all rewrite, so clean paths cost one setting. The trade-off is that the two fallback rules must stay in step, and both must leave the sign-in handler alone. The refuted alternative was hash-based paths, which need no hosting rewrite and no offline fallback rule. They lost because the Firebase sign-in redirect and in-page anchors handle the "#" badly.
 
 React Router in plain client-side mode maps paths to pages. It is widely known, and it supports shared page frames and delayed loading of one page's code. The app is client-only, so no server mode is needed. The trade-off is that a wrong ID in a path is caught when the app runs, not by the type checker. The refuted alternative was TanStack Router, whose path parameters are checked by the type checker. It lost because nine paths with two string IDs gain little from that checking, and it brings a less familiar API and a code-generation step.
+
+### 2026-10-16 — #55 — Inventory gets its own path
+
+The Inventory page has one path, so a reload or a saved link opens it. The path count rises from nine to ten. The path carries no ID, because the page shows the whole inventory. The refuted alternative was to open the inventory as a panel over another page, with no path of its own. It needs no route. It lost for the same reason the Item page has paths: a panel cannot be reloaded or linked.

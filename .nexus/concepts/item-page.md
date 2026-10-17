@@ -1,8 +1,8 @@
 ---
 title: Item Page
 aliases: [item, new item, add item, item details, item prices]
-touches: [page-paths, back-navigation, household-data-reads, item-save, item-category]
-last_updated_by: "#41"
+touches: [page-paths, back-navigation, household-data-reads, item-save, item-category, inventory-page]
+last_updated_by: "#55"
 status: active
 verification: verified
 ---
@@ -17,7 +17,7 @@ Only a saved link opens the Item page at its "new" path. Choosing an item on the
 
 The page holds the item's name, quantity needed, note and photo. It also holds the item's category, which places the item in each store. For an existing item, the page reads these details and the item's recorded prices. Each price belongs to a store chain and carries the date it was observed. A new item has no prices to show.
 
-Finishing uses the up control, which leads to the List page. The List page then restores the scroll position it had. Done saves the item, then finishes. A new item goes on the list with no photo. An edit writes only the name, quantity, note and category, so the list flag, photo and any old per-store placement stay as stored. Done with no changes writes nothing, and leaving with unsaved changes asks to confirm.
+Finishing uses the up control to its parent page, List or Inventory. The List page then restores the scroll position it had. Done saves the item, then finishes. A new item goes on the list with no photo. An edit writes only the name, quantity, note and category, so the list flag, photo and any old per-store placement stay as stored. Done with no changes writes nothing, and leaving with unsaved changes asks to confirm.
 
 ## Key Invariants
 
@@ -36,6 +36,7 @@ Finishing uses the up control, which leads to the List page. The List page then 
 - [household-data-reads](household-data-reads.md) — the page reads an existing item's details and prices, and shows "not found" when the item is missing.
 - [item-save](item-save.md) — Done on this page runs the save, and a confirmed save finishes the page with the up control to List.
 - [item-category](item-category.md) — the page sets or clears the item's category, which places the item in each store.
+- [inventory-page](inventory-page.md) — an item opened from Inventory finishes back on Inventory, and a saved link or the list finishes on List.
 
 ## Decision Log
 
@@ -58,3 +59,7 @@ The Item page replaces the per-store "Where it sits" choices with one category: 
 ### 2026-10-15 — #41 — The add drawer no longer opens this page, and the category moves to item-category
 
 The add drawer's Add with details button is removed, so no control in the app opens this page for a new item. Invariant 1 is struck through and retired. The "new" path stays, so a saved link still opens the form. A member adds the item from the drawer and then opens it on the list to fill in the details, which reaches the same page. A second way to add was not needed. This page drops add-items-drawer as a neighbour, matching that page's removal of its link here. The refuted alternative was to keep the button in the drawer. It lost because adding and then editing already covers the details. This page was already past the 400-word cap, so how a category places an item in a store is split into the item-category page. The seam is the store: this page keeps the form, its two ways in and the prices, and item-category holds the placement rule that the in-store view uses.
+
+### 2026-10-16 — #55 — An item opened from Inventory finishes on Inventory
+
+Choosing a name on the Inventory page opens the same Item page, and finishing returns to Inventory. The page reads the return destination from the link that opened it. Without that hint, as with a saved link or the list, the parent stays List. Invariants 2 to 4 are unchanged. The refuted alternative was to leave finishing on List. It lost because Back and Done would then disagree with the back action, which returns to Inventory.

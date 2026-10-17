@@ -8,6 +8,7 @@ import { ItemPage } from "../pages/ItemPage";
 import { ShopChoicePage } from "../pages/ShopChoicePage";
 import { InStorePage } from "../pages/InStorePage";
 import { StoresPage } from "../pages/StoresPage";
+import { InventoryPage } from "../pages/InventoryPage";
 import { StorePage } from "../pages/StorePage";
 import { SignInPage } from "../pages/SignInPage";
 
@@ -36,6 +37,7 @@ export const routes: RouteObject[] = [
                             { path: "shop", element: <ShopChoicePage /> },
                             { path: "shop/:storeId", element: <InStorePage /> },
                             { path: "stores", element: <StoresPage /> },
+                            { path: "inventory", element: <InventoryPage /> },
                             { path: "stores/:storeId", element: <StorePage /> },
                         ],
                     },

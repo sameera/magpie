@@ -1,6 +1,6 @@
 import { Camera } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useBlocker, useParams } from "react-router";
+import { useBlocker, useLocation, useParams } from "react-router";
 import { useUp } from "../app/history";
 import { confirmDiscard, confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_MESSAGE } from "../app/saveWait";
 import { useHouseholdId, useServices } from "../app/session";
@@ -14,6 +14,13 @@ export const QUANTITY_ERROR: string = "Quantity must be a whole number from 1 to
 
 const money: Intl.NumberFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 const day: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+function useItemParent() {
+    const { state } = useLocation();
+    return state?.returnTo === "/inventory"
+        ? { path: "/inventory", label: "Back to inventory" }
+        : { path: "/", label: "Back to list" };
+}
 
 // One page for a new item (/items/new) and an existing one (/items/<id>).
 export function ItemPage() {
@@ -39,8 +46,9 @@ function ExistingItem({ itemId }: { itemId: string }) {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const item = useItem(itemId);
+    const parent = useItemParent();
     if (item.status === "missing") {
-        return <NotFound what="item" parent="/" parentLabel="Back to list" />;
+        return <NotFound what="item" parent={parent.path} parentLabel={parent.label} />;
     }
     if (item.status === "loading") {
         return <p className="text-body text-ink-muted">Loading the item…</p>;
@@ -85,7 +93,7 @@ function sameFields(a: Draft, b: Draft): boolean {
     return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category;
 }
 
-// Done writes the draft and waits for the server before going up to List. An
+// Done writes the draft and waits for the server before returning to its parent. An
 // existing item with no changes writes nothing.
 function ItemDetails({
     title,
@@ -103,7 +111,8 @@ function ItemDetails({
     const [draft, setDraft] = useState<Draft>(() => draftOf(item));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
-    const up = useUp("/");
+    const parent = useItemParent();
+    const up = useUp(parent.path);
     // Set once a save is confirmed, so going up afterwards is not treated as a discard.
     const finished = useRef(false);
     const dirty = !sameFields(draft, draftOf(item));
@@ -150,7 +159,7 @@ function ItemDetails({
         <>
             <PageHeader
                 title={title}
-                before={<UpButton to="/" label="Back to list" />}
+                before={<UpButton to={parent.path} label={parent.label} />}
                 after={
                     <button
                         type="button"

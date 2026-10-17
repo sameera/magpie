@@ -1,4 +1,4 @@
-import { List, Menu, ShoppingCart, Store } from "lucide-react";
+import { List, Menu, Package, ShoppingCart, Store } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router";
 import { areaForPath, type Area } from "./area";
@@ -35,6 +35,10 @@ export function BottomNav({ shopTarget }: { shopTarget: string }) {
                         <Link to="/stores" className="flex h-tap items-center gap-3 rounded-md px-3 text-item">
                             <Store aria-hidden="true" />
                             Stores
+                        </Link>
+                        <Link to="/inventory" className="flex h-tap items-center gap-3 rounded-md px-3 text-item">
+                            <Package aria-hidden="true" />
+                            Inventory
                         </Link>
                     </nav>
                 </div>

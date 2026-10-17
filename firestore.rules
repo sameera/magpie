@@ -67,7 +67,9 @@ service cloud.firestore {
 
                 function validItem(data) {
                     return data.keys().hasAll(itemFields())
-                        && data.keys().hasOnly(itemFields())
+                        && data.keys().hasOnly(itemFields().concat(['purchaseCount', 'lastPurchasedAt', 'lastPurchaseId']))
+                        && data.get('purchaseCount', 0) is int
+                        && data.get('purchaseCount', 0) >= 0
                         && validName(data)
                         && data.quantityNeeded is int
                         && data.quantityNeeded >= 1
@@ -88,13 +90,16 @@ service cloud.firestore {
                     && validItem(request.resource.data)
                     && request.resource.data.quantityRemaining == 0
                     && request.resource.data.places.size() == 0
-                    && request.resource.data.photoPath == null;
+                    && request.resource.data.photoPath == null
+                    && request.resource.data.get('purchaseCount', 0) == 0
+                    && !request.resource.data.keys().hasAny(['lastPurchasedAt', 'lastPurchaseId']);
 
                 // Edits and relisting leave inventory, photo and places as stored.
                 function isEditOrRelist() {
                     return unchanged('photoPath')
                         && unchanged('quantityRemaining')
-                        && unchanged('places');
+                        && unchanged('places')
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['purchaseCount', 'lastPurchasedAt', 'lastPurchaseId']);
                 }
 
                 // A purchase takes an item that is on the list off it and adds a
@@ -102,18 +107,50 @@ service cloud.firestore {
                 // The stored item must be on the list, so a resent, replayed or
                 // concurrent second purchase of the same listing is refused.
                 function isPurchase() {
+                    let after = request.resource.data;
+                    let entryPath = /databases/$(database)/documents/households/$(householdId)/purchases/$(after.lastPurchaseId);
+                    let entry = getAfter(entryPath).data;
                     return resource.data.onList == true
                         && request.resource.data.onList == false
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onList', 'quantityRemaining'])
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onList', 'quantityRemaining', 'purchaseCount', 'lastPurchasedAt', 'lastPurchaseId'])
                         && resource.data.quantityRemaining is int
                         && request.resource.data.quantityRemaining >= 0
                         && request.resource.data.quantityRemaining - resource.data.quantityRemaining >= 1
-                        && request.resource.data.quantityRemaining - resource.data.quantityRemaining <= 999;
+                        && request.resource.data.quantityRemaining - resource.data.quantityRemaining <= 999
+                        && after.purchaseCount == resource.data.get('purchaseCount', 0) + 1
+                        && after.lastPurchasedAt == request.time
+                        && after.lastPurchaseId is string
+                        && !exists(entryPath)
+                        && entry.itemId == itemId
+                        && entry.amount == after.quantityRemaining - resource.data.quantityRemaining
+                        && entry.purchasedAt == request.time;
                 }
 
                 allow update: if isMemberOf(householdId)
                     && validItem(request.resource.data)
                     && (isEditOrRelist() || isPurchase());
+            }
+
+            match /purchases/{purchaseId} {
+                function validPurchase() {
+                    let entry = request.resource.data;
+                    let itemPath = /databases/$(database)/documents/households/$(householdId)/items/$(entry.itemId);
+                    let before = get(itemPath).data;
+                    let after = getAfter(itemPath).data;
+                    return entry.keys().hasAll(['itemId', 'amount', 'purchasedAt'])
+                        && entry.keys().hasOnly(['itemId', 'amount', 'purchasedAt'])
+                        && entry.itemId is string
+                        && entry.amount is int
+                        && entry.amount >= 1 && entry.amount <= 999
+                        && entry.purchasedAt == request.time
+                        && before.onList == true && after.onList == false
+                        && after.quantityRemaining == before.quantityRemaining + entry.amount
+                        && after.purchaseCount == before.get('purchaseCount', 0) + 1
+                        && after.lastPurchasedAt == request.time
+                        && after.lastPurchaseId == purchaseId;
+                }
+                allow create: if isMemberOf(householdId) && validPurchase();
+                allow update, delete: if false;
             }
 
             match /{document=**} {

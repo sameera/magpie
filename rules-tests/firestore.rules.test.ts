@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { deleteDoc, doc, getDoc, getDocs, collection, query, setDoc, updateDoc, where, writeBatch, type Firestore } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, getDocs, collection, query, serverTimestamp, setDoc, updateDoc, where, writeBatch, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { initializeApp, deleteApp } from "firebase/app";
 import type { Item } from "../src/data/model";
@@ -619,6 +619,14 @@ describe("recording a purchase", () => {
     };
     const asStored = (item: Record<string, unknown>) => JSON.stringify(item, Object.keys(item).sort());
     const purchase = (total: number) => ({ onList: false, quantityRemaining: total });
+    async function purchaseWithHistory(db: Firestore, itemPath: string, total: number) {
+        const before = (await getDoc(doc(db, itemPath))).data()!;
+        const entry = doc(collection(db, "households/h1/purchases"));
+        const batch = writeBatch(db);
+        batch.update(doc(db, itemPath), { ...purchase(total), purchaseCount: (before.purchaseCount ?? 0) + 1, lastPurchasedAt: serverTimestamp(), lastPurchaseId: entry.id });
+        batch.set(entry, { itemId: itemPath.split("/").at(-1), amount: total - before.quantityRemaining, purchasedAt: serverTimestamp() });
+        return batch.commit();
+    }
     const others = () => [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("olga")];
     beforeEach(async () => {
         await env.withSecurityRulesDisabled(async (ctx) => {
@@ -629,32 +637,33 @@ describe("recording a purchase", () => {
     });
 
     it("lets a member take the item off the list and add 1 to 999 to inventory, changing nothing else", async () => {
-        await assertSucceeds(updateDoc(doc(env.authenticatedContext("alex").firestore(), path), purchase(3)));
+        await assertSucceeds(purchaseWithHistory(env.authenticatedContext("alex").firestore() as unknown as Firestore, path, 3));
         const before = { ...validItem("Milk"), quantityNeeded: 4, quantityRemaining: 3, note: "Whole", category: "dairy", photoPath: "p/i1.jpg", places: { s1: "z1" }, onList: false };
-        if (asStored(await stored(path)) !== asStored(before)) throw new Error("A purchase changed more than the list flag and inventory");
+        const { purchaseCount, lastPurchasedAt: _at, lastPurchaseId: _id, ...saved } = await stored(path);
+        if (purchaseCount !== 1 || asStored(saved) !== asStored(before)) throw new Error("A purchase changed item details");
         // The bounds: an increase of 1 and an increase of 999 are both accepted.
         for (const [id, increase] of [["min", 1], ["max", 999]] as const) {
             await env.withSecurityRulesDisabled(async (ctx) => {
                 await setDoc(doc(ctx.firestore(), `households/h1/items/${id}`), { ...validItem(id), quantityRemaining: 2 });
             });
-            await assertSucceeds(updateDoc(doc(env.authenticatedContext("sam").firestore(), `households/h1/items/${id}`), purchase(2 + increase)));
+            await assertSucceeds(purchaseWithHistory(env.authenticatedContext("sam").firestore() as unknown as Firestore, `households/h1/items/${id}`, 2 + increase));
         }
     });
 
     it("adds to existing inventory and accepts a purchase from empty stock", async () => {
         const db = env.authenticatedContext("alex").firestore();
-        await assertSucceeds(updateDoc(doc(db, path), purchase(2 + 4)));
+        await assertSucceeds(purchaseWithHistory(db as unknown as Firestore, path, 2 + 4));
         if ((await stored(path)).quantityRemaining !== 6) throw new Error("The purchase did not add to the existing quantity");
         await assertSucceeds(updateDoc(doc(db, "households/h1/items/i1"), { onList: true }));
         await env.withSecurityRulesDisabled(async (ctx) => {
             await setDoc(doc(ctx.firestore(), "households/h1/items/empty"), validItem("Eggs"));
         });
-        await assertSucceeds(updateDoc(doc(db, "households/h1/items/empty"), purchase(1)));
+        await assertSucceeds(purchaseWithHistory(db as unknown as Firestore, "households/h1/items/empty", 1));
     });
 
     it("refuses a second purchase of the same listing, so a resend, replay or concurrent buy counts once", async () => {
         const db = env.authenticatedContext("alex").firestore();
-        await assertSucceeds(updateDoc(doc(db, path), purchase(5)));
+        await assertSucceeds(purchaseWithHistory(db as unknown as Firestore, path, 5));
         // A resent increment arrives as a higher total on an item that is already off the list.
         await assertFails(updateDoc(doc(db, path), purchase(8)));
         await assertFails(updateDoc(doc(env.authenticatedContext("sam").firestore(), path), purchase(9)));

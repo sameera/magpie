@@ -33,6 +33,10 @@ export interface Item {
     onList: boolean;
     // Legacy per-store placement: stored as it was, never read or changed.
     places: Record<string, string>;
+    // Absent on items created before purchase history; reads as zero.
+    purchaseCount?: number;
+    lastPurchasedAt?: Date | null;
+    lastPurchaseId?: string | null;
 }
 
 // The item fields the app writes.
@@ -83,6 +87,27 @@ export const itemConverter: FirestoreDataConverter<Item> = {
         category: toCategory(snap.get("category")),
         onList: snap.get("onList") === true,
         places: stringRecord(snap.get("places")),
+        purchaseCount: snap.get("purchaseCount") ?? 0,
+        lastPurchasedAt: (snap.get("lastPurchasedAt", { serverTimestamps: "estimate" }) as { toDate?: () => Date } | undefined)?.toDate?.() ?? null,
+        lastPurchaseId: snap.get("lastPurchaseId") ?? null,
+    }),
+};
+
+// households/{householdId}/purchases/{purchaseId}: immutable purchase history.
+export interface Purchase {
+    id: string;
+    itemId: string;
+    amount: number;
+    purchasedAt: Date;
+}
+
+export const purchaseConverter: FirestoreDataConverter<Purchase> = {
+    toFirestore: ({ id: _id, ...purchase }: Purchase) => purchase,
+    fromFirestore: (snap: QueryDocumentSnapshot) => ({
+        id: snap.id,
+        itemId: String(snap.get("itemId")),
+        amount: Number(snap.get("amount")),
+        purchasedAt: (snap.get("purchasedAt", { serverTimestamps: "estimate" }) as { toDate: () => Date }).toDate(),
     }),
 };
 

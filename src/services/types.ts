@@ -47,7 +47,8 @@ export interface DataService {
     // list quantity, inventory or any other detail. Resolves once the server
     // accepts the write; rejects if it is refused. Callers do not wait for it.
     setOnList(householdId: string, itemId: string, onList: boolean): Promise<void>;
-    // Records a purchase in one write: takes the item off the list and adds the
+    // Records a purchase in one atomic batch with its immutable history entry
+    // and item purchase totals. Takes the item off the list and adds the
     // amount, a whole number from 1 to 999, to its quantity remaining as a
     // server-side increment, so stock another member added meanwhile is kept.
     // Resolves once the server accepts the write; rejects if it is refused,

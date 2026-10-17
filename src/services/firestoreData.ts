@@ -1,5 +1,5 @@
-import { increment, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
-import { itemConverter, newItem, priceConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
+import { increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
+import { itemConverter, newItem, priceConverter, purchaseConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import type { DataService } from "./types";
 
@@ -28,8 +28,19 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
         updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
             updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category }),
         setOnList: (householdId, itemId, onList) => updateDoc(doc(items(householdId), itemId), { onList }),
-        recordPurchase: (householdId, itemId, amount) =>
-            updateDoc(doc(items(householdId), itemId), { onList: false, quantityRemaining: increment(amount) }),
+        recordPurchase: (householdId, itemId, amount) => {
+            const entry = doc(collection(db, "households", householdId, "purchases").withConverter(purchaseConverter));
+            const batch = writeBatch(db);
+            batch.set(entry, { id: entry.id, itemId, amount, purchasedAt: serverTimestamp() });
+            batch.update(doc(items(householdId), itemId), {
+                onList: false,
+                quantityRemaining: increment(amount),
+                purchaseCount: increment(1),
+                lastPurchasedAt: serverTimestamp(),
+                lastPurchaseId: entry.id,
+            });
+            return batch.commit();
+        },
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),

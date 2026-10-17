@@ -176,7 +176,10 @@ export class FakeServices implements Services {
             return this.save(() => {
                 const household = this.household(householdId);
                 household.items = household.items.map(existing =>
-                    existing.id === itemId ? { ...existing, onList: false, quantityRemaining: existing.quantityRemaining + amount } : existing);
+                    existing.id === itemId ? {
+                        ...existing, onList: false, quantityRemaining: existing.quantityRemaining + amount,
+                        purchaseCount: (existing.purchaseCount ?? 0) + 1, lastPurchasedAt: new Date(),
+                    } : existing);
                 this.itemsChanged(householdId);
             });
         },

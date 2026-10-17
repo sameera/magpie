@@ -5,7 +5,7 @@ import { initializeApp, deleteApp } from "firebase/app";
 import type { Item } from "../src/data/model";
 import { createFirestoreData } from "../src/services/firestoreData";
 import { readFileSync } from "node:fs";
-import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 let env: RulesTestEnvironment;
 
@@ -75,6 +75,38 @@ describe("household data", () => {
         await assertFails(setDoc(doc(db, "households/h1"), { name: "Ours" }));
         await assertFails(setDoc(doc(db, "households/h1/prices/p1"), { itemId: "i1", amount: 1 }));
         await assertFails(setDoc(doc(db, "members/alex"), { householdId: "h1" }));
+    });
+});
+
+describe("inventory reads", () => {
+    it("reads every item alphabetically through the application feed for either member", async () => {
+        await env.withSecurityRulesDisabled(async (ctx) => {
+            await setDoc(doc(ctx.firestore(), "households/h1/items/off"), { ...validItem("Apples"), onList: false });
+        });
+        const app = initializeApp({ projectId: "demo-magpie-rules" }, "inventory-read");
+        try {
+            for (const uid of ["alex", "sam"]) {
+                const data = createFirestoreData(env.authenticatedContext(uid).firestore() as unknown as Firestore, getStorage(app));
+                let unsubscribe = () => {};
+                try {
+                    const items = await new Promise<Item[]>((resolve, reject) => {
+                        unsubscribe = data.watchItems("h1", result => {
+                            if (result.status === "ready") resolve(result.value);
+                            if (result.status === "missing") reject(new Error("Inventory read refused"));
+                        });
+                    });
+                    expect(items.map(item => item.name)).toEqual(["Apples", "Milk"]);
+                    expect(items[0].onList).toBe(false);
+                } finally { unsubscribe(); }
+            }
+        } finally { await deleteApp(app); }
+    });
+
+    it("denies full inventory reads to signed-out users, non-members and other households", async () => {
+        for (const ctx of [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("olga")]) {
+            await assertFails(getDocs(collection(ctx.firestore(), "households/h1/items")));
+        }
+        await assertFails(getDocs(collection(env.authenticatedContext("alex").firestore(), "households/h2/items")));
     });
 });
 

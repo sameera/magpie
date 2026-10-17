@@ -47,6 +47,12 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()).sort(byName) }),
                 () => listener({ status: "missing" }),
             ),
+        watchBoughtItems: (householdId, listener) =>
+            onSnapshot(
+                query(items(householdId), where("purchaseCount", ">=", 1)),
+                (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()) }),
+                () => listener({ status: "missing" }),
+            ),
         watchItems: (householdId, listener) =>
             onSnapshot(
                 items(householdId),

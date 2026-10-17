@@ -646,7 +646,8 @@ describe("Recording a purchase from a row", () => {
         services.saveBehavior = "hang";
         const { user } = await chooseBought("Milk", services);
         await user.click(confirm());
-        expect(screen.queryByText("Milk")).toBeNull();
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).queryByText("Milk")).toBeNull();
+        expect(within(screen.getByRole("region", { name: "Suggested" })).getByText("Milk")).toBeInTheDocument();
         expect(screen.queryByRole("alert")).toBeNull();
         expect(screen.queryByRole("status")).toBeNull();
         expect(screen.queryByText(/purchase(d)? (recorded|saved)/i)).toBeNull();

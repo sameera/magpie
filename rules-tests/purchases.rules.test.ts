@@ -1,5 +1,5 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, disableNetwork, doc, enableNetwork, getDoc, getDocs, increment, onSnapshot, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, type Firestore } from "firebase/firestore";
+import { collection, deleteDoc, disableNetwork, doc, enableNetwork, getDoc, getDocs, increment, onSnapshot, query, serverTimestamp, setDoc, Timestamp, updateDoc, where, writeBatch, type Firestore } from "firebase/firestore";
 import { initializeApp, deleteApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
 import { readFileSync } from "node:fs";
@@ -36,6 +36,37 @@ function purchase(db: Firestore, itemPatch: Record<string, unknown> = {}, entryP
 const member = () => env.authenticatedContext("alex").firestore() as unknown as Firestore;
 
 describe("purchase history integrity", () => {
+    it("lets both members watch the bought-items feed live, excluding legacy items, and denies outsider queries", async () => {
+        const app = initializeApp({ projectId: "demo-magpie-purchases" }, "bought-feed");
+        try {
+            const writer = member();
+            const data = createFirestoreData(writer, getStorage(app));
+            await data.recordPurchase("h1", "i1", 2);
+            await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(), "households/h1/items/legacy"), legacy); });
+            for (const uid of ["alex", "sam"]) {
+                const db = env.authenticatedContext(uid).firestore() as unknown as Firestore;
+                await new Promise<void>((resolve, reject) => {
+                    let relisted = false;
+                    const stop = createFirestoreData(db, getStorage(app)).watchBoughtItems("h1", value => {
+                        if (value.status !== "ready") return;
+                        try {
+                            expect(value.value.map(item => item.id)).toEqual(["i1"]);
+                            expect(value.value[0].purchaseCount).toBe(1);
+                            expect(value.value[0].lastPurchasedAt).toBeInstanceOf(Date);
+                            if (!relisted) {
+                                relisted = true;
+                                data.setOnList("h1", "i1", true).catch(reject);
+                            } else if (value.value[0].onList) { stop(); resolve(); }
+                        } catch (error) { stop(); reject(error); }
+                    });
+                });
+                await data.setOnList("h1", "i1", false);
+            }
+            for (const ctx of [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("other")]) {
+                await assertFails(getDocs(query(collection(ctx.firestore(), "households/h1/items"), where("purchaseCount", ">=", 1))));
+            }
+        } finally { await deleteApp(app); }
+    });
     it("accepts a purchase and exactly one immutable history entry with matching server times", async () => {
         const db = member();
         await assertSucceeds(purchase(db));

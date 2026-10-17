@@ -56,6 +56,8 @@ export interface DataService {
     // wait for it.
     recordPurchase(householdId: string, itemId: string, amount: number): Promise<void>;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
+    // All items with at least one recorded purchase, including items on the list.
+    watchBoughtItems(householdId: string, listener: (items: Watched<Item[]>) => void): Unsubscribe;
     // Every item in the household, on the list or not. Sorted by name.
     watchItems(householdId: string, listener: (items: Watched<Item[]>) => void): Unsubscribe;
     watchItem(householdId: string, itemId: string, listener: (item: Watched<Item>) => void): Unsubscribe;

@@ -90,6 +90,7 @@ export class FakeServices implements Services {
     private listListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
 
     private itemsListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
+    private boughtListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
 
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
@@ -104,6 +105,7 @@ export class FakeServices implements Services {
     private itemsChanged(householdId: string): void {
         this.listListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.onList(householdId) }));
         this.itemsListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.allItems(householdId) }));
+        this.boughtListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.allItems(householdId).filter(item => (item.purchaseCount ?? 0) >= 1) }));
     }
 
     // What the next saves do: "refuse" rejects them; "hang" never answers, as
@@ -188,6 +190,13 @@ export class FakeServices implements Services {
             this.listListeners.set(householdId, listeners);
             listeners.add(listener);
             this.answer(listener, this.onList(householdId));
+            return () => { listeners.delete(listener); };
+        },
+        watchBoughtItems: (householdId, listener) => {
+            const listeners = this.boughtListeners.get(householdId) ?? new Set();
+            this.boughtListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, this.allItems(householdId).filter(item => (item.purchaseCount ?? 0) >= 1));
             return () => { listeners.delete(listener); };
         },
         watchItems: (householdId, listener) => {

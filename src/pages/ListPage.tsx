@@ -3,7 +3,8 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useHouseholdId, useServices } from "../app/session";
-import { useList } from "../data/hooks";
+import { useBoughtItems, useList } from "../data/hooks";
+import { suggestedItems } from "../data/suggestions";
 import { readItemNow } from "../data/itemNow";
 import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, quantityLabel, type Item } from "../data/model";
 import { AddItemsDrawer } from "./AddItemsDrawer";
@@ -18,6 +19,8 @@ export function ListPage() {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const list = useList();
+    const bought = useBoughtItems();
+    const suggestions = bought.status === "ready" ? suggestedItems(bought.value) : [];
     const [adding, setAdding] = useState(false);
     const [menuFor, setMenuFor] = useState<string | null>(null);
     const [undo, setUndo] = useState<Item | null>(null);
@@ -100,6 +103,20 @@ export function ListPage() {
                         />
                     ))}
                 </ul>
+            )}
+            {suggestions.length > 0 && (
+                <section aria-labelledby="suggested-heading" className="mt-6">
+                    <h2 id="suggested-heading" className="mb-3 text-heading">Suggested</h2>
+                    <ul className="flex flex-col gap-3">
+                        {suggestions.map(item => (
+                            <li key={item.id}>
+                                <Link to={`/items/${item.id}`} className="flex min-h-18 items-center rounded-md bg-surface p-3 text-item shadow-sticker">
+                                    {item.name}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
             )}
             {(undo || refusal) && (
                 <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem+var(--spacing-fab)+0.75rem)] left-[max(1rem,calc(50%-280px+1rem))] z-10 flex flex-col gap-2">

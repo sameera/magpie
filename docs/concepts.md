@@ -4,7 +4,7 @@
 
 # Concept Atlas
 
-Orientation map of the concept store — 15 active concepts. Each links to its full page
+Orientation map of the concept store — 16 active concepts. Each links to its full page
 (behavior, invariants, decision history); code locations live in the matching
 `.nexus/anchors/<slug>.md` sidecar.
 
@@ -12,12 +12,13 @@ Orientation map of the concept store — 15 active concepts. Each links to its f
 
 - [Household Data Reads](../.nexus/concepts/household-data-reads.md) — Each page reads real data from the signed-in member's household, and reads only the minimum it shows.
 - [Page Paths](../.nexus/concepts/page-paths.md) — Every page in Magpie has its own path, and the path also names the item or store the page shows.
+- [Item Page](../.nexus/concepts/item-page.md) — One Item page serves both a new item and an existing item, each at its own path.
+- [Back Navigation](../.nexus/concepts/back-navigation.md) — Going back with the phone's or browser's back action follows the order the user moved in.
 - [Household Data Writes](../.nexus/concepts/household-data-writes.md) — The Add store sheet, the Item page and the List page's add drawer save household data.
 - [Household Membership](../.nexus/concepts/household-membership.md) — A membership record ties one signed-in account to one household.
-- [Item Page](../.nexus/concepts/item-page.md) — One Item page serves both a new item and an existing item, each at its own path.
-- [Trip Store](../.nexus/concepts/trip-store.md) — Shop starts at the store choice, and the chosen store is part of the in-store view's path.
-- [Back Navigation](../.nexus/concepts/back-navigation.md) — Going back with the phone's or browser's back action follows the order the user moved in.
+- [Inventory Page](../.nexus/concepts/inventory-page.md) — The Inventory page lists every item the household has recorded, by name, whether or not the item is on the list.
 - [Page Frames](../.nexus/concepts/page-frames.md) — Pages come in two frames.
+- [Trip Store](../.nexus/concepts/trip-store.md) — Shop starts at the store choice, and the chosen store is part of the in-store view's path.
 - [Sign-in Gate](../.nexus/concepts/sign-in-gate.md) — Every page except Sign-in first checks that the user is signed in and is a member of the household.
 - [Add Items Drawer](../.nexus/concepts/add-items-drawer.md) — The Add item button on the List page opens a drawer from the bottom of the screen.
 - [Add Store Sheet](../.nexus/concepts/add-store-sheet.md) — The Add store sheet opens over the Stores page and saves a new store with a name and a chain.

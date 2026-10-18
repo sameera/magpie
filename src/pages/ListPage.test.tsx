@@ -794,6 +794,49 @@ describe("Dragging an item to a category", () => {
         expect(tray()!.className).toContain("fixed");
     });
 
+    it("highlights the drop place under the finger and clears it when the finger leaves", () => {
+        setup();
+        hold(rowOf("Milk"));
+        const move = (element: Element | null) => {
+            releaseOver(element);
+            fireEvent.pointerMove(rowOf("Milk"), { ...point, clientX: 160, clientY: 600 });
+        };
+        move(within(target("Produce")).getByText("Produce"));
+        expect(target("Produce")).toHaveAttribute("data-drop-active", "true");
+        expect(target("Bakery")).not.toHaveAttribute("data-drop-active");
+        move(target("Bakery"));
+        expect(target("Produce")).not.toHaveAttribute("data-drop-active");
+        expect(target("Bakery")).toHaveAttribute("data-drop-active", "true");
+        move(target("Dairy"));
+        expect(target("Dairy")).not.toHaveAttribute("data-drop-active");
+        move(document.body);
+        expect(target("Bakery")).not.toHaveAttribute("data-drop-active");
+    });
+
+    it("highlights the list heading of the category under the finger", () => {
+        setup();
+        hold(rowOf("Milk"));
+        const heading = (name: string) => screen.getByRole("heading", { name, level: 2 });
+        releaseOver(target("Bakery"));
+        fireEvent.pointerMove(rowOf("Milk"), { ...point, clientX: 160, clientY: 600 });
+        expect(heading("Bakery")).toHaveAttribute("data-drop-active", "true");
+        expect(heading("Dairy")).not.toHaveAttribute("data-drop-active");
+        releaseOver(document.body);
+        fireEvent.pointerMove(rowOf("Milk"), { ...point, clientX: 160, clientY: 610 });
+        expect(heading("Bakery")).not.toHaveAttribute("data-drop-active");
+    });
+
+    it("highlights a list heading while the finger is over its group, and drops there", () => {
+        const { services } = setup();
+        hold(rowOf("Milk"));
+        releaseOver(rowOf("Bread"));
+        fireEvent.pointerMove(rowOf("Milk"), { ...point, clientX: 160, clientY: 300 });
+        expect(screen.getByRole("heading", { name: "Bakery", level: 2 })).toHaveAttribute("data-drop-active", "true");
+        expect(target("Bakery")).toHaveAttribute("data-drop-active", "true");
+        fireEvent.pointerUp(rowOf("Milk"), { ...point, clientX: 160, clientY: 300 });
+        expect(items(services).find((item) => item.name === "Milk")!.category).toBe("bakery");
+    });
+
     it("marks the item's own category as current, taking no drop", () => {
         setup();
         hold(rowOf("Milk"));
@@ -840,7 +883,7 @@ describe("Dragging an item to a category", () => {
         const { services } = setup();
         const setCategory = vi.spyOn(services.data, "setCategory");
         hold(rowOf("Milk"));
-        dropOn(rowOf("Milk"), rowOf("Bread"));
+        dropOn(rowOf("Milk"), rowOf("Milk"));
         hold(rowOf("Milk"));
         dropOn(rowOf("Milk"), target("Dairy"));
         hold(rowOf("Milk"));

@@ -32,6 +32,14 @@ interface Drag {
     item: Item;
     x: number;
     y: number;
+    // The drop place under the finger: a category, null for No category, undefined for none.
+    over?: ZoneKind | null;
+}
+
+// The drop place at a point, ignoring the item's own category, which takes no drop.
+function dropPlaceAt(x: number, y: number): ZoneKind | null | undefined {
+    const place = document.elementFromPoint(x, y)?.closest("[data-drop-category]");
+    return place ? ((place.getAttribute("data-drop-category") || null) as ZoneKind | null) : undefined;
 }
 
 export function ListPage() {
@@ -134,8 +142,17 @@ export function ListPage() {
                     {listGroups(list.value).map(({ category, items }) => {
                         const headingId = `group-${category ?? "none"}`;
                         return (
-                            <li key={headingId}>
-                                <h2 id={headingId} className="mb-3 text-heading">{categoryName(category)}</h2>
+                            <li key={headingId} data-drop-category={dragging && category === dragging.item.category ? undefined : (category ?? "")}>
+                                <h2
+                                    id={headingId}
+                                    data-drop-active={dragging && category !== dragging.item.category && dragging.over !== undefined && category === dragging.over ? "true" : undefined}
+                                    className={`mb-3 -ml-2 w-fit rounded-sm px-2 text-heading ${
+                                        dragging && category !== dragging.item.category && dragging.over !== undefined && category === dragging.over
+                                            ? "bg-focus text-on-sheen ring-2 ring-focus"
+                                            : ""
+                                    }`}
+                                >{categoryName(category)}
+                                </h2>
                                 <ul aria-labelledby={headingId} className="flex flex-col gap-3">
                                     {items.map((item) => (
                                         <ListRow
@@ -146,7 +163,7 @@ export function ListPage() {
                                                 setMenuFor(null);
                                                 setDrag({ item, x, y });
                                             }}
-                                            onDragMove={(x, y) => setDrag((d) => d && { ...d, x, y })}
+                                            onDragMove={(x, y) => setDrag((d) => d && { ...d, x, y, over: dropPlaceAt(x, y) })}
                                             onDrop={(x, y) => drop(item, x, y)}
                                             onDragCancel={() => setDrag(null)}
                                             menuOpen={menuFor === item.id}
@@ -177,7 +194,7 @@ export function ListPage() {
                     </ul>
                 </section>
             )}
-            {dragging && <DropTray item={dragging.item} />}
+            {dragging && <DropTray item={dragging.item} over={dragging.over} />}
             {dragging && (
                 <div
                     aria-hidden="true"
@@ -383,7 +400,7 @@ function ListRow({
 // The drop places shown while a drag is active: one per category, fixed in the
 // bottom third of the screen where a thumb reaches. The item's own category is
 // marked current and takes no drop.
-function DropTray({ item }: { item: Item }) {
+function DropTray({ item, over }: { item: Item; over?: ZoneKind | null }) {
     return (
         <div
             role="group"
@@ -392,15 +409,19 @@ function DropTray({ item }: { item: Item }) {
         >
             {[...zoneKinds, null].map((category) => {
                 const current = category === item.category;
+                const active = !current && over !== undefined && category === over;
                 return (
                     <div
                         key={category ?? "none"}
                         data-drop-target
                         data-drop-category={current ? undefined : (category ?? "")}
+                        data-drop-active={active ? "true" : undefined}
                         aria-current={current ? "true" : undefined}
                         className={`flex min-h-tap flex-col items-center justify-center rounded-md border-2 px-1 text-center text-caption ${
                             category ? zoneSwatch[category] : "bg-surface-sunken"
-                        } ${current ? "border-dashed border-line opacity-60" : "border-line-strong"}`}
+                        } ${current ? "border-dashed border-line opacity-60" : "border-line-strong"} ${
+                            active ? "scale-105 border-focus font-semibold ring-2 ring-focus" : ""
+                        }`}
                     >
                         <span>{categoryName(category)}</span>
                         {current && <span className="text-ink-muted">Current</span>}

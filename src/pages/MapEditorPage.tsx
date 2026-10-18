@@ -6,6 +6,7 @@ import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useFileUrl, useStore } from "../data/hooks";
 import type { Store, StoreMapData, Zone, ZoneKind } from "../data/model";
+import { ZoneEditingLayer } from "./ZoneEditingLayer";
 
 type Mode = "start" | "sketch" | "label";
 
@@ -48,6 +49,7 @@ export function MapEditorPage() {
 function Editor({ store }: { store: Store }) {
     const [mode, setMode] = useState<Mode>(store.map ? "label" : "start");
     const [map, setMap] = useState<StoreMapData>(store.map ?? emptyMap);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
     const [scanFileUrl, setScanFileUrl] = useState<string | null>(null);
     const savedScanUrl = useFileUrl(store.map?.scanPath ?? null);
     const scanUrl = scanFileUrl ?? savedScanUrl;
@@ -117,6 +119,8 @@ function Editor({ store }: { store: Store }) {
                 <div className="relative min-h-0 flex-1 rounded-lg bg-surface-sunken">
                     <div ref={canvas} className="absolute inset-6 [&>svg]:h-full [&>svg]:w-full">
                         <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
+                        <ZoneEditingLayer map={map} selectedId={selectedId} onSelect={setSelectedId}
+                            onChange={changed => setMap(current => ({ ...current, zones: current.zones.map(zone => zone.id === changed.id ? changed : zone) }))} />
                     </div>
                 </div>
             )}

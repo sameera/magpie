@@ -29,6 +29,37 @@ async function open(kind: ZoneKind | null = "bakery") {
 }
 
 describe("zone gestures in the editor", () => {
+    it.each(["produce", "dairy", "bakery", "meat", "frozen", "pantry", null] as const)("confirms removal of %s zones from drawing and labels, clearing selection", async kind => {
+        const { services, original } = await open(kind);
+        const target = screen.getByRole("button", { name: "Move Bakery" });
+        pointer(target, "Down", 20, 20); pointer(target, "Up", 20, 20);
+        await userEvent.click(screen.getByRole("button", { name: "Remove Bakery" }));
+        const dialog = screen.getByRole("dialog", { name: "Remove Bakery?" });
+        expect(rect()).toBeInTheDocument();
+        await userEvent.click(within(dialog).getByRole("button", { name: "Remove zone" }));
+        expect(screen.queryByRole("button", { name: "Move Bakery" })).toBeNull();
+        expect(within(screen.getByRole("region", { name: "Zone labels" })).queryByDisplayValue("Bakery")).toBeNull();
+        expect(screen.queryByRole("button", { name: /Resize/ })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Remove Bakery" })).toBeNull();
+        expect(rect("z-dairy")).toHaveAttribute("x", "50");
+        expect(rect("z-dairy")).toHaveAttribute("width", "50");
+        expect(services.households.get("h1")!.stores[0]).toEqual(original);
+    });
+    it("cancels removal without changing the map or selection, including in sketch mode", async () => {
+        await open();
+        await userEvent.click(screen.getByRole("button", { name: "Back to sketch" }));
+        const target = screen.getByRole("button", { name: "Move Bakery" });
+        pointer(target, "Down", 20, 20); pointer(target, "Up", 20, 20);
+        const before = screen.getByRole("img", { name: "Map of Costco Kirkland" }).outerHTML;
+        await userEvent.click(screen.getByRole("button", { name: "Remove Bakery" }));
+        await userEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+        expect(screen.getByRole("img", { name: "Map of Costco Kirkland" }).outerHTML).toBe(before);
+        expect(target).toHaveAttribute("aria-pressed", "true");
+        expect(screen.queryByRole("dialog")).toBeNull();
+        await userEvent.click(screen.getByRole("button", { name: "Remove Bakery" }));
+        await userEvent.keyboard("{Escape}");
+        expect(screen.queryByRole("dialog")).toBeNull();
+    });
     it("shows four handles only for the selection, and resizing keeps the opposite edge", async () => {
         await open();
         expect(screen.queryByRole("button", { name: /Resize/ })).toBeNull();

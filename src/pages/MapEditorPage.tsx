@@ -1,18 +1,18 @@
-import { Camera, Pencil, Plus, Tag, X } from "lucide-react";
+import { Camera, Pencil, Plus, Tag, Trash2, X } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { useParams } from "react-router";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useFileUrl, useStore } from "../data/hooks";
-import type { Store, StoreMapData, Zone, ZoneKind } from "../data/model";
+import type { Store, StoreMapData } from "../data/model";
 import { ZoneEditingLayer } from "./ZoneEditingLayer";
-import { MIN_ZONE_SIZE } from "./zoneGeometry";
+import { addDraftZone, removeDraftZone } from "./zoneDraft";
+import { RemoveZoneSheet } from "./RemoveZoneSheet";
 
 type Mode = "start" | "sketch" | "label";
 
 const emptyMap: StoreMapData = { width: 100, height: 60, zones: [], scanPath: null };
-const kinds: ZoneKind[] = ["produce", "dairy", "bakery", "meat", "frozen", "pantry"];
 
 // Full-screen: no main navigation. Leaving goes to the same store's Store page.
 export function MapEditorPage() {
@@ -51,6 +51,8 @@ function Editor({ store }: { store: Store }) {
     const [mode, setMode] = useState<Mode>(store.map ? "label" : "start");
     const [map, setMap] = useState<StoreMapData>(store.map ?? emptyMap);
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [confirmRemoval, setConfirmRemoval] = useState(false);
+    const selected = map.zones.find(zone => zone.id === selectedId);
     const [scanFileUrl, setScanFileUrl] = useState<string | null>(null);
     const savedScanUrl = useFileUrl(store.map?.scanPath ?? null);
     const scanUrl = scanFileUrl ?? savedScanUrl;
@@ -90,34 +92,29 @@ function Editor({ store }: { store: Store }) {
         }
     };
 
-    const addZone = () => {
-        const index = map.zones.length;
-        const zone: Zone = {
-            id: `draft-${index}`,
-            label: `Zone ${index + 1}`,
-            kind: kinds[index % kinds.length],
-            order: index,
-            x: 4 + (index % 2) * 48,
-            y: 4 + Math.floor(index / 2) * 18,
-            width: 44,
-            height: MIN_ZONE_SIZE,
-        };
-        setMap({ ...map, height: Math.max(map.height, zone.y + zone.height + 4), zones: [...map.zones, zone] });
-    };
+    const addZone = () => setMap(addDraftZone);
 
     const relabel = (id: string, label: string) =>
         setMap({ ...map, zones: map.zones.map((zone) => (zone.id === id ? { ...zone, label } : zone)) });
 
     const toolClass: string = "inline-flex h-tap flex-1 items-center justify-center gap-2 rounded-md border-2 border-line-strong bg-surface text-button";
+    const removeControl = selected && (
+        <button type="button" aria-label={`Remove ${selected.label}`} title={`Remove ${selected.label}`}
+            className="inline-flex h-tap min-w-0 flex-1 items-center justify-center gap-2 rounded-md border-2 border-danger bg-surface px-2 text-button text-danger"
+            onClick={() => setConfirmRemoval(true)}>
+            <Trash2 aria-hidden="true" className="shrink-0" />
+            <span className="truncate">Remove {selected.label}</span>
+        </button>
+    );
 
     return (
-        <div className="mx-auto flex min-h-0 w-full max-w-[560px] flex-1 flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex min-h-0 w-full max-w-[560px] flex-1 flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [@media(max-height:480px)]:gap-1">
             {mode === "start" ? (
                 <p className="rounded-lg bg-surface-sunken p-4 text-body text-ink-muted">
                     This store has no map yet. Sketch it, or start from a photo of the store's map.
                 </p>
             ) : (
-                <div className="relative min-h-0 flex-1 rounded-lg bg-surface-sunken">
+                <div className="relative min-h-[80px] flex-1 rounded-lg bg-surface-sunken">
                     <div ref={canvas} className="absolute inset-8 [&>svg]:h-full [&>svg]:w-full">
                         <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
                         <ZoneEditingLayer map={map} selectedId={selectedId} onSelect={setSelectedId}
@@ -146,13 +143,14 @@ function Editor({ store }: { store: Store }) {
                         <Tag aria-hidden="true" />
                         Label zones
                     </button>
+                    {removeControl}
                 </div>
             )}
             {mode === "label" && (
-                <section aria-label="Zone labels" className="flex max-h-[25dvh] shrink-0 flex-col gap-3 overflow-y-auto overscroll-contain">
+                <section aria-label="Zone labels" className="flex min-h-0 max-h-[25dvh] flex-col gap-3 overflow-y-auto overscroll-contain">
                     {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to label it.</p>}
                     {map.zones.map((zone, index) => (
-                        <label key={zone.id} className="flex flex-col gap-1 text-caption text-ink-muted">
+                        <label key={zone.id} className="flex shrink-0 flex-col gap-1 text-caption text-ink-muted">
                             {`Zone ${index + 1}`}
                             <input
                                 className="h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-body text-ink"
@@ -164,12 +162,22 @@ function Editor({ store }: { store: Store }) {
                 </section>
             )}
             {mode === "label" && (
-                    <button type="button" className={`${toolClass} shrink-0 flex-none`} onClick={() => setMode("sketch")}>
+                <div className="flex shrink-0 gap-2">
+                    <button type="button" className={toolClass} onClick={() => setMode("sketch")}>
                         <Pencil aria-hidden="true" />
                         Back to sketch
                     </button>
+                    {removeControl}
+                </div>
             )}
             <p className="shrink-0 text-caption text-ink-muted">Saving maps is coming soon.</p>
+            {confirmRemoval && selected && <RemoveZoneSheet label={selected.label}
+                onCancel={() => setConfirmRemoval(false)}
+                onConfirm={() => {
+                    setMap(current => removeDraftZone(current, selected.id));
+                    setSelectedId(null);
+                    setConfirmRemoval(false);
+                }} />}
         </div>
     );
 }

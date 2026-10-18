@@ -96,6 +96,6 @@ describe("Inventory", () => {
         await user.type(name, "Almond milk");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/inventory");
-        expect(screen.getAllByRole("listitem").map(row => row.textContent)).toEqual(["Almond milk", "Bread"]);
+        expect((await screen.findAllByRole("listitem")).map(row => row.textContent)).toEqual(["Almond milk", "Bread"]);
     });
 });

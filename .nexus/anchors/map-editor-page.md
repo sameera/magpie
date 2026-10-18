@@ -1,6 +1,6 @@
 ---
 concept: map-editor-page
-source_sha: 60bb1fc1b546b2d77b89853834da5e6f3df2ccb0
+source_sha: 3f2799dd3d40d182e8e41a184258aa0848777bed
 generated: 2026-10-18
 ---
 
@@ -9,8 +9,8 @@ generated: 2026-10-18
 
 # Code Anchors: Map Editor Page
 
-- `src/pages/MapEditorPage.tsx` — the full-screen editor: sketch, scanned map and zone labels (#69)
+- `src/pages/MapEditorPage.tsx` — the full-screen editor: opens on the canvas with the sketch, scanned-map and labelling tools
 - `src/app/routes.tsx` — loads the editor's code on first use, outside the framed pages
 - `src/pages/StorePage.tsx` — the way in from a Store page
 - `vite.config.ts` — caches every bundle, so the editor opens offline once cached
-- `src/pages/MapEditorPage.test.tsx` — tests opening, the three starts and leaving to the Store page
+- `src/pages/MapEditorPage.test.tsx` — tests opening, the three tools and leaving to the Store page

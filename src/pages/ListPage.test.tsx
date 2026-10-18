@@ -747,3 +747,207 @@ describe("Recording a purchase from a row", () => {
         expect(stored(services, "i1").quantityRemaining).toBe(0);
     });
 });
+
+describe("Dragging an item to a category", () => {
+    afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+    const items = (services: FakeServices) => services.households.get("h1")!.items;
+    const rowOf = (name: string) => screen.getByText(name, { selector: "li span" }).closest("li")!;
+    const tray = () => screen.queryByRole("group", { name: "Move to a category" });
+    const target = (name: string) => within(tray()!).getByText(name).closest("[data-drop-target]") as HTMLElement;
+    const point = { pointerId: 1, pointerType: "touch", isPrimary: true };
+
+    // Release lands on whatever element is under the finger.
+    function releaseOver(element: Element | null) {
+        Object.defineProperty(document, "elementFromPoint", { value: vi.fn(() => element), configurable: true });
+    }
+
+    function setup(services = new FakeServices()) {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+            x: 0, y: 0, left: 0, top: 0, right: 300, bottom: 72, width: 300, height: 72, toJSON: () => ({}),
+        });
+        return renderApp(["/"], services);
+    }
+
+    // Holds a finger still on the row until a drag starts.
+    function hold(row: HTMLElement) {
+        fireEvent.pointerDown(row, { ...point, clientX: 150, clientY: 40 });
+        act(() => { vi.advanceTimersByTime(400); });
+    }
+
+    function dropOn(row: HTMLElement, element: Element | null) {
+        fireEvent.pointerMove(row, { ...point, clientX: 160, clientY: 600 });
+        releaseOver(element);
+        fireEvent.pointerUp(row, { ...point, clientX: 160, clientY: 600 });
+    }
+
+    it("starts a drag after a still hold and shows all seven categories as drop places", () => {
+        setup();
+        fireEvent.pointerDown(rowOf("Milk"), { ...point, clientX: 150, clientY: 40 });
+        act(() => { vi.advanceTimersByTime(300); });
+        expect(tray()).toBeNull();
+        act(() => { vi.advanceTimersByTime(100); });
+        const places = within(tray()!).getAllByText(/./, { selector: "[data-drop-target] > span:first-child" }).map((label) => label.textContent);
+        expect(places).toEqual(["Produce", "Dairy", "Bakery", "Meat", "Frozen", "Pantry", "No category"]);
+        for (const name of places) expect(target(name!).className).toContain("min-h-tap");
+        expect(tray()!.className).toContain("fixed");
+    });
+
+    it("marks the item's own category as current, taking no drop", () => {
+        setup();
+        hold(rowOf("Milk"));
+        expect(target("Dairy")).toHaveAttribute("aria-current", "true");
+        expect(target("Dairy")).not.toHaveAttribute("data-drop-category");
+        expect(target("Produce")).toHaveAttribute("data-drop-category", "produce");
+    });
+
+    it("hides the Add button while dragging and brings it back after", () => {
+        const { services } = setup();
+        hold(rowOf("Milk"));
+        expect(screen.queryByRole("button", { name: "Add item" })).toBeNull();
+        dropOn(rowOf("Milk"), document.body);
+        expect(tray()).toBeNull();
+        expect(screen.getByRole("button", { name: "Add item" })).toBeInTheDocument();
+        expect(items(services).find((item) => item.id === "i1")!.category).toBe("dairy");
+    });
+
+    it("assigns the dropped category with a category-only write and moves the row under its heading", () => {
+        const { services } = setup();
+        const before = { ...items(services).find((item) => item.id === "i1")!, quantityRemaining: 3, note: "Whole", photoPath: "p.jpg", places: { s1: "z1" } };
+        items(services)[0] = before;
+        const setCategory = vi.spyOn(services.data, "setCategory");
+        const updateItem = vi.spyOn(services.data, "updateItem");
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), target("Produce"));
+        expect(setCategory).toHaveBeenCalledWith("h1", "i1", "produce");
+        expect(updateItem).not.toHaveBeenCalled();
+        expect(items(services).find((item) => item.id === "i1")).toEqual({ ...before, category: "produce" });
+        expect(within(screen.getByRole("list", { name: "Produce" })).getByText("Milk")).toBeInTheDocument();
+        expect(screen.queryByRole("list", { name: "Dairy" })).toBeNull();
+        expect(tray()).toBeNull();
+    });
+
+    it("clears the category when dropped on No category", () => {
+        const { services } = setup();
+        hold(rowOf("Bread"));
+        dropOn(rowOf("Bread"), within(target("No category")).getByText("No category"));
+        expect(items(services).find((item) => item.id === "i2")!.category).toBeNull();
+        expect(within(screen.getByRole("list", { name: "No category" })).getByText("Bread")).toBeInTheDocument();
+    });
+
+    it("writes nothing for a release outside the drop places or on the item's own category", () => {
+        const { services } = setup();
+        const setCategory = vi.spyOn(services.data, "setCategory");
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), rowOf("Bread"));
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), target("Dairy"));
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), null);
+        expect(setCategory).not.toHaveBeenCalled();
+        expect(within(screen.getByRole("list", { name: "Dairy" })).getByText("Milk")).toBeInTheDocument();
+    });
+
+    it("writes nothing when the touch is cancelled during a drag", () => {
+        const { services } = setup();
+        const setCategory = vi.spyOn(services.data, "setCategory");
+        hold(rowOf("Milk"));
+        fireEvent.pointerCancel(rowOf("Milk"), point);
+        expect(tray()).toBeNull();
+        expect(setCategory).not.toHaveBeenCalled();
+    });
+
+    it("removes the row for a leftward swipe that moves before the hold time, and never starts a drag", () => {
+        const { services } = setup();
+        const row = rowOf("Milk");
+        fireEvent.pointerDown(row, { ...point, clientX: 250, clientY: 40 });
+        act(() => { vi.advanceTimersByTime(100); });
+        fireEvent.pointerMove(row, { ...point, clientX: 130, clientY: 40 });
+        act(() => { vi.advanceTimersByTime(500); });
+        expect(tray()).toBeNull();
+        fireEvent.pointerUp(row, { ...point, clientX: 130, clientY: 40 });
+        expect(items(services).find((item) => item.id === "i1")!.onList).toBe(false);
+        expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    });
+
+    it("never starts a drag from a vertical move before the hold time", () => {
+        setup();
+        const row = rowOf("Milk");
+        fireEvent.pointerDown(row, { ...point, clientX: 150, clientY: 40 });
+        fireEvent.pointerMove(row, { ...point, clientX: 150, clientY: 90 });
+        act(() => { vi.advanceTimersByTime(500); });
+        expect(tray()).toBeNull();
+        fireEvent.pointerUp(row, { ...point, clientX: 150, clientY: 90 });
+    });
+
+    it("does not open the item page from the click that ends a drag, and a tap still does", async () => {
+        const { router } = setup();
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), document.body);
+        const link = screen.getByRole("link", { name: /Milk/ });
+        fireEvent.click(link);
+        expect(router.state.location.pathname).toBe("/");
+        fireEvent.click(link);
+        expect(router.state.location.pathname).toBe("/items/i1");
+    });
+
+    it("blocks page scrolling only while a drag is active", () => {
+        setup();
+        const row = rowOf("Milk");
+        fireEvent.pointerDown(row, { ...point, clientX: 150, clientY: 40 });
+        expect(fireEvent.touchMove(row)).toBe(true);
+        act(() => { vi.advanceTimersByTime(400); });
+        expect(fireEvent.touchMove(row)).toBe(false);
+        dropOn(row, null);
+        expect(fireEvent.touchMove(row)).toBe(true);
+    });
+
+    it("switches off the phone's long-press menu, link preview and text selection on rows", () => {
+        setup();
+        const row = rowOf("Milk");
+        expect(fireEvent.contextMenu(row)).toBe(false);
+        expect(row.className).toContain("select-none");
+        expect(row.className).toContain("[-webkit-touch-callout:none]");
+        expect(within(row).getByRole("link")).toHaveAttribute("draggable", "false");
+    });
+
+    it("moves the row at once while the server never answers, with no message", () => {
+        const { services } = setup();
+        services.saveBehavior = "hang";
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), target("Frozen"));
+        expect(within(screen.getByRole("list", { name: "Frozen" })).getByText("Milk")).toBeInTheDocument();
+        expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("keeps the row under its old heading and names the item and category when the server refuses", async () => {
+        const { services } = setup();
+        services.saveBehavior = "refuse";
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), target("Frozen"));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be moved to Frozen. It is still under Dairy.");
+        expect(within(screen.getByRole("list", { name: "Dairy" })).getByText("Milk")).toBeInTheDocument();
+    });
+
+    it("shows nothing when the server refuses but the item already has the dropped category", async () => {
+        const { services } = setup();
+        vi.spyOn(services.data, "setCategory").mockImplementation(async () => {
+            items(services).find((item) => item.id === "i1")!.category = "frozen";
+            throw new Error("permission-denied");
+        });
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), target("Frozen"));
+        await act(async () => { await Promise.resolve(); });
+        expect(screen.queryByRole("alert")).toBeNull();
+    });
+
+    it("shows the dropped category on the item page", async () => {
+        setup();
+        hold(rowOf("Milk"));
+        dropOn(rowOf("Milk"), target("Meat"));
+        vi.useRealTimers();
+        await userEvent.setup().click(screen.getByRole("link", { name: /Milk/ }));
+        expect(await screen.findByLabelText("Category")).toHaveValue("meat");
+    });
+});

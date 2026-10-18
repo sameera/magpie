@@ -171,6 +171,12 @@ export class FakeServices implements Services {
                 household.items = household.items.map(existing => existing.id === itemId ? { ...existing, onList } : existing);
                 this.itemsChanged(householdId);
             }),
+        setCategory: (householdId, itemId, category) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.map(existing => existing.id === itemId ? { ...existing, category } : existing);
+                this.itemsChanged(householdId);
+            }),
         // Like the rules, refuses a purchase of an item that is not on the list.
         recordPurchase: (householdId, itemId, amount) => {
             if (!this.household(householdId).items.some(existing => existing.id === itemId && existing.onList)) {

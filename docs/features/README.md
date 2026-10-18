@@ -7,3 +7,4 @@
 | [List Item Actions](list-item-actions/README.md) | Remove shopping-list items by swipe or item overlay, or record purchases to add the list quantity to available inventory. |
 | [Suggested Items](suggested-items/README.md) | Keep a record of how often each item is purchased, and suggest the most frequent off-list items under the shopping list. |
 | [Store Map Editor](store-map-editor/README.md) | Shape a store map's zones directly on a full-height canvas: move, resize and remove them. |
+| [Item Categories](item-categories/README.md) | Group shopping-list items by category, and change an item's category by dragging it. |

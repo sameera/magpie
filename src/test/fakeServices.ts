@@ -95,7 +95,8 @@ export class FakeServices implements Services {
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
     private onList(householdId: string): Item[] {
-        return this.household(householdId).items.filter((item) => item.onList);
+        // Sorted by name, as the Firestore list read is.
+        return this.allItems(householdId).filter((item) => item.onList);
     }
 
     private allItems(householdId: string): Item[] {

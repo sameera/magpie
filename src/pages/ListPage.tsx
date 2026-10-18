@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useHouseholdId, useServices } from "../app/session";
+import { categoryName, listGroups } from "../data/categoryGroups";
 import { useBoughtItems, useList } from "../data/hooks";
 import { suggestedItems } from "../data/suggestions";
 import { readItemNow } from "../data/itemNow";
@@ -89,19 +90,29 @@ export function ListPage() {
                 <p className="text-body text-ink-muted">Nothing on the list. Tap + to add the first thing.</p>
             )}
             {list.status === "ready" && list.value.length > 0 && (
-                <ul aria-label="Shopping list" className="flex flex-col gap-3">
-                    {list.value.map((item) => (
-                        <ListRow
-                            key={item.id}
-                            item={item}
-                            menuOpen={menuFor === item.id}
-                            onToggleMenu={() => setMenuFor(menuFor === item.id ? null : item.id)}
-                            onCloseMenu={() => setMenuFor(null)}
-                            onRemove={() => chooseRemove(item)}
-                            onPurchase={(amount) => purchase(item, amount)}
-                            onSwipe={() => swipeRemove(item)}
-                        />
-                    ))}
+                <ul aria-label="Shopping list" className="flex flex-col gap-6">
+                    {listGroups(list.value).map(({ category, items }) => {
+                        const headingId = `group-${category ?? "none"}`;
+                        return (
+                            <li key={headingId}>
+                                <h2 id={headingId} className="mb-3 text-heading">{categoryName(category)}</h2>
+                                <ul aria-labelledby={headingId} className="flex flex-col gap-3">
+                                    {items.map((item) => (
+                                        <ListRow
+                                            key={item.id}
+                                            item={item}
+                                            menuOpen={menuFor === item.id}
+                                            onToggleMenu={() => setMenuFor(menuFor === item.id ? null : item.id)}
+                                            onCloseMenu={() => setMenuFor(null)}
+                                            onRemove={() => chooseRemove(item)}
+                                            onPurchase={(amount) => purchase(item, amount)}
+                                            onSwipe={() => swipeRemove(item)}
+                                        />
+                                    ))}
+                                </ul>
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
             {suggestions.length > 0 && (

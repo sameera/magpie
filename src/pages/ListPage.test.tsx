@@ -43,6 +43,58 @@ describe("List page", () => {
     });
 
 
+    describe("grouped by category", () => {
+        const shoppingList = () => within(screen.getByRole("list", { name: "Shopping list" }));
+        const headings = () => shoppingList().getAllByRole("heading").map((h) => h.textContent);
+        const group = (name: string) => within(screen.getByRole("list", { name }));
+
+        function household(services: FakeServices) {
+            services.households.get("h1")!.items.push(
+                testItem({ id: "i3", name: "Apples", category: "produce" }),
+                testItem({ id: "i4", name: "Candles" }),
+                testItem({ id: "i5", name: "Butter", category: "dairy" }),
+                testItem({ id: "i6", name: "Peas", category: "frozen", onList: false }),
+            );
+            return services;
+        }
+
+        it("puts each item under its category's heading, in the fixed order, with No category last", () => {
+            renderApp(["/"], household(new FakeServices()));
+            expect(headings()).toEqual(["Produce", "Dairy", "Bakery", "No category"]);
+            expect(group("Produce").getByText("Apples")).toBeInTheDocument();
+            expect(group("Dairy").getAllByRole("link").map((link) => link.textContent)).toEqual([
+                expect.stringContaining("Butter"),
+                expect.stringContaining("Milk"),
+            ]);
+            expect(group("Bakery").getByText("Bread")).toBeInTheDocument();
+            expect(group("No category").getByText("Candles")).toBeInTheDocument();
+        });
+
+        it("shows no heading for a category with no items on the list", () => {
+            renderApp(["/"], household(new FakeServices()));
+            for (const empty of ["Meat", "Frozen", "Pantry"]) {
+                expect(shoppingList().queryByRole("heading", { name: empty })).toBeNull();
+            }
+            expect(screen.queryByText("Peas")).toBeNull();
+        });
+
+        it("shows no No category heading when every item has a category", () => {
+            renderApp(["/"]);
+            expect(headings()).toEqual(["Dairy", "Bakery"]);
+        });
+
+        it("keeps suggested items below the list, not under a category heading", () => {
+            const services = new FakeServices();
+            services.households.get("h1")!.items.push(
+                testItem({ id: "i7", name: "Jam", category: "pantry", onList: false, purchaseCount: 1 }),
+            );
+            renderApp(["/"], services);
+            expect(screen.getByRole("heading", { name: "Suggested" }).closest("section")).toHaveTextContent("Jam");
+            expect(shoppingList().queryByText("Jam")).toBeNull();
+            expect(headings()).toEqual(["Dairy", "Bakery"]);
+        });
+    });
+
     it("opens the Item page for the chosen item", async () => {
         const { router } = renderApp(["/"]);
         await userEvent.setup().click(screen.getByRole("link", { name: /Milk/ }));
@@ -460,6 +512,15 @@ describe("List row actions", () => {
         expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Qty 2")).toBeInTheDocument();
         expect(items(services).find((item) => item.id === "i1")).toMatchObject({ onList: true, quantityNeeded: 2, quantityRemaining: 0 });
         expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    });
+
+    it("puts an undone item back under its category's heading", async () => {
+        rowWidth();
+        renderApp(["/"]);
+        drag(rowOf("Milk"), -150);
+        expect(screen.queryByRole("list", { name: "Dairy" })).toBeNull();
+        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
+        expect(within(screen.getByRole("list", { name: "Dairy" })).getByText("Milk")).toBeInTheDocument();
     });
 
     it("takes the Undo away after 5 seconds", async () => {

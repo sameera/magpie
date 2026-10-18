@@ -29,6 +29,32 @@ async function open(kind: ZoneKind | null = "bakery") {
 }
 
 describe("zone gestures in the editor", () => {
+    it("shows four handles only for the selection, and resizing keeps the opposite edge", async () => {
+        await open();
+        expect(screen.queryByRole("button", { name: /Resize/ })).toBeNull();
+        const target = screen.getByRole("button", { name: "Move Bakery" });
+        pointer(target, "Down", 20, 20); pointer(target, "Up", 20, 20);
+        expect(screen.getAllByRole("button", { name: /Resize Bakery/ })).toHaveLength(4);
+        const right = screen.getByRole("button", { name: "Resize Bakery right" });
+        pointer(right, "Down", 100, 30); pointer(right, "Move", 120, 90); pointer(right, "Up", 120, 90);
+        expect(rect()).toHaveAttribute("width", "60");
+        expect(rect()).toHaveAttribute("x", "0");
+        expect(rect()).toHaveAttribute("height", "30");
+        const bottom = screen.getByRole("button", { name: "Resize Bakery bottom" });
+        pointer(bottom, "Down", 60, 60); pointer(bottom, "Move", 100, 20);
+        expect(rect()).toHaveAttribute("height", "15");
+        expect(rect()).toHaveAttribute("width", "60");
+        pointer(bottom, "Cancel", 100, 20);
+        expect(rect()).toHaveAttribute("height", "30");
+    });
+    it("creates zones at least 15 map units in both dimensions", async () => {
+        await open();
+        await userEvent.click(screen.getByRole("button", { name: "Back to sketch" }));
+        await userEvent.click(screen.getByRole("button", { name: "Add zone" }));
+        const added = screen.getByRole("img", { name: "Map of Costco Kirkland" }).querySelectorAll("[data-zone] rect")[2];
+        expect(Number(added.getAttribute("height"))).toBeGreaterThanOrEqual(15);
+        expect(Number(added.getAttribute("width"))).toBeGreaterThanOrEqual(15);
+    });
     it("selects on tap without nudging, and clears on empty canvas", async () => {
         await open();
         const target = screen.getByRole("button", { name: "Move Bakery" });

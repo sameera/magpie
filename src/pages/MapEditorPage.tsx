@@ -7,6 +7,7 @@ import { StoreMap } from "../components/StoreMap";
 import { useFileUrl, useStore } from "../data/hooks";
 import type { Store, StoreMapData, Zone, ZoneKind } from "../data/model";
 import { ZoneEditingLayer } from "./ZoneEditingLayer";
+import { MIN_ZONE_SIZE } from "./zoneGeometry";
 
 type Mode = "start" | "sketch" | "label";
 
@@ -99,7 +100,7 @@ function Editor({ store }: { store: Store }) {
             x: 4 + (index % 2) * 48,
             y: 4 + Math.floor(index / 2) * 18,
             width: 44,
-            height: 14,
+            height: MIN_ZONE_SIZE,
         };
         setMap({ ...map, height: Math.max(map.height, zone.y + zone.height + 4), zones: [...map.zones, zone] });
     };
@@ -117,7 +118,7 @@ function Editor({ store }: { store: Store }) {
                 </p>
             ) : (
                 <div className="relative min-h-0 flex-1 rounded-lg bg-surface-sunken">
-                    <div ref={canvas} className="absolute inset-6 [&>svg]:h-full [&>svg]:w-full">
+                    <div ref={canvas} className="absolute inset-8 [&>svg]:h-full [&>svg]:w-full">
                         <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
                         <ZoneEditingLayer map={map} selectedId={selectedId} onSelect={setSelectedId}
                             onChange={changed => setMap(current => ({ ...current, zones: current.zones.map(zone => zone.id === changed.id ? changed : zone) }))} />

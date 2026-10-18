@@ -1,6 +1,6 @@
-import { useRef, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { StoreMapData, Zone } from "../data/model";
-import { movedEnough, moveZone } from "./zoneGeometry";
+import { movedEnough, moveZone, resizeZone, type Edge } from "./zoneGeometry";
 
 interface Props {
     map: StoreMapData;
@@ -15,6 +15,7 @@ interface Gesture {
     clientY: number;
     point: { x: number; y: number };
     dragging: boolean;
+    edge: Edge | null;
 }
 
 // The SVG uses the same viewBox and default xMidYMid meet as StoreMap.
@@ -31,13 +32,33 @@ function mapPoint(svg: SVGSVGElement, map: StoreMapData, x: number, y: number) {
 
 export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props) {
     const gesture = useRef<Gesture | null>(null);
+    const svg = useRef<SVGSVGElement>(null);
+    const [scale, setScale] = useState(1);
+    useLayoutEffect(() => {
+        const element = svg.current;
+        if (!element) return;
+        const measure = () => {
+            const rect = element.getBoundingClientRect();
+            const next = Math.min(rect.width / map.width, rect.height / map.height);
+            if (next > 0) setScale(next);
+        };
+        measure();
+        if (typeof ResizeObserver === "undefined") return;
+        const observer = new ResizeObserver(measure);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [map.width, map.height]);
+    const selected = map.zones.find(zone => zone.id === selectedId);
+    const hit = 48 / scale;
     const change = (event: PointerEvent<SVGSVGElement>) => {
         const active = gesture.current;
         if (!active || active.pointerId !== event.pointerId) return;
         if (!active.dragging && !movedEnough(event.clientX - active.clientX, event.clientY - active.clientY)) return;
         active.dragging = true;
         const point = mapPoint(event.currentTarget, map, event.clientX, event.clientY);
-        onChange(moveZone(active.zone, point.x - active.point.x, point.y - active.point.y, map));
+        const dx = point.x - active.point.x;
+        const dy = point.y - active.point.y;
+        onChange(active.edge ? resizeZone(active.zone, active.edge, dx, dy, map) : moveZone(active.zone, dx, dy, map));
     };
     const cancel = () => {
         const active = gesture.current;
@@ -46,7 +67,7 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
     };
 
     return (
-        <svg role="group" aria-label="Edit zones" viewBox={`0 0 ${map.width} ${map.height}`}
+        <svg ref={svg} role="group" aria-label="Edit zones" viewBox={`0 0 ${map.width} ${map.height}`}
             className="absolute inset-0 h-full w-full touch-none select-none overflow-visible [-webkit-touch-callout:none]"
             onContextMenu={event => event.preventDefault()}
             onPointerDown={event => {
@@ -60,6 +81,7 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
                 gesture.current = {
                     pointerId: event.pointerId, zone, clientX: event.clientX, clientY: event.clientY,
                     point: mapPoint(event.currentTarget, map, event.clientX, event.clientY), dragging: false,
+                    edge: target?.getAttribute("data-edge") as Edge | null,
                 };
             }}
             onPointerMove={change}
@@ -81,6 +103,21 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
                         if (event.key === "Escape") onSelect(null);
                     }} />
             ))}
+            {selected && (["left", "right", "top", "bottom"] as const).map(edge => {
+                const x = edge === "left" ? selected.x - hit / 6 : edge === "right" ? selected.x + selected.width + hit / 6 : selected.x + selected.width / 2;
+                const y = edge === "top" ? selected.y - hit / 6 : edge === "bottom" ? selected.y + selected.height + hit / 6 : selected.y + selected.height / 2;
+                return <g key={edge}>
+                    <rect role="button" tabIndex={0} aria-label={`Resize ${selected.label} ${edge}`}
+                        data-edit-zone={selected.id} data-edge={edge}
+                        x={x - hit / 2} y={y - hit / 2} width={hit} height={hit} fill="transparent"
+                        onKeyDown={event => {
+                            const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+                            if (delta) { event.preventDefault(); onChange(resizeZone(selected, edge, delta[0], delta[1], map)); }
+                        }} />
+                    <circle cx={x} cy={y} r={4 / scale} fill="var(--surface)" stroke="var(--ink)"
+                        strokeWidth={2 / scale} pointerEvents="none" />
+                </g>;
+            })}
         </svg>
     );
 }

@@ -13,7 +13,7 @@ it("normalizes gaps and ties, reorders stably without changing drawing order, an
     const original = structuredClone(map);
     renderApp(["/stores/s1/map"], services);
     const user = userEvent.setup();
-    await screen.findByRole("heading", { name: "Map of Costco Kirkland" });
+    await screen.findByRole("heading", { name: "Edit map" });
     const labels = () => screen.getAllByRole("textbox").map(input => (input as HTMLInputElement).value);
     const badges = () => Array.from(document.querySelectorAll("[data-place]")).map(node => node.textContent);
     expect(labels()).toEqual(["Dairy", "Fruit", "Bakery"]);
@@ -30,7 +30,7 @@ it("normalizes gaps and ties, reorders stably without changing drawing order, an
     await user.click(screen.getByRole("button", { name: "Remove zone" }));
     expect(labels()).toEqual(["Fruit", "Bakery"]);
     expect(badges()).toEqual(["2", "1"]);
-    await user.click(screen.getByRole("button", { name: "Back to sketch" }));
+    await user.click(screen.getByRole("button", { name: "Sketch" }));
     expect(screen.queryByRole("combobox")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Add zone" }));
     expect(badges()).toEqual(["2", "1", "3"]);

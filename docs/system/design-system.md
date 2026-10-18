@@ -109,6 +109,7 @@ Magpie has no logo yet. Set the name in `display` (Bricolage Grotesque, 800) in 
 - A scanned map sits under the zones as a photo layer at 35% opacity so zone colors still read.
 - The route is a dotted `berry` line. Stops are numbered discs: `surface` with a `berry` ring (to do), `trinket` with an `ink` ring (next), `sheen` with a tick (done).
 - The entrance is an `ink` pill reading "IN".
+- The checkout is a `surface` pill with a 2px `ink` ring reading "PAY". Entrance and checkout have distinct accessible names and scale in map units with the zones.
 
 ## Components
 

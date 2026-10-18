@@ -1,22 +1,25 @@
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { StoreMapData, Zone } from "../data/model";
 import { movedEnough, moveZone, resizeZone, type Edge } from "./zoneGeometry";
+import type { DotName, DraftDot, DraftDots } from "./editorDots";
 
 interface Props {
     map: StoreMapData;
     selectedId: string | null;
     onSelect: (id: string | null) => void;
     onChange: (zone: Zone) => void;
+    selectedDot: "entrance" | "checkout" | null;
+    dots: DraftDots;
+    onChangeDot: (dot: DotName, shape: DraftDot) => void;
+    onSelectDot: (dot: "entrance" | "checkout") => void;
 }
-interface Gesture {
+type Gesture = {
     pointerId: number;
-    zone: Zone;
     clientX: number;
     clientY: number;
     point: { x: number; y: number };
     dragging: boolean;
-    edge: Edge | null;
-}
+} & ({ dot: DotName; zone: DraftDot; edge: null } | { dot: null; zone: Zone; edge: Edge | null });
 
 // The SVG uses the same viewBox and default xMidYMid meet as StoreMap.
 // Account for the empty bands when a viewport resizes after shape-fit.
@@ -30,7 +33,7 @@ function mapPoint(svg: SVGSVGElement, map: StoreMapData, x: number, y: number) {
     };
 }
 
-export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props) {
+export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, selectedDot, onSelectDot, onChangeDot }: Props) {
     const gesture = useRef<Gesture | null>(null);
     const svg = useRef<SVGSVGElement>(null);
     const [scale, setScale] = useState(1);
@@ -49,7 +52,7 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
         return () => observer.disconnect();
     }, [map.width, map.height]);
     const selected = map.zones.find(zone => zone.id === selectedId);
-    const hit = 48 / scale;
+    const hit = 49 / scale;
     const change = (event: PointerEvent<SVGSVGElement>) => {
         const active = gesture.current;
         if (!active || active.pointerId !== event.pointerId) return;
@@ -58,12 +61,16 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
         const point = mapPoint(event.currentTarget, map, event.clientX, event.clientY);
         const dx = point.x - active.point.x;
         const dy = point.y - active.point.y;
-        onChange(active.edge ? resizeZone(active.zone, active.edge, dx, dy, map) : moveZone(active.zone, dx, dy, map));
+        if (active.dot !== null) onChangeDot(active.dot, moveZone(active.zone, dx, dy, map));
+        else onChange(active.edge ? resizeZone(active.zone, active.edge, dx, dy, map) : moveZone(active.zone, dx, dy, map));
     };
     const cancel = () => {
         const active = gesture.current;
         gesture.current = null;
-        if (active?.dragging) onChange(active.zone);
+        if (active?.dragging) {
+            if (active.dot !== null) onChangeDot(active.dot, active.zone);
+            else onChange(active.zone);
+        }
     };
 
     return (
@@ -72,6 +79,18 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
             onContextMenu={event => event.preventDefault()}
             onPointerDown={event => {
                 if (gesture.current || event.button !== 0) return;
+                const dot = (event.target as Element).closest("[data-dot]")?.getAttribute("data-dot");
+                if (dot === "entrance" || dot === "checkout") {
+                    onSelectDot(dot);
+                    event.preventDefault();
+                    event.currentTarget.setPointerCapture?.(event.pointerId);
+                    gesture.current = {
+                        dot, zone: dots[dot], edge: null, pointerId: event.pointerId,
+                        clientX: event.clientX, clientY: event.clientY,
+                        point: mapPoint(event.currentTarget, map, event.clientX, event.clientY), dragging: false,
+                    };
+                    return;
+                }
                 const target = (event.target as Element).closest("[data-edit-zone]");
                 const zone = map.zones.find(zone => zone.id === target?.getAttribute("data-edit-zone"));
                 onSelect(zone?.id ?? null);
@@ -79,7 +98,7 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
                 event.preventDefault();
                 event.currentTarget.setPointerCapture?.(event.pointerId);
                 gesture.current = {
-                    pointerId: event.pointerId, zone, clientX: event.clientX, clientY: event.clientY,
+                    dot: null, pointerId: event.pointerId, zone, clientX: event.clientX, clientY: event.clientY,
                     point: mapPoint(event.currentTarget, map, event.clientX, event.clientY), dragging: false,
                     edge: target?.getAttribute("data-edge") as Edge | null,
                 };
@@ -94,6 +113,11 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
             onPointerCancel={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }}
             onLostPointerCapture={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }}
         >
+            {map.zones.map(zone => <g key={zone.id} data-place={zone.id} pointerEvents="none">
+                <circle cx={zone.x + 5} cy={zone.y + 5} r={3.5} fill="var(--surface)" stroke="var(--berry)" strokeWidth={0.6} />
+                <text x={zone.x + 5} y={zone.y + 5} textAnchor="middle" dominantBaseline="middle"
+                    fontSize={3.5} fontWeight={700} fill="var(--ink)">{zone.order + 1}</text>
+            </g>)}
             {map.zones.map(zone => (
                 <rect key={zone.id} role="button" tabIndex={0} aria-label={`Move ${zone.label}`} aria-pressed={zone.id === selectedId}
                     data-edit-zone={zone.id} x={zone.x} y={zone.y} width={zone.width} height={zone.height} rx={1.5}
@@ -116,6 +140,27 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
                         }} />
                     <circle cx={x} cy={y} r={4 / scale} fill="var(--surface)" stroke="var(--ink)"
                         strokeWidth={2 / scale} pointerEvents="none" />
+                </g>;
+            })}
+            {(["entrance", "checkout"] as const).map(dot => {
+                const shape = dots[dot];
+                const x = shape.x + shape.width / 2;
+                const y = shape.y + shape.height / 2;
+                return <g key={dot} role="button" tabIndex={0} aria-label={dot === "entrance" ? "Entrance" : "Checkout"}
+                    aria-pressed={selectedDot === dot} data-dot={dot}
+                    onKeyDown={event => {
+                        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectDot(dot); }
+                        if (event.key === "Escape") onSelect(null);
+                    }}>
+                    <rect x={x - Math.max(shape.width, hit) / 2} y={y - Math.max(shape.height, hit) / 2}
+                        width={Math.max(shape.width, hit)} height={Math.max(shape.height, hit)} fill="transparent" />
+                    <rect x={shape.x + 1} y={shape.y + 1} width={Math.max(0, shape.width - 2)} height={Math.max(0, shape.height - 2)} rx={3}
+                        fill={dot === "entrance" ? "var(--ink)" : "var(--surface)"}
+                        stroke="var(--ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize={3} fontWeight={700}
+                        fill={dot === "entrance" ? "var(--paper)" : "var(--ink)"}>
+                        {dot === "entrance" ? "IN" : "PAY"}
+                    </text>
                 </g>;
             })}
         </svg>

@@ -1,8 +1,8 @@
 ---
 title: Household Data Reads
 aliases: [household data, data reads, read-only pages, household scoping, live reads, household inventory]
-touches: [page-paths, sign-in-gate, household-membership, item-page, trip-store, add-store-sheet, household-data-writes, add-box-suggestions]
-last_updated_by: "#41"
+touches: [page-paths, sign-in-gate, household-membership, item-page, trip-store, add-store-sheet, household-data-writes, add-box-suggestions, inventory-page]
+last_updated_by: "#55"
 status: active
 verification: verified
 ---
@@ -41,6 +41,7 @@ Item photos and scanned maps are files. A page shows such a file once it resolve
 - [add-store-sheet](add-store-sheet.md) — the sheet suggests chains from the stores read here, and a store it saves appears on the Stores page through the live read.
 - [household-data-writes](household-data-writes.md) — a store or item saved by another screen reaches the pages through the live reads described here.
 - [add-box-suggestions](add-box-suggestions.md) — the suggestions read every household item, on the list or not, and the offline copy serves that read.
+- [inventory-page](inventory-page.md) — the Inventory page lists the same every-item read, sorted by name, and shows a separate message when the read is missing.
 
 ## Decision Log
 
@@ -63,3 +64,7 @@ The household's existing item collection is now its inventory, and the on-list f
 ### 2026-10-15 — #41 — The add drawer reads every item, and links to add-box-suggestions
 
 The add drawer's suggestions now read every item in the household, on the list or not. The list read holds only items on the list, and an empty line must offer items that are off it. The phone's offline copy serves the new read, so suggestions show offline. The refuted alternative was to widen the List page's read to every item and filter it on the page. It lost because the List page and the in-store view would then load the whole inventory to show only the list. This page now lists add-box-suggestions as a neighbour, matching that page's link to this one.
+
+### 2026-10-16 — #55 — Inventory reads every item and links to inventory-page
+
+The Inventory page reads every item in the household and lists the names. It reuses the every-item read that the add drawer already uses, so no new read or rule is needed. The security rules still allow the read only to a member, and rule tests now cover that read for both members and its refusal for a signed-out user, a non-member and another household. The refuted alternative was a second collection that holds only the inventory view. It lost because the item collection already is the inventory, and a copy could go stale.

@@ -22,7 +22,7 @@ export function resizeZone(zone: Zone, edge: Edge, dx: number, dy: number, bound
     return { ...zone, height: clamp(zone.height + dy, minHeight, bounds.height - zone.y) };
 }
 
-export function moveZone(zone: Zone, dx: number, dy: number, bounds: Pick<StoreMapData, "width" | "height">): Zone {
+export function moveZone<T extends Pick<Zone, "x" | "y" | "width" | "height">>(zone: T, dx: number, dy: number, bounds: Pick<StoreMapData, "width" | "height">): T {
     return {
         ...zone,
         x: clamp(zone.x + dx, 0, Math.max(0, bounds.width - zone.width)),

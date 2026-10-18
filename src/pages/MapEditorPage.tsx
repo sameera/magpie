@@ -1,5 +1,5 @@
 import { Camera, Pencil, Plus, Tag, X } from "lucide-react";
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { useParams } from "react-router";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
@@ -26,8 +26,8 @@ export function MapEditorPage() {
         );
     }
     return (
-        <main className="flex min-h-dvh flex-col bg-paper text-ink">
-            <header className="flex items-center gap-2 border-b border-line bg-surface px-2 pt-[env(safe-area-inset-top)]">
+        <main className="flex h-dvh flex-col overflow-hidden bg-paper text-ink">
+            <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-2 pt-[env(safe-area-inset-top)]">
                 <UpButton to={parent} label="Close map editor">
                     <X aria-hidden="true" />
                 </UpButton>
@@ -51,6 +51,27 @@ function Editor({ store }: { store: Store }) {
     const [scanFileUrl, setScanFileUrl] = useState<string | null>(null);
     const savedScanUrl = useFileUrl(store.map?.scanPath ?? null);
     const scanUrl = scanFileUrl ?? savedScanUrl;
+    const canvas = useRef<HTMLDivElement>(null);
+    const fitted = useRef(false);
+
+    // Fit only the first measurable canvas. Keyboard/rotation changes rescale
+    // the SVG, without ever rewriting a zone or shrinking the draft.
+    useLayoutEffect(() => {
+        const element = canvas.current;
+        if (!element || fitted.current) return;
+        const fit = () => {
+            if (fitted.current) return;
+            const { width, height } = element.getBoundingClientRect();
+            if (width <= 0 || height <= 0) return;
+            fitted.current = true;
+            setMap(current => ({ ...current, height: Math.max(current.height, current.width * height / width) }));
+        };
+        fit();
+        if (fitted.current || typeof ResizeObserver === "undefined") return;
+        const observer = new ResizeObserver(fit);
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [mode]);
 
     useEffect(() => () => {
         if (scanFileUrl) {
@@ -87,15 +108,19 @@ function Editor({ store }: { store: Store }) {
     const toolClass: string = "inline-flex h-tap flex-1 items-center justify-center gap-2 rounded-md border-2 border-line-strong bg-surface text-button";
 
     return (
-        <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex min-h-0 w-full max-w-[560px] flex-1 flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
             {mode === "start" ? (
                 <p className="rounded-lg bg-surface-sunken p-4 text-body text-ink-muted">
                     This store has no map yet. Sketch it, or start from a photo of the store's map.
                 </p>
             ) : (
-                <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
+                <div className="relative min-h-0 flex-1 rounded-lg bg-surface-sunken">
+                    <div ref={canvas} className="absolute inset-6 [&>svg]:h-full [&>svg]:w-full">
+                        <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
+                    </div>
+                </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex shrink-0 gap-2">
                 <button type="button" className={toolClass} onClick={() => setMode("sketch")}>
                     <Pencil aria-hidden="true" />
                     Start a sketch
@@ -107,7 +132,7 @@ function Editor({ store }: { store: Store }) {
                 </label>
             </div>
             {mode === "sketch" && (
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                     <button type="button" className={toolClass} onClick={addZone}>
                         <Plus aria-hidden="true" />
                         Add zone
@@ -119,7 +144,7 @@ function Editor({ store }: { store: Store }) {
                 </div>
             )}
             {mode === "label" && (
-                <section aria-label="Zone labels" className="flex flex-col gap-3">
+                <section aria-label="Zone labels" className="flex max-h-[25dvh] shrink-0 flex-col gap-3 overflow-y-auto overscroll-contain">
                     {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to label it.</p>}
                     {map.zones.map((zone, index) => (
                         <label key={zone.id} className="flex flex-col gap-1 text-caption text-ink-muted">
@@ -131,13 +156,15 @@ function Editor({ store }: { store: Store }) {
                             />
                         </label>
                     ))}
-                    <button type="button" className={toolClass} onClick={() => setMode("sketch")}>
+                </section>
+            )}
+            {mode === "label" && (
+                    <button type="button" className={`${toolClass} shrink-0 flex-none`} onClick={() => setMode("sketch")}>
                         <Pencil aria-hidden="true" />
                         Back to sketch
                     </button>
-                </section>
             )}
-            <p className="text-caption text-ink-muted">Saving maps is coming soon.</p>
+            <p className="shrink-0 text-caption text-ink-muted">Saving maps is coming soon.</p>
         </div>
     );
 }

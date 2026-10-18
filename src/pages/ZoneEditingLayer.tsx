@@ -1,12 +1,16 @@
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { StoreMapData, Zone } from "../data/model";
 import { movedEnough, moveZone, resizeZone, type Edge } from "./zoneGeometry";
+import type { DraftDots } from "./editorDots";
 
 interface Props {
     map: StoreMapData;
     selectedId: string | null;
     onSelect: (id: string | null) => void;
     onChange: (zone: Zone) => void;
+    selectedDot: "entrance" | "checkout" | null;
+    dots: DraftDots;
+    onSelectDot: (dot: "entrance" | "checkout") => void;
 }
 interface Gesture {
     pointerId: number;
@@ -30,7 +34,7 @@ function mapPoint(svg: SVGSVGElement, map: StoreMapData, x: number, y: number) {
     };
 }
 
-export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props) {
+export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, selectedDot, onSelectDot }: Props) {
     const gesture = useRef<Gesture | null>(null);
     const svg = useRef<SVGSVGElement>(null);
     const [scale, setScale] = useState(1);
@@ -49,7 +53,7 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
         return () => observer.disconnect();
     }, [map.width, map.height]);
     const selected = map.zones.find(zone => zone.id === selectedId);
-    const hit = 48 / scale;
+    const hit = 49 / scale;
     const change = (event: PointerEvent<SVGSVGElement>) => {
         const active = gesture.current;
         if (!active || active.pointerId !== event.pointerId) return;
@@ -72,6 +76,8 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
             onContextMenu={event => event.preventDefault()}
             onPointerDown={event => {
                 if (gesture.current || event.button !== 0) return;
+                const dot = (event.target as Element).closest("[data-dot]")?.getAttribute("data-dot");
+                if (dot === "entrance" || dot === "checkout") { onSelectDot(dot); return; }
                 const target = (event.target as Element).closest("[data-edit-zone]");
                 const zone = map.zones.find(zone => zone.id === target?.getAttribute("data-edit-zone"));
                 onSelect(zone?.id ?? null);
@@ -116,6 +122,27 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange }: Props)
                         }} />
                     <circle cx={x} cy={y} r={4 / scale} fill="var(--surface)" stroke="var(--ink)"
                         strokeWidth={2 / scale} pointerEvents="none" />
+                </g>;
+            })}
+            {(["entrance", "checkout"] as const).map(dot => {
+                const shape = dots[dot];
+                const x = shape.x + shape.width / 2;
+                const y = shape.y + shape.height / 2;
+                return <g key={dot} role="button" tabIndex={0} aria-label={dot === "entrance" ? "Entrance" : "Checkout"}
+                    aria-pressed={selectedDot === dot} data-dot={dot}
+                    onKeyDown={event => {
+                        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelectDot(dot); }
+                        if (event.key === "Escape") onSelect(null);
+                    }}>
+                    <rect x={x - Math.max(shape.width, hit) / 2} y={y - Math.max(shape.height, hit) / 2}
+                        width={Math.max(shape.width, hit)} height={Math.max(shape.height, hit)} fill="transparent" />
+                    <rect x={shape.x + 1} y={shape.y + 1} width={Math.max(0, shape.width - 2)} height={Math.max(0, shape.height - 2)} rx={3}
+                        fill={dot === "entrance" ? "var(--ink)" : "var(--surface)"}
+                        stroke="var(--ink)" strokeWidth={2} vectorEffect="non-scaling-stroke" />
+                    <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontSize={3} fontWeight={700}
+                        fill={dot === "entrance" ? "var(--paper)" : "var(--ink)"}>
+                        {dot === "entrance" ? "IN" : "PAY"}
+                    </text>
                 </g>;
             })}
         </svg>

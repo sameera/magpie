@@ -29,6 +29,28 @@ async function open(kind: ZoneKind | null = "bakery") {
 }
 
 describe("zone gestures in the editor", () => {
+    it.each(["Entrance", "Checkout"])("moves %s above zones, clamps the whole dot and restores cancelled drags", async name => {
+        const { services, original } = await open();
+        const target = screen.getByRole("button", { name });
+        const shape = () => target.querySelectorAll("rect")[1];
+        const start = shape().outerHTML;
+        const initialX = Number(shape().getAttribute("x"));
+        pointer(target, "Down", 20, 20);
+        pointer(target, "Move", 22, 22);
+        expect(shape().outerHTML).toBe(start);
+        pointer(target, "Move", 10, 10);
+        expect(Number(shape().getAttribute("x"))).toBe(initialX - 5);
+        pointer(target, "Cancel", 10, 10);
+        expect(shape().outerHTML).toBe(start);
+        for (const [x, y, expectedX, expectedY] of [[-1000,-1000,1,1],[1000,1000,87,53]]) {
+            pointer(target, "Down", 20, 20);
+            pointer(target, "Up", x, y);
+            expect(Number(shape().getAttribute("x"))).toBe(expectedX);
+            expect(Number(shape().getAttribute("y"))).toBe(expectedY);
+        }
+        expect(screen.queryByRole("button", { name: /Remove|Resize/ })).toBeNull();
+        expect(services.households.get("h1")!.stores[0]).toEqual(original);
+    });
     it.each(["produce", "dairy", "bakery", "meat", "frozen", "pantry", null] as const)("confirms removal of %s zones from drawing and labels, clearing selection", async kind => {
         const { services, original } = await open(kind);
         const target = screen.getByRole("button", { name: "Move Bakery" });

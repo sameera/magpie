@@ -51,7 +51,7 @@ export function MapEditorPage() {
 function Editor({ store }: { store: Store }) {
     const [mode, setMode] = useState<Mode>(store.map ? "label" : "sketch");
     const [map, setMap] = useState<StoreMapData>(() => store.map ?? addDraftZone(emptyMap));
-    const [dots] = useState(() => defaultDots(store.map ?? emptyMap));
+    const [dots, setDots] = useState(() => defaultDots(store.map ?? emptyMap));
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDot, setSelectedDot] = useState<"entrance" | "checkout" | null>(null);
     const [confirmRemoval, setConfirmRemoval] = useState(false);
@@ -117,6 +117,7 @@ function Editor({ store }: { store: Store }) {
                         <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
                         <ZoneEditingLayer map={map} selectedId={selectedId} onSelect={id => { setSelectedId(id); setSelectedDot(null); }}
                             dots={dots} selectedDot={selectedDot} onSelectDot={dot => { setSelectedId(null); setSelectedDot(dot); }}
+                            onChangeDot={(dot, shape) => setDots(current => ({ ...current, [dot]: shape }))}
                             onChange={changed => setMap(current => ({ ...current, zones: current.zones.map(zone => zone.id === changed.id ? changed : zone) }))} />
                     </div>
                 </div>

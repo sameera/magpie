@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import type { StoreMapData, Zone } from "../data/model";
 import { movedEnough, moveZone, resizeZone, type Edge } from "./zoneGeometry";
-import type { DraftDots } from "./editorDots";
+import type { DotName, DraftDot, DraftDots } from "./editorDots";
 
 interface Props {
     map: StoreMapData;
@@ -10,17 +10,16 @@ interface Props {
     onChange: (zone: Zone) => void;
     selectedDot: "entrance" | "checkout" | null;
     dots: DraftDots;
+    onChangeDot: (dot: DotName, shape: DraftDot) => void;
     onSelectDot: (dot: "entrance" | "checkout") => void;
 }
-interface Gesture {
+type Gesture = {
     pointerId: number;
-    zone: Zone;
     clientX: number;
     clientY: number;
     point: { x: number; y: number };
     dragging: boolean;
-    edge: Edge | null;
-}
+} & ({ dot: DotName; zone: DraftDot; edge: null } | { dot: null; zone: Zone; edge: Edge | null });
 
 // The SVG uses the same viewBox and default xMidYMid meet as StoreMap.
 // Account for the empty bands when a viewport resizes after shape-fit.
@@ -34,7 +33,7 @@ function mapPoint(svg: SVGSVGElement, map: StoreMapData, x: number, y: number) {
     };
 }
 
-export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, selectedDot, onSelectDot }: Props) {
+export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, selectedDot, onSelectDot, onChangeDot }: Props) {
     const gesture = useRef<Gesture | null>(null);
     const svg = useRef<SVGSVGElement>(null);
     const [scale, setScale] = useState(1);
@@ -62,12 +61,16 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, se
         const point = mapPoint(event.currentTarget, map, event.clientX, event.clientY);
         const dx = point.x - active.point.x;
         const dy = point.y - active.point.y;
-        onChange(active.edge ? resizeZone(active.zone, active.edge, dx, dy, map) : moveZone(active.zone, dx, dy, map));
+        if (active.dot !== null) onChangeDot(active.dot, moveZone(active.zone, dx, dy, map));
+        else onChange(active.edge ? resizeZone(active.zone, active.edge, dx, dy, map) : moveZone(active.zone, dx, dy, map));
     };
     const cancel = () => {
         const active = gesture.current;
         gesture.current = null;
-        if (active?.dragging) onChange(active.zone);
+        if (active?.dragging) {
+            if (active.dot !== null) onChangeDot(active.dot, active.zone);
+            else onChange(active.zone);
+        }
     };
 
     return (
@@ -77,7 +80,17 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, se
             onPointerDown={event => {
                 if (gesture.current || event.button !== 0) return;
                 const dot = (event.target as Element).closest("[data-dot]")?.getAttribute("data-dot");
-                if (dot === "entrance" || dot === "checkout") { onSelectDot(dot); return; }
+                if (dot === "entrance" || dot === "checkout") {
+                    onSelectDot(dot);
+                    event.preventDefault();
+                    event.currentTarget.setPointerCapture?.(event.pointerId);
+                    gesture.current = {
+                        dot, zone: dots[dot], edge: null, pointerId: event.pointerId,
+                        clientX: event.clientX, clientY: event.clientY,
+                        point: mapPoint(event.currentTarget, map, event.clientX, event.clientY), dragging: false,
+                    };
+                    return;
+                }
                 const target = (event.target as Element).closest("[data-edit-zone]");
                 const zone = map.zones.find(zone => zone.id === target?.getAttribute("data-edit-zone"));
                 onSelect(zone?.id ?? null);
@@ -85,7 +98,7 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, se
                 event.preventDefault();
                 event.currentTarget.setPointerCapture?.(event.pointerId);
                 gesture.current = {
-                    pointerId: event.pointerId, zone, clientX: event.clientX, clientY: event.clientY,
+                    dot: null, pointerId: event.pointerId, zone, clientX: event.clientX, clientY: event.clientY,
                     point: mapPoint(event.currentTarget, map, event.clientX, event.clientY), dragging: false,
                     edge: target?.getAttribute("data-edge") as Edge | null,
                 };

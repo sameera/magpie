@@ -3,10 +3,11 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useHouseholdId, useServices } from "../app/session";
+import { categoryName, listGroups } from "../data/categoryGroups";
 import { useBoughtItems, useList } from "../data/hooks";
 import { suggestedItems } from "../data/suggestions";
 import { readItemNow } from "../data/itemNow";
-import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, quantityLabel, type Item } from "../data/model";
+import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, quantityLabel, zoneKinds, type Item, type ZoneKind } from "../data/model";
 import { AddItemsDrawer } from "./AddItemsDrawer";
 import { PageHeader } from "./PageHeader";
 
@@ -14,6 +15,24 @@ const UNDO_MS = 5000;
 // A drag counts as a swipe once it moves this far, and removes the row past a third of its width.
 const SWIPE_START_PX = 8;
 const SWIPE_REMOVE_FRACTION = 1 / 3;
+// A finger held still this long starts a drag to the drop tray.
+const HOLD_MS = 400;
+
+// Listed in full so Tailwind generates each class.
+const zoneSwatch: Record<ZoneKind, string> = {
+    produce: "bg-zone-produce",
+    dairy: "bg-zone-dairy",
+    bakery: "bg-zone-bakery",
+    meat: "bg-zone-meat",
+    frozen: "bg-zone-frozen",
+    pantry: "bg-zone-pantry",
+};
+
+interface Drag {
+    item: Item;
+    x: number;
+    y: number;
+}
 
 export function ListPage() {
     const householdId = useHouseholdId();
@@ -25,6 +44,9 @@ export function ListPage() {
     const [menuFor, setMenuFor] = useState<string | null>(null);
     const [undo, setUndo] = useState<Item | null>(null);
     const [refusal, setRefusal] = useState("");
+    const [drag, setDrag] = useState<Drag | null>(null);
+    // A drag ends when its item leaves the list, as when the other phone removes it.
+    const dragging = drag && list.status === "ready" && list.value.some((item) => item.id === drag.item.id) ? drag : null;
     useScrollMemory(list.status !== "loading");
 
     useEffect(() => {
@@ -45,15 +67,17 @@ export function ListPage() {
     // Sends the write without waiting for it: the list shows the change from the
     // phone's own copy. When the server refuses, say so only if the item did not
     // end up where the shopper put it.
-    const send = (item: Item, write: Promise<void>, onList: boolean, refused: string) => {
+    const send = (item: Item, write: Promise<void>, landed: (now: Item) => boolean, refused: (now: Item) => string) => {
         write.catch(async (error: unknown) => {
             console.error("List change failed", error);
             const now = await readItemNow(data, householdId, item.id);
-            if (now && now.onList !== onList) setRefusal(refused);
+            if (now && !landed(now)) setRefusal(refused(now));
         });
     };
+    const sendOnList = (item: Item, write: Promise<void>, onList: boolean, refused: string) =>
+        send(item, write, (now) => now.onList === onList, () => refused);
     const remove = (item: Item) =>
-        send(item, data.setOnList(householdId, item.id, false), false, `${item.name} could not be removed. It is still on the list.`);
+        sendOnList(item, data.setOnList(householdId, item.id, false), false, `${item.name} could not be removed. It is still on the list.`);
     const swipeRemove = (item: Item) => {
         setRefusal("");
         setUndo(item);
@@ -67,16 +91,33 @@ export function ListPage() {
     const putBack = (item: Item) => {
         setUndo(null);
         setRefusal("");
-        send(item, data.setOnList(householdId, item.id, true), true, `${item.name} could not be put back on the list.`);
+        sendOnList(item, data.setOnList(householdId, item.id, true), true, `${item.name} could not be put back on the list.`);
     };
     const purchase = (item: Item, amount: number) => {
         setRefusal("");
         setMenuFor(null);
-        send(
+        sendOnList(
             item,
             data.recordPurchase(householdId, item.id, amount),
             false,
             `${item.name} could not be recorded as purchased. It is still on the list.`,
+        );
+    };
+
+    // A release over a drop tray target other than the item's own category sends
+    // a category-only write; a release anywhere else writes nothing.
+    const drop = (item: Item, x: number, y: number) => {
+        setDrag(null);
+        const target = document.elementFromPoint(x, y)?.closest("[data-drop-category]");
+        if (!target) return;
+        const category = (target.getAttribute("data-drop-category") || null) as ZoneKind | null;
+        if (category === item.category) return;
+        setRefusal("");
+        send(
+            item,
+            data.setCategory(householdId, item.id, category),
+            (now) => now.category === category,
+            (now) => `${item.name} could not be moved to ${categoryName(category)}. It is still under ${categoryName(now.category)}.`,
         );
     };
 
@@ -89,19 +130,37 @@ export function ListPage() {
                 <p className="text-body text-ink-muted">Nothing on the list. Tap + to add the first thing.</p>
             )}
             {list.status === "ready" && list.value.length > 0 && (
-                <ul aria-label="Shopping list" className="flex flex-col gap-3">
-                    {list.value.map((item) => (
-                        <ListRow
-                            key={item.id}
-                            item={item}
-                            menuOpen={menuFor === item.id}
-                            onToggleMenu={() => setMenuFor(menuFor === item.id ? null : item.id)}
-                            onCloseMenu={() => setMenuFor(null)}
-                            onRemove={() => chooseRemove(item)}
-                            onPurchase={(amount) => purchase(item, amount)}
-                            onSwipe={() => swipeRemove(item)}
-                        />
-                    ))}
+                <ul aria-label="Shopping list" className="flex flex-col gap-6">
+                    {listGroups(list.value).map(({ category, items }) => {
+                        const headingId = `group-${category ?? "none"}`;
+                        return (
+                            <li key={headingId}>
+                                <h2 id={headingId} className="mb-3 text-heading">{categoryName(category)}</h2>
+                                <ul aria-labelledby={headingId} className="flex flex-col gap-3">
+                                    {items.map((item) => (
+                                        <ListRow
+                                            key={item.id}
+                                            item={item}
+                                            lifted={dragging?.item.id === item.id}
+                                            onDragStart={(x, y) => {
+                                                setMenuFor(null);
+                                                setDrag({ item, x, y });
+                                            }}
+                                            onDragMove={(x, y) => setDrag((d) => d && { ...d, x, y })}
+                                            onDrop={(x, y) => drop(item, x, y)}
+                                            onDragCancel={() => setDrag(null)}
+                                            menuOpen={menuFor === item.id}
+                                            onToggleMenu={() => setMenuFor(menuFor === item.id ? null : item.id)}
+                                            onCloseMenu={() => setMenuFor(null)}
+                                            onRemove={() => chooseRemove(item)}
+                                            onPurchase={(amount) => purchase(item, amount)}
+                                            onSwipe={() => swipeRemove(item)}
+                                        />
+                                    ))}
+                                </ul>
+                            </li>
+                        );
+                    })}
                 </ul>
             )}
             {suggestions.length > 0 && (
@@ -118,7 +177,17 @@ export function ListPage() {
                     </ul>
                 </section>
             )}
-            {(undo || refusal) && (
+            {dragging && <DropTray item={dragging.item} />}
+            {dragging && (
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none fixed z-30 max-w-60 -translate-x-1/2 -translate-y-1/2 truncate rounded-md bg-surface p-3 text-item shadow-float"
+                    style={{ left: dragging.x, top: dragging.y }}
+                >
+                    {dragging.item.name}
+                </div>
+            )}
+            {!dragging && (undo || refusal) && (
                 <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem+var(--spacing-fab)+0.75rem)] left-[max(1rem,calc(50%-280px+1rem))] z-10 flex flex-col gap-2">
                     {refusal && (
                         <p role="alert" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
@@ -138,14 +207,16 @@ export function ListPage() {
                     )}
                 </div>
             )}
-            <button
-                type="button"
-                onClick={() => setAdding(true)}
-                aria-label="Add item"
-                className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] z-10 flex size-fab items-center justify-center rounded-pill bg-sheen text-on-sheen shadow-press"
-            >
-                <Plus aria-hidden="true" />
-            </button>
+            {!dragging && (
+                <button
+                    type="button"
+                    onClick={() => setAdding(true)}
+                    aria-label="Add item"
+                    className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] z-10 flex size-fab items-center justify-center rounded-pill bg-sheen text-on-sheen shadow-press"
+                >
+                    <Plus aria-hidden="true" />
+                </button>
+            )}
             <AddItemsDrawer open={adding} onClose={() => setAdding(false)} />
         </>
     );
@@ -153,8 +224,15 @@ export function ListPage() {
 
 // One List row. The link opens the item page; the button on the right opens the
 // actions menu over the row. A leftward drag past a third of the row removes it.
+// A finger held still for the hold time starts a drag to the drop tray instead;
+// a finger that moves first swipes or scrolls, so a swipe never starts a drag.
 function ListRow({
     item,
+    lifted,
+    onDragStart,
+    onDragMove,
+    onDrop,
+    onDragCancel,
     menuOpen,
     onToggleMenu,
     onCloseMenu,
@@ -163,6 +241,11 @@ function ListRow({
     onSwipe,
 }: {
     item: Item;
+    lifted: boolean;
+    onDragStart: (x: number, y: number) => void;
+    onDragMove: (x: number, y: number) => void;
+    onDrop: (x: number, y: number) => void;
+    onDragCancel: () => void;
     menuOpen: boolean;
     onToggleMenu: () => void;
     onCloseMenu: () => void;
@@ -171,57 +254,97 @@ function ListRow({
     onSwipe: () => void;
 }) {
     const row = useRef<HTMLLIElement>(null);
-    const drag = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null);
-    // Set once a drag has turned sideways, so the click that ends it does not open the item page.
+    const gesture = useRef<{ x: number; y: number; mode: "press" | "swipe" | "scroll" | "drag"; timer: ReturnType<typeof setTimeout> } | null>(null);
+    // Set once a touch has become a swipe or a drag, so the click that ends it does not open the item page.
     const dragged = useRef(false);
     const [offset, setOffset] = useState(0);
 
+    // The browser scrolls unless a touchmove is cancelled, which a React handler cannot do.
+    useEffect(() => {
+        const element = row.current;
+        if (!element) return;
+        const blockScroll = (e: TouchEvent) => {
+            if (gesture.current?.mode === "drag") e.preventDefault();
+        };
+        element.addEventListener("touchmove", blockScroll, { passive: false });
+        return () => {
+            element.removeEventListener("touchmove", blockScroll);
+            if (gesture.current) clearTimeout(gesture.current.timer);
+        };
+    }, []);
+
     const start = (e: PointerEvent) => {
         dragged.current = false;
-        if (menuOpen || (e.pointerType === "mouse" && e.button !== 0)) return;
-        drag.current = { x: e.clientX, y: e.clientY, axis: null };
+        if (menuOpen || gesture.current || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
+        const { pointerId, clientX, clientY } = e;
+        const timer = setTimeout(() => {
+            const state = gesture.current;
+            if (state?.mode !== "press") return;
+            state.mode = "drag";
+            dragged.current = true;
+            row.current?.setPointerCapture?.(pointerId);
+            onDragStart(clientX, clientY);
+        }, HOLD_MS);
+        gesture.current = { x: clientX, y: clientY, mode: "press", timer };
     };
     const move = (e: PointerEvent) => {
-        const state = drag.current;
-        if (!state) return;
+        const state = gesture.current;
+        if (!state || !e.isPrimary) return;
+        if (state.mode === "drag") {
+            onDragMove(e.clientX, e.clientY);
+            return;
+        }
         const dx = e.clientX - state.x;
         const dy = e.clientY - state.y;
-        if (!state.axis && Math.max(Math.abs(dx), Math.abs(dy)) >= SWIPE_START_PX) {
-            state.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-            if (state.axis === "x") {
+        if (state.mode === "press" && Math.max(Math.abs(dx), Math.abs(dy)) >= SWIPE_START_PX) {
+            clearTimeout(state.timer);
+            state.mode = Math.abs(dx) > Math.abs(dy) ? "swipe" : "scroll";
+            if (state.mode === "swipe") {
                 dragged.current = true;
                 row.current?.setPointerCapture?.(e.pointerId);
             }
         }
-        if (state.axis === "x") setOffset(Math.min(0, dx));
+        if (state.mode === "swipe") setOffset(Math.min(0, dx));
     };
     const end = (e: PointerEvent) => {
-        const state = drag.current;
-        drag.current = null;
+        const state = gesture.current;
+        if (!state || !e.isPrimary) return;
+        clearTimeout(state.timer);
+        gesture.current = null;
         setOffset(0);
-        if (state?.axis !== "x") return;
+        if (state.mode === "drag") {
+            onDrop(e.clientX, e.clientY);
+            return;
+        }
+        if (state.mode !== "swipe") return;
         const dx = e.clientX - state.x;
         const width = row.current?.getBoundingClientRect().width ?? 0;
         if (width > 0 && -dx >= width * SWIPE_REMOVE_FRACTION && Math.abs(dx) > Math.abs(e.clientY - state.y)) onSwipe();
     };
-    const cancel = () => {
-        drag.current = null;
+    const cancel = (e: PointerEvent) => {
+        const state = gesture.current;
+        if (!state || !e.isPrimary) return;
+        clearTimeout(state.timer);
+        gesture.current = null;
         setOffset(0);
+        if (state.mode === "drag") onDragCancel();
     };
 
     return (
         <li
             ref={row}
-            className="relative touch-pan-y"
+            className={`relative touch-pan-y select-none [-webkit-touch-callout:none] ${lifted ? "opacity-40" : ""}`}
             style={offset ? { transform: `translateX(${offset}px)` } : undefined}
             onPointerDown={start}
             onPointerMove={move}
             onPointerUp={end}
             onPointerCancel={cancel}
+            onContextMenu={(e) => e.preventDefault()}
         >
             <div className="flex min-h-18 items-stretch rounded-md bg-surface shadow-sticker">
                 <Link
                     to={`/items/${item.id}`}
+                    draggable={false}
                     onClick={(e) => {
                         if (dragged.current) {
                             e.preventDefault();
@@ -254,6 +377,37 @@ function ListRow({
             </div>
             {menuOpen && <RowMenu item={item} onRemove={onRemove} onPurchase={onPurchase} onClose={onCloseMenu} />}
         </li>
+    );
+}
+
+// The drop places shown while a drag is active: one per category, fixed in the
+// bottom third of the screen where a thumb reaches. The item's own category is
+// marked current and takes no drop.
+function DropTray({ item }: { item: Item }) {
+    return (
+        <div
+            role="group"
+            aria-label="Move to a category"
+            className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-20 grid grid-cols-4 gap-2 rounded-md bg-surface p-2 shadow-float"
+        >
+            {[...zoneKinds, null].map((category) => {
+                const current = category === item.category;
+                return (
+                    <div
+                        key={category ?? "none"}
+                        data-drop-target
+                        data-drop-category={current ? undefined : (category ?? "")}
+                        aria-current={current ? "true" : undefined}
+                        className={`flex min-h-tap flex-col items-center justify-center rounded-md border-2 px-1 text-center text-caption ${
+                            category ? zoneSwatch[category] : "bg-surface-sunken"
+                        } ${current ? "border-dashed border-line opacity-60" : "border-line-strong"}`}
+                    >
+                        <span>{categoryName(category)}</span>
+                        {current && <span className="text-ink-muted">Current</span>}
+                    </div>
+                );
+            })}
+        </div>
     );
 }
 

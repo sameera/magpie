@@ -1,11 +1,13 @@
-import { MapPin } from "lucide-react";
-import { useEffect } from "react";
+import { Check, MapPin } from "lucide-react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams } from "react-router";
+import { useHouseholdId, useServices } from "../app/session";
+import { readItemNow } from "../data/itemNow";
 import { setTripPath } from "../app/tripStore";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useList, useStore } from "../data/hooks";
-import { quantityLabel, walkingOrder, zoneOf } from "../data/model";
+import { quantityLabel, walkingOrder, zoneOf, type Item } from "../data/model";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
@@ -14,6 +16,9 @@ export function InStorePage() {
     const store = useStore(storeId);
     const list = useList();
     const navigate = useNavigate();
+    const householdId = useHouseholdId();
+    const { data } = useServices();
+    const [refusal, setRefusal] = useState("");
     const found: boolean = store.status === "ready";
 
     useEffect(() => {
@@ -32,6 +37,16 @@ export function InStorePage() {
     const changeStore = () => {
         const state: ShopChoiceState = { switching: true };
         navigate("/shop", { replace: true, state });
+    };
+
+    const purchase = (item: Item) => {
+        setRefusal("");
+        // Local snapshots advance the trip immediately, including offline.
+        data.recordPurchase(householdId, item.id, item.quantityNeeded).catch(async (error: unknown) => {
+            console.error("Shop purchase failed", error);
+            const now = await readItemNow(data, householdId, item.id);
+            if (now?.onList) setRefusal(`${item.name} could not be recorded as purchased. It is still on the list.`);
+        });
     };
 
     const items = list.status === "ready" ? walkingOrder(list.value, store.value) : [];
@@ -69,16 +84,92 @@ export function InStorePage() {
             ) : (
                 <p className="mb-6 text-body text-ink-muted">Nothing on the list.</p>
             )}
+            {refusal && (
+                <p role="alert" className="mb-4 flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger">
+                    <span className="flex-1">{refusal}</span>
+                    <button type="button" onClick={() => setRefusal("")} className="h-tap rounded-md px-3 text-button text-sheen-ink">
+                        Dismiss
+                    </button>
+                </p>
+            )}
             <ul aria-label="List in walking order" className="flex flex-col gap-3">
                 {items.map((item) => (
-                    <li key={item.id} className="flex min-h-18 flex-col justify-center rounded-md bg-surface p-3 shadow-sticker">
-                        <span className="text-item">{item.name}</span>
-                        <span className="text-caption text-ink-muted">
-                            {[quantityLabel(item), zoneOf(item, store.value)?.label].filter(Boolean).join(" · ")}
-                        </span>
-                    </li>
+                    <ShopRow
+                        key={item.id}
+                        item={item}
+                        zone={zoneOf(item, store.value)?.label}
+                        onPurchase={() => purchase(item)}
+                    />
                 ))}
             </ul>
         </>
+    );
+}
+
+// Match List's gesture threshold, with a right swipe buying the listed quantity.
+function ShopRow({ item, zone, onPurchase }: { item: Item; zone?: string; onPurchase: () => void }) {
+    const drag = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null);
+    const dragged = useRef(false);
+    const [offset, setOffset] = useState(0);
+    const start = (event: PointerEvent<HTMLLIElement>) => {
+        dragged.current = false;
+        if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
+        drag.current = { x: event.clientX, y: event.clientY, axis: null };
+    };
+    const move = (event: PointerEvent<HTMLLIElement>) => {
+        const state = drag.current;
+        if (!state) return;
+        const dx = event.clientX - state.x;
+        const dy = event.clientY - state.y;
+        if (!state.axis && Math.max(Math.abs(dx), Math.abs(dy)) >= 8) {
+            state.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+            if (state.axis === "x") {
+                dragged.current = true;
+                event.currentTarget.setPointerCapture?.(event.pointerId);
+            }
+        }
+        if (state.axis === "x") setOffset(Math.max(0, dx));
+    };
+    const end = (event: PointerEvent<HTMLLIElement>) => {
+        const state = drag.current;
+        drag.current = null;
+        setOffset(0);
+        if (state?.axis !== "x") return;
+        const dx = event.clientX - state.x;
+        const width = event.currentTarget.getBoundingClientRect().width;
+        if (width > 0 && dx >= width / 3 && dx > Math.abs(event.clientY - state.y)) onPurchase();
+    };
+
+    return (
+        <li
+            className="touch-pan-y"
+            style={offset ? { transform: `translateX(${offset}px)` } : undefined}
+            onPointerDown={start}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={() => { drag.current = null; setOffset(0); }}
+        >
+            <div className="flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker">
+                <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="break-words text-item">{item.name}</span>
+                    <span className="text-caption text-ink-muted">
+                        {[quantityLabel(item), zone].filter(Boolean).join(" · ")}
+                    </span>
+                </span>
+                <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={false}
+                    aria-label={`Pick ${item.name}`}
+                    onClick={(event) => {
+                        if (!dragged.current || event.detail === 0) onPurchase();
+                        dragged.current = false;
+                    }}
+                    className="flex size-tap-cart shrink-0 items-center justify-center rounded-md text-sheen-ink"
+                >
+                    <Check aria-hidden="true" />
+                </button>
+            </div>
+        </li>
     );
 }

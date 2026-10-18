@@ -4,7 +4,7 @@
 
 # Concept Atlas
 
-Orientation map of the concept store — 16 active concepts. Each links to its full page
+Orientation map of the concept store — 19 active concepts. Each links to its full page
 (behavior, invariants, decision history); code locations live in the matching
 `.nexus/anchors/<slug>.md` sidecar.
 
@@ -12,17 +12,20 @@ Orientation map of the concept store — 16 active concepts. Each links to its f
 
 - [Household Data Reads](../.nexus/concepts/household-data-reads.md) — Each page reads real data from the signed-in member's household, and reads only the minimum it shows.
 - [Page Paths](../.nexus/concepts/page-paths.md) — Every page in Magpie has its own path, and the path also names the item or store the page shows.
-- [Household Data Writes](../.nexus/concepts/household-data-writes.md) — The Add store sheet, the Item page and the List page's add drawer save household data.
-- [Household Membership](../.nexus/concepts/household-membership.md) — A membership record ties one signed-in account to one household.
+- [Household Data Writes](../.nexus/concepts/household-data-writes.md) — The Add store sheet, the Item page and the List page's add drawer save household data and wait for the server to confirm.
 - [Item Page](../.nexus/concepts/item-page.md) — One Item page serves both a new item and an existing item, each at its own path.
-- [Trip Store](../.nexus/concepts/trip-store.md) — Shop starts at the store choice, and the chosen store is part of the in-store view's path.
 - [Back Navigation](../.nexus/concepts/back-navigation.md) — Going back with the phone's or browser's back action follows the order the user moved in.
+- [Household Membership](../.nexus/concepts/household-membership.md) — A membership record ties one signed-in account to one household.
+- [Inventory Page](../.nexus/concepts/inventory-page.md) — The Inventory page lists every item the household has recorded, by name, whether or not the item is on the list.
 - [Map Editor Page](../.nexus/concepts/map-editor-page.md) — The Map editor is the page for drawing one store's map.
 - [Page Frames](../.nexus/concepts/page-frames.md) — Pages come in two frames.
+- [Trip Store](../.nexus/concepts/trip-store.md) — Shop starts at the store choice, and the chosen store is part of the in-store view's path.
 - [Sign-in Gate](../.nexus/concepts/sign-in-gate.md) — Every page except Sign-in first checks that the user is signed in and is a member of the household.
 - [Add Items Drawer](../.nexus/concepts/add-items-drawer.md) — The Add item button on the List page opens a drawer from the bottom of the screen.
 - [Add Store Sheet](../.nexus/concepts/add-store-sheet.md) — The Add store sheet opens over the Stores page and saves a new store with a name and a chain.
-- [Add Box Suggestions](../.nexus/concepts/add-box-suggestions.md) — While a line is typed in the add drawer, up to 4 of the household's items that match it show under the text box.
 - [Item Category](../.nexus/concepts/item-category.md) — An item has one category: none, or one of the six zone kinds.
+- [Add Box Suggestions](../.nexus/concepts/add-box-suggestions.md) — While a line is typed in the add drawer, up to 4 of the household's items that match it show under the text box.
 - [Item Save](../.nexus/concepts/item-save.md) — Done on the Item page saves a new item onto the list, or saves an edit to an existing item, then returns to List.
+- [List Category Groups](../.nexus/concepts/list-category-groups.md) — The List page shows the shopping list under category headings, with "No category" last.
 - [Map Draft](../.nexus/concepts/map-draft.md) — The map draft is the copy of a store's map that the Map editor holds on screen.
+- [Map Zone Editing](../.nexus/concepts/map-zone-editing.md) — In the Map editor, the map author moves, resizes and removes zones by touch on a canvas that fills the screen.

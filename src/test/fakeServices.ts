@@ -95,7 +95,8 @@ export class FakeServices implements Services {
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
     private onList(householdId: string): Item[] {
-        return this.household(householdId).items.filter((item) => item.onList);
+        // Sorted by name, as the Firestore list read is.
+        return this.allItems(householdId).filter((item) => item.onList);
     }
 
     private allItems(householdId: string): Item[] {
@@ -168,6 +169,12 @@ export class FakeServices implements Services {
             this.save(() => {
                 const household = this.household(householdId);
                 household.items = household.items.map(existing => existing.id === itemId ? { ...existing, onList } : existing);
+                this.itemsChanged(householdId);
+            }),
+        setCategory: (householdId, itemId, category) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.map(existing => existing.id === itemId ? { ...existing, category } : existing);
                 this.itemsChanged(householdId);
             }),
         // Like the rules, refuses a purchase of an item that is not on the list.

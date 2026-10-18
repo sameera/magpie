@@ -113,6 +113,11 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, se
             onPointerCancel={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }}
             onLostPointerCapture={event => { if (gesture.current?.pointerId === event.pointerId) cancel(); }}
         >
+            {map.zones.map(zone => <g key={zone.id} data-place={zone.id} pointerEvents="none">
+                <circle cx={zone.x + 5} cy={zone.y + 5} r={3.5} fill="var(--surface)" stroke="var(--berry)" strokeWidth={0.6} />
+                <text x={zone.x + 5} y={zone.y + 5} textAnchor="middle" dominantBaseline="middle"
+                    fontSize={3.5} fontWeight={700} fill="var(--ink)">{zone.order + 1}</text>
+            </g>)}
             {map.zones.map(zone => (
                 <rect key={zone.id} role="button" tabIndex={0} aria-label={`Move ${zone.label}`} aria-pressed={zone.id === selectedId}
                     data-edit-zone={zone.id} x={zone.x} y={zone.y} width={zone.width} height={zone.height} rx={1.5}

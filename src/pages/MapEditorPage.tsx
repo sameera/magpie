@@ -7,7 +7,7 @@ import { StoreMap } from "../components/StoreMap";
 import { useFileUrl, useStore } from "../data/hooks";
 import type { Store, StoreMapData } from "../data/model";
 import { ZoneEditingLayer } from "./ZoneEditingLayer";
-import { addDraftZone, removeDraftZone } from "./zoneDraft";
+import { addDraftZone, moveDraftPlace, normalizeDraftOrder, removeDraftZone } from "./zoneDraft";
 import { RemoveZoneSheet } from "./RemoveZoneSheet";
 import { defaultDots } from "./editorDots";
 
@@ -50,7 +50,7 @@ export function MapEditorPage() {
 // Drafts stay in the editor: saving maps comes with the Maps feature epic.
 function Editor({ store }: { store: Store }) {
     const [mode, setMode] = useState<Mode>(store.map ? "label" : "sketch");
-    const [map, setMap] = useState<StoreMapData>(() => store.map ?? addDraftZone(emptyMap));
+    const [map, setMap] = useState<StoreMapData>(() => store.map ? normalizeDraftOrder(store.map) : addDraftZone(emptyMap));
     const [dots, setDots] = useState(() => defaultDots(store.map ?? emptyMap));
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDot, setSelectedDot] = useState<"entrance" | "checkout" | null>(null);
@@ -148,15 +148,28 @@ function Editor({ store }: { store: Store }) {
             {mode === "label" && (
                 <section aria-label="Zone labels" className="flex min-h-0 max-h-[25dvh] flex-col gap-3 overflow-y-auto overscroll-contain">
                     {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to label it.</p>}
-                    {map.zones.map((zone, index) => (
-                        <label key={zone.id} className="flex shrink-0 flex-col gap-1 text-caption text-ink-muted">
-                            {`Zone ${index + 1}`}
+                    {[...map.zones].sort((a, b) => a.order - b.order).map(zone => (
+                        <div key={zone.id} className="flex shrink-0 items-end gap-2">
+                        <label className="flex min-w-0 flex-1 flex-col gap-1 text-caption text-ink-muted">
+                            {`Zone ${zone.order + 1}`}
                             <input
                                 className="h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-body text-ink"
                                 value={zone.label}
                                 onChange={(e) => relabel(zone.id, e.target.value)}
                             />
                         </label>
+                        <label className="flex shrink-0 flex-col gap-1 text-caption text-ink-muted">
+                            Place
+                            <select aria-label={`Walking place of ${zone.label}`} value={zone.order + 1}
+                                className="h-tap min-w-tap rounded-md border-2 border-line-strong bg-surface-sunken px-2 text-body text-ink"
+                                onChange={event => {
+                                    const place = Number(event.target.value) - 1;
+                                    setMap(current => moveDraftPlace(current, zone.id, place));
+                                }}>
+                                {map.zones.map((_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}
+                            </select>
+                        </label>
+                        </div>
                     ))}
                 </section>
             )}

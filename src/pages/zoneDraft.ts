@@ -17,5 +17,24 @@ export function addDraftZone(map: StoreMapData): StoreMapData {
 }
 
 export function removeDraftZone(map: StoreMapData, id: string): StoreMapData {
-    return { ...map, zones: map.zones.filter(zone => zone.id !== id) };
+    return normalizeDraftOrder({ ...map, zones: map.zones.filter(zone => zone.id !== id) });
+}
+
+// Sort only to assign places; keep the original sequence for drawing layers.
+export function normalizeDraftOrder(map: StoreMapData): StoreMapData {
+    return assignOrder(map, [...map.zones].sort((a, b) => a.order - b.order));
+}
+
+function assignOrder(map: StoreMapData, ordered: Zone[]): StoreMapData {
+    const places = new Map(ordered.map((zone, index) => [zone.id, index]));
+    return { ...map, zones: map.zones.map(zone => ({ ...zone, order: places.get(zone.id)! })) };
+}
+
+export function moveDraftPlace(map: StoreMapData, id: string, place: number): StoreMapData {
+    const ordered = [...map.zones].sort((a, b) => a.order - b.order);
+    const index = ordered.findIndex(zone => zone.id === id);
+    if (index < 0 || !Number.isInteger(place) || place < 0 || place >= ordered.length) return map;
+    const [zone] = ordered.splice(index, 1);
+    ordered.splice(place, 0, zone);
+    return assignOrder(map, ordered);
 }

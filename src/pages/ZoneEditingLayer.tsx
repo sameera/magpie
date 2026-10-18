@@ -121,7 +121,8 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, se
             {map.zones.map(zone => (
                 <rect key={zone.id} role="button" tabIndex={0} aria-label={`Move ${zone.label}`} aria-pressed={zone.id === selectedId}
                     data-edit-zone={zone.id} x={zone.x} y={zone.y} width={zone.width} height={zone.height} rx={1.5}
-                    fill="transparent" stroke={zone.id === selectedId ? "var(--ink)" : "none"} strokeWidth={1}
+                    fill="transparent" stroke={zone.id === selectedId ? "var(--sheen-ink)" : "none"} strokeWidth={3}
+                    vectorEffect="non-scaling-stroke"
                     onKeyDown={event => {
                         if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(zone.id); }
                         if (event.key === "Escape") onSelect(null);
@@ -138,8 +139,8 @@ export function ZoneEditingLayer({ map, selectedId, onSelect, onChange, dots, se
                             const delta = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
                             if (delta) { event.preventDefault(); onChange(resizeZone(selected, edge, delta[0], delta[1], map)); }
                         }} />
-                    <circle cx={x} cy={y} r={4 / scale} fill="var(--surface)" stroke="var(--ink)"
-                        strokeWidth={2 / scale} pointerEvents="none" />
+                    <circle cx={x} cy={y} r={7.5 / scale} fill="var(--surface)" stroke="var(--sheen-ink)"
+                        strokeWidth={3 / scale} pointerEvents="none" />
                 </g>;
             })}
             {(["entrance", "checkout"] as const).map(dot => {

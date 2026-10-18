@@ -44,7 +44,9 @@ export function StoreMap({ map, label, nextZoneId, scanUrl }: StoreMapProps) {
                         textAnchor="middle"
                         dominantBaseline="middle"
                         fontSize={Math.min(4, zone.height / 3)}
+                        fontFamily="var(--font-display)"
                         fontWeight={700}
+                        letterSpacing="0.04em"
                         fill="var(--ink)"
                     >
                         {zone.label.toUpperCase()}

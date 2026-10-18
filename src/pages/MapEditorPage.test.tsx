@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { routes } from "../app/routes";
 import { renderApp } from "../test/renderApp";
+import { FakeServices } from "../test/fakeServices";
 
 function findRoute(path: string, list = routes): (typeof routes)[number] | undefined {
     for (const route of list) {
@@ -35,15 +36,34 @@ describe("Map editor page", () => {
         const user = userEvent.setup();
         renderApp(["/stores/s2/map"]);
         await screen.findByRole("heading", { name: "Map of Safeway Main St" });
-        expect(screen.getByText(/This store has no map yet/)).toBeInTheDocument();
+        expect(screen.queryByText(/This store has no map yet/)).toBeNull();
+        expect(screen.getByRole("img", { name: "Map of Safeway Main St" }).querySelectorAll("[data-zone]")).toHaveLength(1);
+        expect(screen.getByRole("button", { name: "Entrance" })).toHaveTextContent("IN");
+        expect(screen.getByRole("button", { name: "Checkout" })).toHaveTextContent("PAY");
         expect(screen.getByLabelText("Scan a map")).toHaveAttribute("type", "file");
         await user.click(screen.getByRole("button", { name: "Start a sketch" }));
-        await user.click(screen.getByRole("button", { name: "Add zone" }));
         await user.click(screen.getByRole("button", { name: "Label zones" }));
         const label = within(screen.getByRole("region", { name: "Zone labels" })).getByLabelText("Zone 1");
         await user.clear(label);
         await user.type(label, "Produce");
         expect(within(screen.getByRole("img", { name: "Map of Safeway Main St" })).getByText("PRODUCE")).toBeInTheDocument();
+    });
+
+    it("adds only the two selectable dots to an empty stored map and never offers dot tools", async () => {
+        const services = new FakeServices();
+        services.households.get("h1")!.stores[0].map!.zones = [];
+        const original = structuredClone(services.households.get("h1")!.stores[0]);
+        renderApp(["/stores/s1/map"], services);
+        const entrance = await screen.findByRole("button", { name: "Entrance" });
+        expect(screen.getByRole("img", { name: "Map of Costco Kirkland" }).querySelectorAll("[data-zone]")).toHaveLength(0);
+        for (const dot of [entrance, screen.getByRole("button", { name: "Checkout" })]) {
+            dot.focus();
+            await userEvent.keyboard("{Enter}");
+            expect(dot).toHaveAttribute("aria-pressed", "true");
+            expect(screen.queryByRole("button", { name: /Remove|Resize|Add entrance|Add checkout/i })).toBeNull();
+        }
+        expect(screen.getByText("Saving maps is coming soon.")).toBeInTheDocument();
+        expect(services.households.get("h1")!.stores[0]).toEqual(original);
     });
 
     it("returns to the same store's Store page when left", async () => {

@@ -24,7 +24,7 @@ async function open(kind: ZoneKind | null = "bakery") {
     services.households.get("h1")!.stores[0].map!.zones[0].kind = kind;
     const original = structuredClone(services.households.get("h1")!.stores[0]);
     const app = renderApp(["/stores/s1/map"], services);
-    await screen.findByRole("heading", { name: "Map of Costco Kirkland" });
+    await screen.findByRole("heading", { name: "Edit map" });
     return { ...app, original };
 }
 
@@ -69,7 +69,7 @@ describe("zone gestures in the editor", () => {
     });
     it("cancels removal without changing the map or selection, including in sketch mode", async () => {
         await open();
-        await userEvent.click(screen.getByRole("button", { name: "Back to sketch" }));
+        await userEvent.click(screen.getByRole("button", { name: "Sketch" }));
         const target = screen.getByRole("button", { name: "Move Bakery" });
         pointer(target, "Down", 20, 20); pointer(target, "Up", 20, 20);
         const before = screen.getByRole("img", { name: "Map of Costco Kirkland" }).outerHTML;
@@ -102,7 +102,7 @@ describe("zone gestures in the editor", () => {
     });
     it("creates zones at least 15 map units in both dimensions", async () => {
         await open();
-        await userEvent.click(screen.getByRole("button", { name: "Back to sketch" }));
+        await userEvent.click(screen.getByRole("button", { name: "Sketch" }));
         await userEvent.click(screen.getByRole("button", { name: "Add zone" }));
         const added = screen.getByRole("img", { name: "Map of Costco Kirkland" }).querySelectorAll("[data-zone] rect")[2];
         expect(Number(added.getAttribute("height"))).toBeGreaterThanOrEqual(15);
@@ -152,7 +152,7 @@ describe("zone gestures in the editor", () => {
     });
     it("also edits in sketch mode and discards the draft on leaving", async () => {
         const { router } = await open();
-        await userEvent.click(screen.getByRole("button", { name: "Back to sketch" }));
+        await userEvent.click(screen.getByRole("button", { name: "Sketch" }));
         const target = screen.getByRole("button", { name: "Move Bakery" });
         pointer(target, "Down", 20, 20); pointer(target, "Up", 40, 40);
         expect(rect()).toHaveAttribute("x", "10");

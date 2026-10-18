@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 export function RemoveZoneSheet({ label, onConfirm, onCancel }: { label: string; onConfirm: () => void; onCancel: () => void }) {
@@ -10,18 +11,22 @@ export function RemoveZoneSheet({ label, onConfirm, onCancel }: { label: string;
         else element.setAttribute("open", ""); // DOM-only test environment.
         return () => { if (previous?.isConnected) previous.focus(); };
     }, []);
-    const buttonClass = "h-tap rounded-md border-2 bg-surface text-button";
+    const buttonClass = "inline-flex h-tap items-center justify-center gap-2 rounded-md border-2 px-3.5 text-button";
     return (
         <dialog ref={dialog} aria-label={`Remove ${label}?`}
-            className="mx-auto mt-auto mb-0 w-full max-w-[560px] rounded-t-lg bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-ink shadow-float backdrop:bg-scrim"
+            className="mx-auto mt-auto mb-0 w-full max-w-[560px] rounded-t-lg bg-surface px-4 pt-2.5 pb-[calc(28px+env(safe-area-inset-bottom))] text-ink shadow-float backdrop:bg-scrim"
             onCancel={event => { event.preventDefault(); onCancel(); }}
             onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); onCancel(); } }}
             onClick={event => { if (event.target === event.currentTarget) onCancel(); }}>
             <div className="flex flex-col gap-4">
-                <h2 className="font-display text-heading">Remove {label}?</h2>
-                <p className="text-body">This zone will be removed from the draft map.</p>
-                <button type="button" className={`${buttonClass} border-danger text-danger`} onClick={onConfirm}>Remove zone</button>
-                <button type="button" autoFocus className={`${buttonClass} border-line-strong`} onClick={onCancel}>Cancel</button>
+                <span aria-hidden="true" className="h-1 w-10 self-center rounded-pill bg-line" />
+                <h2 className="font-display text-title">Remove {label}?</h2>
+                <p className="text-body text-ink-muted">This zone will be removed from the draft map.</p>
+                <button type="button" className={`${buttonClass} border-danger text-danger`} onClick={onConfirm}>
+                    <Trash2 aria-hidden="true" />
+                    Remove zone
+                </button>
+                <button type="button" autoFocus className={`${buttonClass} border-line-strong bg-surface`} onClick={onCancel}>Cancel</button>
             </div>
         </dialog>
     );

@@ -105,7 +105,7 @@ Magpie has no logo yet. Set the name in `display` (Bricolage Grotesque, 800) in 
 
 ## Store maps
 
-- Canvas `surface-sunken`. Zones are rounded rectangles in `zone-*` with a `zone-edge` outline and an uppercase `zone-label`.
+- Canvas `surface-sunken`. In the Map editor the canvas carries a 20px dot grid in `canvas-dot`, a guide for drawing. Zones are rounded rectangles in `zone-*` with a `zone-edge` outline and an uppercase `zone-label`.
 - A scanned map sits under the zones as a photo layer at 35% opacity so zone colors still read.
 - The route is a dotted `berry` line. Stops are numbered discs: `surface` with a `berry` ring (to do), `trinket` with an `ink` ring (next), `sheen` with a tick (done).
 - The entrance is an `ink` pill reading "IN".

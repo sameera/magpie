@@ -22,27 +22,52 @@ describe("Map editor page", () => {
     it("opens for the store from the Store page's edit control", async () => {
         const { router } = renderApp(["/stores/s1"]);
         await userEvent.setup().click(screen.getByRole("link", { name: "Edit map" }));
-        expect(await screen.findByRole("heading", { name: "Map of Costco Kirkland" })).toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: "Edit map" })).toBeInTheDocument();
         expect(router.state.location.pathname).toBe("/stores/s1/map");
     });
 
     it("uses the whole screen, with no main navigation", async () => {
         renderApp(["/stores/s1/map"]);
-        await screen.findByRole("heading", { name: "Map of Costco Kirkland" });
+        await screen.findByRole("heading", { name: "Edit map" });
         expect(screen.queryByRole("navigation", { name: "Main" })).toBeNull();
+    });
+
+    it("names the store above the title and counts the zones", async () => {
+        renderApp(["/stores/s1/map"]);
+        const heading = await screen.findByRole("heading", { level: 1, name: "Edit map" });
+        const header = heading.closest("header")!;
+        expect(within(header).getByText("Costco Kirkland map")).toBeInTheDocument();
+        expect(within(header).getByText(/^2 zones/)).toBeInTheDocument();
+        expect(within(header).getByText("Saving maps is coming soon.")).toBeInTheDocument();
+    });
+
+    it("keeps the map tools in one bar that shows the current mode", async () => {
+        const user = userEvent.setup();
+        renderApp(["/stores/s1/map"]);
+        const tools = await screen.findByRole("toolbar", { name: "Map tools" });
+        const sketch = within(tools).getByRole("button", { name: "Sketch" });
+        const label = within(tools).getByRole("button", { name: "Label" });
+        expect(within(tools).getByRole("button", { name: "Add zone" })).toBeInTheDocument();
+        expect(within(tools).getByLabelText("Map photo")).toHaveAttribute("type", "file");
+        expect(label).toHaveAttribute("aria-pressed", "true");
+        expect(sketch).toHaveAttribute("aria-pressed", "false");
+        await user.click(sketch);
+        expect(sketch).toHaveAttribute("aria-pressed", "true");
+        expect(label).toHaveAttribute("aria-pressed", "false");
+        expect(screen.queryByRole("region", { name: "Zone labels" })).toBeNull();
     });
 
     it("lets the user start a sketch, start from a scan, and label zones", async () => {
         const user = userEvent.setup();
         renderApp(["/stores/s2/map"]);
-        await screen.findByRole("heading", { name: "Map of Safeway Main St" });
+        await screen.findByRole("heading", { name: "Edit map" });
         expect(screen.queryByText(/This store has no map yet/)).toBeNull();
         expect(screen.getByRole("img", { name: "Map of Safeway Main St" }).querySelectorAll("[data-zone]")).toHaveLength(1);
         expect(screen.getByRole("button", { name: "Entrance" })).toHaveTextContent("IN");
         expect(screen.getByRole("button", { name: "Checkout" })).toHaveTextContent("PAY");
-        expect(screen.getByLabelText("Scan a map")).toHaveAttribute("type", "file");
-        await user.click(screen.getByRole("button", { name: "Start a sketch" }));
-        await user.click(screen.getByRole("button", { name: "Label zones" }));
+        expect(screen.getByLabelText("Map photo")).toHaveAttribute("type", "file");
+        await user.click(screen.getByRole("button", { name: "Sketch" }));
+        await user.click(screen.getByRole("button", { name: "Label" }));
         const label = within(screen.getByRole("region", { name: "Zone labels" })).getByLabelText("Zone 1");
         await user.clear(label);
         await user.type(label, "Produce");
@@ -70,7 +95,7 @@ describe("Map editor page", () => {
         const user = userEvent.setup();
         const { router } = renderApp(["/stores/s1"]);
         await act(() => router.navigate("/stores/s1/map"));
-        await screen.findByRole("heading", { name: "Map of Costco Kirkland" });
+        await screen.findByRole("heading", { name: "Edit map" });
         await user.click(screen.getByRole("button", { name: "Close map editor" }));
         expect(router.state.location.pathname).toBe("/stores/s1");
         expect(router.state.historyAction).toBe("POP");
@@ -78,7 +103,7 @@ describe("Map editor page", () => {
 
     it("returns to the Store page when opened from a saved link", async () => {
         const { router } = renderApp(["/stores/s1/map"]);
-        await screen.findByRole("heading", { name: "Map of Costco Kirkland" });
+        await screen.findByRole("heading", { name: "Edit map" });
         await userEvent.setup().click(screen.getByRole("button", { name: "Close map editor" }));
         expect(router.state.location.pathname).toBe("/stores/s1");
         expect(router.state.historyAction).toBe("REPLACE");

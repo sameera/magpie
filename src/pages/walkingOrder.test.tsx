@@ -1,0 +1,38 @@
+import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { expect, it } from "vitest";
+import { FakeServices } from "../test/fakeServices";
+import { renderApp } from "../test/renderApp";
+
+it("normalizes gaps and ties, reorders stably without changing drawing order, and closes gaps on removal", async () => {
+    const services = new FakeServices();
+    const map = services.households.get("h1")!.stores[0].map!;
+    map.zones[0].order = 8;
+    map.zones[1].order = 2;
+    map.zones.push({ ...map.zones[1], id: "fruit", label: "Fruit", order: 2 });
+    const original = structuredClone(map);
+    renderApp(["/stores/s1/map"], services);
+    const user = userEvent.setup();
+    await screen.findByRole("heading", { name: "Map of Costco Kirkland" });
+    const labels = () => screen.getAllByRole("textbox").map(input => (input as HTMLInputElement).value);
+    const badges = () => Array.from(document.querySelectorAll("[data-place]")).map(node => node.textContent);
+    expect(labels()).toEqual(["Dairy", "Fruit", "Bakery"]);
+    expect(badges()).toEqual(["3", "1", "2"]);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Walking place of Bakery" }), "1");
+    expect(labels()).toEqual(["Bakery", "Dairy", "Fruit"]);
+    expect(badges()).toEqual(["1", "2", "3"]);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Walking place of Bakery" }), "3");
+    expect(labels()).toEqual(["Dairy", "Fruit", "Bakery"]);
+    expect(badges()).toEqual(["3", "1", "2"]);
+    screen.getByRole("button", { name: "Move Dairy" }).focus();
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByRole("button", { name: "Remove Dairy" }));
+    await user.click(screen.getByRole("button", { name: "Remove zone" }));
+    expect(labels()).toEqual(["Fruit", "Bakery"]);
+    expect(badges()).toEqual(["2", "1"]);
+    await user.click(screen.getByRole("button", { name: "Back to sketch" }));
+    expect(screen.queryByRole("combobox")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Add zone" }));
+    expect(badges()).toEqual(["2", "1", "3"]);
+    expect(services.households.get("h1")!.stores[0].map).toEqual(original);
+});

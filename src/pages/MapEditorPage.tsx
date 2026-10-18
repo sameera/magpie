@@ -1,5 +1,5 @@
-import { Camera, Pencil, Plus, Tag, Trash2, X } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
+import { Image as ImageIcon, Pencil, Plus, Tag, Trash2 } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
@@ -30,25 +30,20 @@ export function MapEditorPage() {
     }
     return (
         <main className="flex h-dvh flex-col overflow-hidden bg-paper text-ink">
-            <header className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-2 pt-[env(safe-area-inset-top)]">
-                <UpButton to={parent} label="Close map editor">
-                    <X aria-hidden="true" />
-                </UpButton>
-                <h1 className="flex-1 font-display text-heading">
-                    {store.status === "ready" ? `Map of ${store.value.name}` : "Map"}
-                </h1>
-            </header>
-            {store.status === "loading" ? (
-                <p className="p-4 text-body text-ink-muted">Loading the map…</p>
+            {store.status === "ready" ? (
+                <Editor key={store.value.id} store={store.value} parent={parent} />
             ) : (
-                <Editor key={store.value.id} store={store.value} />
+                <>
+                    <EditorHeader parent={parent} />
+                    <p className="p-4 text-body text-ink-muted">Loading the map…</p>
+                </>
             )}
         </main>
     );
 }
 
 // Drafts stay in the editor: saving maps comes with the Maps feature epic.
-function Editor({ store }: { store: Store }) {
+function Editor({ store, parent }: { store: Store; parent: string }) {
     const [mode, setMode] = useState<Mode>(store.map ? "label" : "sketch");
     const [map, setMap] = useState<StoreMapData>(() => store.map ? normalizeDraftOrder(store.map) : addDraftZone(emptyMap));
     const [dots, setDots] = useState(() => defaultDots(store.map ?? emptyMap));
@@ -100,89 +95,83 @@ function Editor({ store }: { store: Store }) {
     const relabel = (id: string, label: string) =>
         setMap({ ...map, zones: map.zones.map((zone) => (zone.id === id ? { ...zone, label } : zone)) });
 
-    const toolClass: string = "inline-flex h-tap flex-1 items-center justify-center gap-2 rounded-md border-2 border-line-strong bg-surface text-button";
     const removeControl = selected && (
         <button type="button" aria-label={`Remove ${selected.label}`} title={`Remove ${selected.label}`}
-            className="inline-flex h-tap min-w-0 flex-1 items-center justify-center gap-2 rounded-md border-2 border-danger bg-surface px-2 text-button text-danger"
+            className="inline-flex h-tap w-full shrink-0 items-center justify-center gap-2 rounded-md border-2 border-danger px-3.5 text-button text-danger"
             onClick={() => setConfirmRemoval(true)}>
             <Trash2 aria-hidden="true" className="shrink-0" />
             <span className="truncate">Remove {selected.label}</span>
         </button>
     );
+    const count = map.zones.length;
 
     return (
-        <div className="mx-auto flex min-h-0 w-full max-w-[560px] flex-1 flex-col gap-4 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] [@media(max-height:480px)]:gap-1">
-                <div className="relative min-h-[80px] flex-1 rounded-lg bg-surface-sunken">
-                    <div ref={canvas} className="absolute inset-8 [&>svg]:h-full [&>svg]:w-full">
+        <>
+            <EditorHeader parent={parent} storeName={store.name}>
+                {count} {count === 1 ? "zone" : "zones"} · <span>Saving maps is coming soon.</span>
+            </EditorHeader>
+            <div className="mx-auto flex min-h-0 w-full max-w-[560px] flex-1 flex-col gap-3 px-4 pb-3 [@media(max-height:480px)]:gap-1">
+                <div className="relative min-h-[80px] flex-1 rounded-lg bg-surface-sunken bg-[radial-gradient(circle,var(--canvas-dot)_1.2px,transparent_1.6px)] [background-size:20px_20px]">
+                    <div ref={canvas} className="absolute inset-8 [&>svg]:h-full [&>svg]:w-full [&>svg]:bg-transparent">
                         <StoreMap map={map} label={`Map of ${store.name}`} scanUrl={scanUrl} />
                         <ZoneEditingLayer map={map} selectedId={selectedId} onSelect={id => { setSelectedId(id); setSelectedDot(null); }}
                             dots={dots} selectedDot={selectedDot} onSelectDot={dot => { setSelectedId(null); setSelectedDot(dot); }}
                             onChangeDot={(dot, shape) => setDots(current => ({ ...current, [dot]: shape }))}
                             onChange={changed => setMap(current => ({ ...current, zones: current.zones.map(zone => zone.id === changed.id ? changed : zone) }))} />
                     </div>
+                    {mode === "sketch" && !selected && (
+                        <p className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+                            <span className="rounded-pill bg-surface px-3 py-1.5 text-caption font-semibold shadow-sticker">Drag to move · Tap to select</span>
+                        </p>
+                    )}
                 </div>
-            <div className="flex shrink-0 gap-2">
-                <button type="button" className={toolClass} onClick={() => setMode("sketch")}>
-                    <Pencil aria-hidden="true" />
-                    Start a sketch
-                </button>
-                <label className={`${toolClass} cursor-pointer`}>
-                    <Camera aria-hidden="true" />
-                    Scan a map
-                    <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onScan} />
-                </label>
+                {mode === "label" && (
+                    <section aria-label="Zone labels" className="flex min-h-0 max-h-[25dvh] flex-col gap-3 overflow-y-auto overscroll-contain">
+                        {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to label it.</p>}
+                        {[...map.zones].sort((a, b) => a.order - b.order).map(zone => (
+                            <div key={zone.id} className="flex shrink-0 items-end gap-2">
+                                <label className={`flex-1 ${fieldClass}`}>
+                                    {`Zone ${zone.order + 1}`}
+                                    <input className={inputClass} value={zone.label} onChange={(e) => relabel(zone.id, e.target.value)} />
+                                </label>
+                                <label className={`shrink-0 ${fieldClass}`}>
+                                    Place
+                                    <select aria-label={`Walking place of ${zone.label}`} value={zone.order + 1}
+                                        className={`min-w-tap ${inputClass}`}
+                                        onChange={event => {
+                                            const place = Number(event.target.value) - 1;
+                                            setMap(current => moveDraftPlace(current, zone.id, place));
+                                        }}>
+                                        {map.zones.map((_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}
+                                    </select>
+                                </label>
+                            </div>
+                        ))}
+                    </section>
+                )}
+                {removeControl}
             </div>
-            {mode === "sketch" && (
-                <div className="flex shrink-0 gap-2">
+            <div className="shrink-0 border-t border-line bg-surface px-2 pt-1.5 pb-[calc(10px+env(safe-area-inset-bottom))]">
+                <div role="toolbar" aria-label="Map tools" className="mx-auto grid max-w-[560px] grid-cols-4 gap-1">
+                    <button type="button" aria-pressed={mode === "sketch"} className={toolClass} onClick={() => setMode("sketch")}>
+                        <ToolIcon><Pencil aria-hidden="true" /></ToolIcon>
+                        Sketch
+                    </button>
+                    <button type="button" aria-pressed={mode === "label"} className={toolClass} onClick={() => setMode("label")}>
+                        <ToolIcon><Tag aria-hidden="true" /></ToolIcon>
+                        Label
+                    </button>
                     <button type="button" className={toolClass} onClick={addZone}>
-                        <Plus aria-hidden="true" />
+                        <ToolIcon><Plus aria-hidden="true" /></ToolIcon>
                         Add zone
                     </button>
-                    <button type="button" className={toolClass} onClick={() => setMode("label")}>
-                        <Tag aria-hidden="true" />
-                        Label zones
-                    </button>
-                    {removeControl}
+                    <label className={`${toolClass} cursor-pointer has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus`}>
+                        <ToolIcon><ImageIcon aria-hidden="true" /></ToolIcon>
+                        Map photo
+                        <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onScan} />
+                    </label>
                 </div>
-            )}
-            {mode === "label" && (
-                <section aria-label="Zone labels" className="flex min-h-0 max-h-[25dvh] flex-col gap-3 overflow-y-auto overscroll-contain">
-                    {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to label it.</p>}
-                    {[...map.zones].sort((a, b) => a.order - b.order).map(zone => (
-                        <div key={zone.id} className="flex shrink-0 items-end gap-2">
-                        <label className="flex min-w-0 flex-1 flex-col gap-1 text-caption text-ink-muted">
-                            {`Zone ${zone.order + 1}`}
-                            <input
-                                className="h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3 text-body text-ink"
-                                value={zone.label}
-                                onChange={(e) => relabel(zone.id, e.target.value)}
-                            />
-                        </label>
-                        <label className="flex shrink-0 flex-col gap-1 text-caption text-ink-muted">
-                            Place
-                            <select aria-label={`Walking place of ${zone.label}`} value={zone.order + 1}
-                                className="h-tap min-w-tap rounded-md border-2 border-line-strong bg-surface-sunken px-2 text-body text-ink"
-                                onChange={event => {
-                                    const place = Number(event.target.value) - 1;
-                                    setMap(current => moveDraftPlace(current, zone.id, place));
-                                }}>
-                                {map.zones.map((_, index) => <option key={index} value={index + 1}>{index + 1}</option>)}
-                            </select>
-                        </label>
-                        </div>
-                    ))}
-                </section>
-            )}
-            {mode === "label" && (
-                <div className="flex shrink-0 gap-2">
-                    <button type="button" className={toolClass} onClick={() => setMode("sketch")}>
-                        <Pencil aria-hidden="true" />
-                        Back to sketch
-                    </button>
-                    {removeControl}
-                </div>
-            )}
-            <p className="shrink-0 text-caption text-ink-muted">Saving maps is coming soon.</p>
+            </div>
             {confirmRemoval && selected && <RemoveZoneSheet label={selected.label}
                 onCancel={() => setConfirmRemoval(false)}
                 onConfirm={() => {
@@ -190,6 +179,29 @@ function Editor({ store }: { store: Store }) {
                     setSelectedId(null);
                     setConfirmRemoval(false);
                 }} />}
-        </div>
+        </>
+    );
+}
+
+// Same shape as the main nav tabs: icon in a pill, word under it; the active mode gets the sheen pill.
+const toolClass = "group grid min-h-tap-cart content-center justify-items-center gap-[3px] rounded-md text-label text-ink-muted aria-pressed:text-ink";
+const fieldClass = "flex min-w-0 flex-col gap-1.5 text-label uppercase text-ink-muted";
+const inputClass = "h-tap rounded-md border-2 border-line-strong bg-surface-sunken px-3.5 text-body normal-case tracking-normal text-ink";
+
+function ToolIcon({ children }: { children: ReactNode }) {
+    return <span className="grid h-[30px] w-14 place-items-center rounded-pill group-aria-pressed:bg-sheen group-aria-pressed:text-on-sheen">{children}</span>;
+}
+
+// Before the store loads, only the way back shows.
+function EditorHeader({ parent, storeName, children }: { parent: string; storeName?: string; children?: ReactNode }) {
+    return (
+        <header className="flex shrink-0 items-center gap-1 pt-[calc(10px+env(safe-area-inset-top))] pr-2 pb-2.5 pl-1">
+            <UpButton to={parent} label="Close map editor" />
+            {storeName && <div className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-label uppercase text-sheen-ink">{storeName} map</span>
+                <h1 className="font-display text-title">Edit map</h1>
+                <p className="text-caption text-ink-muted">{children}</p>
+            </div>}
+        </header>
     );
 }

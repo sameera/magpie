@@ -1,0 +1,1164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magpie prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=DM+Mono:wght@500&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root {
+    --paper: #f3f5fa; --surface: #ffffff; --sunken: #e6eaf3; --ink: #121521; --muted: #505870;
+    --line: #d9dee9; --line-strong: #757e97; --sheen: #00a88f; --on-sheen: #03211c; --sheen-ink: #00705f;
+    --trinket: #ffc21a; --on-trinket: #241a00; --berry: #d61f69; --missing: #ae3a0a; --danger: #c81e1e;
+    --edge: rgba(18, 21, 33, 0.35); --scrim: rgba(14, 17, 26, 0.5);
+    --dot: rgba(117, 126, 151, 0.4); --draft: rgba(0, 168, 143, 0.14);
+    --sticker: 0 3px 0 rgba(18, 21, 33, 0.14); --press: 0 4px 0 #03211c; --float: 0 10px 28px rgba(18, 21, 33, 0.18);
+    --z-produce: #c6f1dc; --z-dairy: #cde2ff; --z-bakery: #ffe6a3; --z-meat: #ffd0dd; --z-frozen: #e0d6ff; --z-pantry: #ffd9bd;
+    --f-body: Figtree, "Segoe UI", system-ui, sans-serif;
+    --f-display: "Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+    --f-mono: "DM Mono", ui-monospace, monospace;
+}
+:root[data-theme="dark"] {
+    --paper: #0e111a; --surface: #191e2b; --sunken: #080a10; --ink: #f1f3f9; --muted: #a3abc2;
+    --line: #2a3144; --line-strong: #687190; --sheen: #2ee6c5; --sheen-ink: #5cf0d4;
+    --trinket: #ffcf4d; --berry: #ff6fa6; --missing: #ff9259; --danger: #ff7a70;
+    --edge: rgba(241, 243, 249, 0.35); --scrim: rgba(0, 0, 0, 0.62);
+    --dot: rgba(104, 113, 144, 0.5); --draft: rgba(46, 230, 197, 0.14);
+    --sticker: 0 3px 0 rgba(0, 0, 0, 0.55); --press: 0 4px 0 #04463b; --float: 0 10px 28px rgba(0, 0, 0, 0.6);
+    --z-produce: #1c4a3a; --z-dairy: #1d3556; --z-bakery: #4a3b0f; --z-meat: #4f2233; --z-frozen: #352a5e; --z-pantry: #4f2f1a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); display: flex; justify-content: center; }
+button, a, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--sheen-ink); outline-offset: 2px; }
+svg.i { display: block; flex: none; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.25; }
+.app { position: relative; width: 100%; max-width: 430px; height: 100vh; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; background: var(--paper); }
+
+/* Type */
+.eyebrow { font: 700 12px/16px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--sheen-ink); }
+.label { font: 700 12px/16px var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.display { margin: 0; font: 800 34px/36px var(--f-display); letter-spacing: -0.02em; }
+.title { margin: 0; font: 700 24px/28px var(--f-display); letter-spacing: -0.01em; }
+.heading { margin: 0; font: 700 19px/24px var(--f-display); }
+.item { font: 600 18px/24px var(--f-body); }
+.caption { margin: 0; font: 500 13px/18px var(--f-body); color: var(--muted); }
+.body { margin: 0; font: 400 16px/24px var(--f-body); color: var(--muted); }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* Page frame */
+.scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.head { padding: 32px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.head.sub { padding-top: 8px; }
+.body-pad { display: flex; flex-direction: column; gap: 24px; padding: 0 16px 40px; }
+.stack { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 40px; }
+
+/* Buttons */
+.back { align-self: flex-start; display: flex; align-items: center; gap: 2px; min-height: 48px; margin-left: -8px; padding: 0 10px 0 4px; border: 0; border-radius: 14px; background: transparent; color: var(--sheen-ink); font: 700 16px/20px var(--f-body); }
+.ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 12px; border: 0; border-radius: 14px; background: transparent; color: var(--sheen-ink); text-decoration: none; font: 700 16px/20px var(--f-body); }
+.secondary { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); font: 700 16px/20px var(--f-body); }
+.danger { display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 14px; border: 2px solid var(--danger); border-radius: 14px; background: transparent; color: var(--danger); font: 700 16px/20px var(--f-body); }
+.primary { width: 100%; height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 14px; background: var(--sheen); color: var(--on-sheen); box-shadow: var(--press); font: 700 16px/20px var(--f-body); transition: transform 90ms, box-shadow 90ms; }
+.primary.sm { height: 48px; }
+.primary:active, .primary[aria-busy="true"] { transform: translateY(4px); box-shadow: none; }
+.icon-btn { width: 48px; height: 48px; flex: none; padding: 0; border: 0; border-radius: 14px; background: transparent; display: grid; place-items: center; }
+.icon-btn:disabled { color: var(--line); cursor: default; }
+.fab { position: absolute; right: 16px; bottom: 100px; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 999px; background: var(--sheen); color: var(--on-sheen); box-shadow: var(--press); display: grid; place-items: center; }
+
+/* Cards, rows, tiles */
+.card { display: flex; flex-direction: column; background: var(--surface); border-radius: 14px; box-shadow: var(--sticker); }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 72px; padding: 12px 12px 12px 16px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); text-align: left; }
+.card-btn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 80px; padding: 12px 12px 12px 16px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); text-align: left; }
+.thumb { width: 48px; height: 48px; flex: none; border-radius: 8px; display: grid; place-items: center; color: var(--muted); background: var(--sunken); }
+.thumb.grid { padding: 5px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; place-items: stretch; }
+.thumb.grid span { border-radius: 3px; border: 1px solid var(--edge); }
+.thumb.dashed { background: transparent; border: 2px dashed var(--line-strong); }
+.tile { width: 56px; height: 56px; border-radius: 14px; background: var(--sunken); color: var(--muted); display: grid; place-items: center; flex: none; }
+.badge { flex: none; padding: 3px 10px; border-radius: 999px; border: 2px solid var(--line-strong); font: 700 12px/16px var(--f-body); }
+.empty-card { padding: 24px 20px; border-radius: 22px; border: 2px dashed var(--line-strong); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.chip { display: flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1.5px solid var(--edge); font: 700 13px/18px var(--f-body); color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Pick rows (List and Shop) */
+.prow { display: flex; align-items: center; gap: 4px; min-height: 72px; padding-right: 4px; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); border: 2px solid var(--surface); }
+.prow.picked { background: transparent; box-shadow: none; border: 2px dashed var(--line); }
+.prow.picked .item { text-decoration: line-through; color: var(--muted); }
+.prow.missing { box-shadow: none; border: 2px dashed var(--missing); }
+.prow-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 0 10px 14px; border: 0; border-radius: 14px; background: transparent; text-align: left; }
+.miss-label { display: flex; align-items: center; gap: 4px; font: 700 13px/18px var(--f-body); color: var(--missing); }
+.check { width: 56px; height: 56px; flex: none; padding: 0; border: 0; background: transparent; border-radius: 14px; display: grid; place-items: center; }
+.box { width: 32px; height: 32px; border-radius: 8px; border: 2.5px solid var(--line-strong); display: grid; place-items: center; }
+.box.on { border: 0; background: var(--sheen); color: var(--on-sheen); }
+.box.miss { border-style: dashed; border-color: var(--missing); }
+
+/* Forms */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input, .field textarea { width: 100%; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--sunken); color: var(--ink); font: 400 16px/24px var(--f-body); }
+.field input { height: 48px; }
+.field input.big { height: 52px; font: 600 18px/24px var(--f-body); }
+.field textarea { padding: 12px 14px; resize: none; }
+.field ::placeholder { color: var(--muted); opacity: 1; }
+
+/* Main nav */
+nav.main { flex: none; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 8px calc(22px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+nav.main button { display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 56px; padding: 0; border: 0; border-radius: 14px; background: transparent; color: var(--muted); }
+nav.main .pill { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+nav.main .name { font: 700 12px/16px var(--f-body); letter-spacing: 0.02em; }
+nav.main [aria-current="page"] .pill { background: var(--sheen); color: var(--on-sheen); }
+nav.main [aria-current="page"] .name { color: var(--ink); }
+.actionbar { flex: none; padding: 12px 16px 16px; background: var(--paper); border-top: 1px solid var(--line); }
+
+/* Toasts and sheets */
+.toast { position: absolute; left: 16px; right: 16px; bottom: 104px; display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--surface); box-shadow: var(--float); }
+.toast.high { bottom: 224px; }
+.sheet-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+.sheet-wrap.bare { pointer-events: none; }
+.sheet-wrap.bare .sheet { pointer-events: auto; }
+.scrim { flex: 1; border: 0; padding: 0; background: var(--scrim); }
+.sheet { flex: none; display: flex; flex-direction: column; gap: 16px; padding: 10px 16px 28px; border-radius: 22px 22px 0 0; background: var(--surface); box-shadow: var(--float); }
+.grabber { align-self: center; width: 40px; height: 4px; border-radius: 999px; background: var(--line); }
+.sheet-head { display: flex; align-items: center; gap: 8px; }
+.sheet-head .icon-btn { margin-right: -8px; }
+.opt { min-height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); text-align: left; font: 700 16px/20px var(--f-body); }
+.opt.bad { border-color: var(--danger); color: var(--danger); background: transparent; }
+.menu-opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 8px; border: 0; border-radius: 14px; background: transparent; text-align: left; }
+.menu-opt .tile { width: 48px; height: 48px; color: var(--sheen-ink); }
+
+/* Sign-in */
+.signin { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0 24px calc(40px + env(safe-area-inset-bottom)); }
+.signin .hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
+.mascot { width: 168px; height: 168px; border-radius: 999px; overflow: hidden; background: #f3f5fa; border: 3px solid var(--ink); box-shadow: 0 6px 0 var(--ink); }
+.mascot img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.brand { margin: 12px 0 0; font: 800 48px/48px var(--f-display); letter-spacing: -0.03em; }
+.alert { display: flex; gap: 12px; padding: 16px; margin-bottom: 16px; border-radius: 22px; background: var(--surface); border: 2px solid var(--danger); }
+.alert > svg { color: var(--danger); }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* List empty */
+.list-empty { flex: 1; display: grid; place-items: center; padding: 0 16px 120px; }
+
+/* Item */
+.photo { position: relative; height: 180px; padding: 0; border: 0; border-radius: 22px; background: var(--z-dairy); overflow: hidden; display: grid; place-items: center; width: 100%; }
+.photo .tag { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--sticker); font: 700 13px/18px var(--f-body); }
+.addphoto { min-height: 96px; display: flex; align-items: center; gap: 12px; padding: 16px; border: 2px dashed var(--line-strong); border-radius: 22px; background: transparent; text-align: left; width: 100%; }
+.place { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 8px 8px 8px 16px; }
+.place + .place, .price + .price { border-top: 1px solid var(--line); }
+.zbtn { min-height: 48px; display: flex; align-items: center; padding: 0; border: 0; background: transparent; }
+.price { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
+.price .amt { font: 500 20px/24px var(--f-mono); font-variant-numeric: tabular-nums; }
+.price .unit { font: 500 13px/18px var(--f-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.trend { align-self: flex-start; display: flex; align-items: center; gap: 4px; min-height: 28px; padding: 0 10px; border-radius: 999px; font: 700 13px/18px var(--f-body); }
+.trend.down { background: var(--trinket); color: var(--on-trinket); border: 2px solid var(--ink); }
+.trend.same { border: 2px solid var(--line); color: var(--muted); }
+.trend.up { border: 2px solid var(--danger); color: var(--danger); }
+.noprice { margin: 0; padding: 16px; border-radius: 14px; border: 2px dashed var(--line); }
+.zgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.zopt { min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-radius: 14px; border: 1.5px solid var(--edge); text-align: left; font: 700 16px/20px var(--f-body); color: var(--ink); }
+.zopt[aria-checked="true"] { border: 3px solid var(--ink); }
+.zopt span { flex: 1; }
+.cchip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line-strong); background: transparent; font: 700 14px/18px var(--f-body); }
+.cchip[aria-checked="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* Store mini map */
+.mini { position: relative; height: 330px; border-radius: 22px; background: var(--sunken); overflow: hidden; }
+.mini .inner { position: absolute; left: 50%; top: 12px; width: 197px; margin-left: -98.5px; }
+.mini .z { position: absolute; padding: 4px 5px; border-radius: 6px; border: 1.5px solid var(--edge); overflow: hidden; font: 700 10px/12px var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.door { position: absolute; padding: 2px 9px; border-radius: 999px; background: var(--ink); color: var(--paper); font: 700 11px/16px var(--f-body); letter-spacing: 0.06em; pointer-events: none; }
+.mini .door { padding: 1px 7px; font-size: 10px; line-height: 14px; }
+
+/* Shop */
+.shop-head { flex: none; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.shop-head .secondary { flex: none; }
+.shop { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.zone { position: absolute; padding: 6px 7px; border-radius: 8px; overflow: hidden; font: 700 12px/14px var(--f-display); letter-spacing: 0.04em; text-transform: uppercase; }
+.smap { position: relative; flex: none; width: 358px; max-width: calc(100% - 32px); height: 220px; margin: 0 16px 12px; border-radius: 22px; background: var(--sunken); overflow: hidden; }
+.smap .zone { border: 1.5px solid var(--edge); }
+.smap svg.route { position: absolute; left: 0; top: 0; }
+.smap svg.route path { fill: none; stroke: var(--berry); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 0.1 11; }
+.stop { position: absolute; border-radius: 999px; border: 3px solid; display: grid; place-items: center; font: 700 13px/1 var(--f-body); }
+.nomap { flex: none; margin: 0 16px 12px; padding: 16px; border-radius: 22px; border: 2px dashed var(--line-strong); display: flex; align-items: center; gap: 12px; }
+.slist { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 20px; }
+.group { display: flex; flex-direction: column; gap: 8px; }
+.group h2 { display: flex; align-items: center; gap: 8px; }
+.swatch { width: 16px; height: 16px; flex: none; border-radius: 5px; border: 1.5px solid var(--edge); }
+.swatch.none { background: transparent; border: 2px dashed var(--line-strong); }
+.next { flex: none; margin: 0 16px 12px; padding: 18px 20px 20px; border-radius: 22px; background: var(--trinket); color: var(--on-trinket); box-shadow: var(--sticker); display: flex; flex-direction: column; gap: 2px; }
+.next .eyebrow { color: var(--on-trinket); }
+.next .where { display: flex; align-items: center; gap: 4px; font: 600 14px/19px var(--f-body); }
+.next .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.next .actions button { height: 56px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 14px; font: 700 16px/20px var(--f-body); }
+.btn-miss { border: 2px solid var(--on-trinket); background: transparent; color: var(--on-trinket); }
+.btn-got { border: 0; background: var(--on-trinket); color: var(--trinket); }
+.next :focus-visible { outline-color: var(--on-trinket); }
+.missing-card { padding: 16px; border-radius: 22px; background: var(--surface); box-shadow: var(--sticker); display: flex; flex-direction: column; gap: 8px; }
+.missing-card .mrow { display: flex; align-items: center; gap: 10px; min-height: 40px; color: var(--missing); }
+.sheet-store { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 8px 12px 8px 16px; border-radius: 14px; border: 2px solid var(--line-strong); background: var(--surface); text-align: left; }
+.sheet-store[aria-current="true"] { border-color: var(--sheen-ink); }
+.here { flex: none; display: flex; align-items: center; gap: 4px; font: 700 13px/18px var(--f-body); color: var(--sheen-ink); }
+
+/* Map editor */
+.ed-head { flex: none; display: flex; align-items: center; gap: 4px; padding: 10px 8px 10px 4px; }
+.dots { background-color: var(--sunken); background-image: radial-gradient(circle, var(--dot) 1.2px, transparent 1.6px); background-size: 20px 20px; border-radius: 22px; }
+.start { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 0 16px 28px; }
+.start .dots { flex: 1; min-height: 0; display: grid; place-items: center; padding: 24px; }
+.start .intro { max-width: 270px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.start .intro .tile { background: var(--surface); box-shadow: var(--sticker); color: var(--sheen-ink); }
+.start-opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 84px; padding: 12px 12px 12px 14px; border: 0; border-radius: 14px; background: var(--surface); box-shadow: var(--sticker); text-align: left; }
+.start-opt .tile { width: 48px; height: 48px; border-radius: 8px; color: var(--sheen-ink); }
+.ed-main { flex: 1; min-height: 0; display: flex; padding: 0 16px 12px; }
+.canvas { position: relative; flex: 1; min-width: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.canvas.grab { cursor: grab; }
+.canvas.cross { cursor: crosshair; }
+.canvas > * { pointer-events: none; }
+.draft { position: absolute; border-radius: 8px; background: var(--draft); border: 2.5px dashed var(--sheen-ink); display: grid; place-items: center; }
+.draft span { padding: 2px 8px; border-radius: 999px; background: var(--surface); font: 500 12px/16px var(--f-mono); }
+.handle { position: absolute; width: 18px; height: 18px; border-radius: 999px; background: var(--surface); border: 3px solid var(--sheen-ink); }
+.pill-msg { position: absolute; left: 0; right: 0; top: 12px; display: flex; justify-content: center; }
+.pill-msg span { padding: 6px 12px; border-radius: 999px; background: var(--surface); box-shadow: var(--sticker); font: 600 13px/18px var(--f-body); }
+.empty-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 32px; }
+.empty-msg p { max-width: 220px; text-align: center; }
+.tools { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--line); }
+.tool { min-height: 56px; padding: 0; border: 0; border-radius: 14px; background: transparent; display: grid; justify-items: center; align-content: center; gap: 3px; color: var(--muted); font: 700 12px/16px var(--f-body); letter-spacing: 0.02em; }
+.tool .tpill { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+.tool[aria-pressed="true"] { color: var(--ink); }
+.tool[aria-pressed="true"] .tpill { background: var(--sheen); color: var(--on-sheen); }
+.kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kind { min-height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 10px; border: 2px solid var(--line-strong); border-radius: 14px; background: var(--surface); text-align: left; font: 600 14px/18px var(--f-body); }
+.kind[aria-pressed="true"] { border-color: var(--ink); }
+.kind .sw { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 1.5px solid var(--edge); }
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+
+/* Prototype controls, outside the phone on wide screens only */
+.proto { display: none; }
+@media (min-width: 980px) {
+    body { background: var(--sunken); }
+    .app { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+    .proto { position: fixed; left: 24px; top: 24px; bottom: 24px; width: 248px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .proto h1 { margin: 0; font: 800 24px/28px var(--f-display); }
+    .proto p { margin: 0; }
+    .proto .jump { display: flex; flex-direction: column; gap: 2px; }
+    .proto .jump .label { margin-top: 10px; }
+    .proto .jump a { padding: 6px 10px; border-radius: 10px; color: var(--ink); text-decoration: none; font: 600 14px/20px var(--f-body); }
+    .proto .jump a:hover { background: var(--surface); }
+    .proto .jump a[aria-current="true"] { background: var(--surface); color: var(--sheen-ink); box-shadow: var(--sticker); }
+    .proto .row-btns { display: flex; gap: 8px; }
+    .proto .row-btns .secondary { flex: 1; height: 40px; font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<aside class="proto" aria-label="Prototype controls" id="proto"></aside>
+<div class="app" id="app"></div>
+<script>
+/* Magpie, all mockups in one tappable prototype.
+   Brings together layout/ (shell, nav, List, More sheet), app-pages/ (sign-in, Item, Stores, Store),
+   shop/ (store picker, walking-order trip, trip done) and map-editor/ (start, sketch, scan, label).
+   ?scenario=<name> opens a given state; ?theme=dark switches theme. All data is sample data. */
+
+const P = {
+    list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+    map: "M9 4L3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20",
+    more: "M4 7h16M4 12h16M4 17h16",
+    left: "M15 6l-6 6 6 6",
+    right: "M9 6l6 6-6 6",
+    chev: "M6 9l6 6 6-6",
+    plus: "M12 5v14M5 12h14",
+    check: "M5 12.5l4.5 4.5L19 7.5",
+    close: "M6 6l12 12M18 6L6 18",
+    camera: "M4 8h3l2-3h6l2 3h3v11H4V8zM12 16.5a3.5 3.5 0 100-7 3.5 3.5 0 000 7z",
+    image: "M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1zM4 16l5-5 4 4 2-2 5 5M15.5 9h.01",
+    trash: "M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13",
+    edit: "M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4",
+    alert: "M12 4L2.5 20h19L12 4zM12 10v4.5M12 17.5h.01",
+    lock: "M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 017 0v3",
+    signin: "M14 4h5a1 1 0 011 1v14a1 1 0 01-1 1h-5M10 16l4-4-4-4M14 12H4",
+    store: "M4 10l1.5-5h13L20 10M4 10v10h16V10M4 10h16M9.5 20v-5h5v5",
+    down: "M12 5v14M6 13l6 6 6-6",
+    up: "M12 19V5M6 11l6-6 6 6",
+    same: "M5 12h14",
+    spin: "M12 3a9 9 0 109 9",
+    swap: "M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7",
+    pin: "M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0113 0c0 5.4-6.5 11-6.5 11zM12 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z",
+    undo: "M9 14L4 9l5-5M4 9h10.5a5.5 5.5 0 010 11H11",
+    redo: "M15 14l5-5-5-5M20 9H9.5a5.5 5.5 0 000 11H13",
+    move: "M12 3v18M3 12h18M12 3L9 6M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3",
+    zone: "M6 4h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2zM12 8.5v7M8.5 12h7",
+    door: "M14 4h4a2 2 0 012 2v12a2 2 0 01-2 2h-4M9 16l4-4-4-4M13 12H3"
+};
+const ic = (name, size, sw, cls) => `<svg class="i ${cls || ""}" width="${size || 24}" height="${size || 24}" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:${sw || 2.25}"><path d="${P[name]}"/></svg>`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+const clone = (v) => JSON.parse(JSON.stringify(v));
+
+/* ---------- Sample data ---------- */
+
+const KIND_NAMES = { produce: "Produce", dairy: "Dairy", bakery: "Bakery", meat: "Meat & fish", frozen: "Frozen", pantry: "Pantry" };
+const KIND_ORDER = ["produce", "dairy", "bakery", "meat", "frozen", "pantry"];
+
+const STORES = [
+    { id: "s1", name: "Costco Eastgate", chain: "Costco", lastTrip: "last trip Sat", last: true },
+    { id: "s2", name: "Costco Downtown", chain: "Costco" },
+    { id: "s3", name: "Walmart Supercenter", chain: "Walmart", lastTrip: "last trip 3 weeks ago" },
+    { id: "s4", name: "Trader Joe's", chain: "Trader Joe's" }
+];
+
+// The store's drawn map, in map-editor canvas units. Store page and Item page read it; the map editor writes it.
+const MAPS = {
+    s1: { door: { x: 296, y: 540 }, scan: false, zones: [
+        { id: "z1", kind: "dairy", name: "Dairy", x: 16, y: 24, w: 170, h: 70 },
+        { id: "z2", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 110 },
+        { id: "z3", kind: "meat", name: "Meat & fish", x: 16, y: 104, w: 80, h: 220 },
+        { id: "z4", kind: "frozen", name: "Frozen", x: 106, y: 104, w: 80, h: 220 },
+        { id: "z5", kind: "produce", name: "Produce", x: 16, y: 336, w: 170, h: 120 },
+        { id: "z6", kind: "pantry", name: "Snacks & drinks", x: 200, y: 146, w: 142, h: 220 }
+    ] },
+    s3: { door: { x: 30, y: 540 }, scan: false, zones: [
+        { id: "w1", kind: "produce", name: "Produce", x: 16, y: 24, w: 170, h: 110 },
+        { id: "w2", kind: "bakery", name: "Bakery", x: 200, y: 24, w: 142, h: 80 },
+        { id: "w3", kind: "dairy", name: "Dairy", x: 200, y: 116, w: 142, h: 200 },
+        { id: "w4", kind: "meat", name: "Meat & fish", x: 16, y: 146, w: 80, h: 210 },
+        { id: "w5", kind: "frozen", name: "Frozen", x: 106, y: 146, w: 80, h: 210 },
+        { id: "w6", kind: "pantry", name: "Pantry", x: 200, y: 328, w: 142, h: 140 }
+    ] }
+};
+
+// The walking route drawn on the Shop page, from the shop mockup. Stores without one get their zones in drawn order.
+const ROUTES = {
+    s1: {
+        order: ["produce", "bakery", "dairy", "meat", "frozen", "pantry"], thumb: ["produce", "bakery", "meat", "dairy"],
+        zones: [
+            { k: "meat", label: "Meat & fish", x: 12, y: 12, w: 110, h: 62 },
+            { k: "dairy", label: "Dairy", x: 132, y: 12, w: 110, h: 40 },
+            { k: "bakery", label: "Bakery", x: 252, y: 12, w: 94, h: 80 },
+            { k: "frozen", label: "Frozen", x: 12, y: 84, w: 110, h: 100 },
+            { k: "pantry", label: "Snacks", x: 132, y: 62, w: 110, h: 122 },
+            { k: "produce", label: "Produce", x: 252, y: 102, w: 94, h: 82 }
+        ],
+        stops: { produce: [299, 150], bakery: [299, 56], dairy: [187, 34], meat: [67, 46], frozen: [67, 140], pantry: [187, 126] },
+        route: "M299 204 L299 150 L299 56 L187 34 L67 46 L67 140 L187 126 L160 206",
+        door: [281, 194]
+    },
+    s3: {
+        order: ["produce", "bakery", "meat", "dairy", "frozen", "pantry"], thumb: ["bakery", "meat", "produce", "dairy"],
+        zones: [
+            { k: "bakery", label: "Bakery", x: 12, y: 12, w: 100, h: 90 },
+            { k: "meat", label: "Meat & fish", x: 122, y: 12, w: 120, h: 40 },
+            { k: "dairy", label: "Dairy", x: 252, y: 12, w: 94, h: 84 },
+            { k: "produce", label: "Produce", x: 12, y: 112, w: 100, h: 72 },
+            { k: "pantry", label: "Pantry", x: 122, y: 62, w: 120, h: 122 },
+            { k: "frozen", label: "Frozen", x: 252, y: 106, w: 94, h: 78 }
+        ],
+        stops: { produce: [62, 150], bakery: [62, 60], meat: [182, 34], dairy: [299, 56], frozen: [299, 148], pantry: [182, 126] },
+        route: "M40 204 L62 150 L62 60 L182 34 L299 56 L299 148 L182 126 L190 206",
+        door: [22, 194]
+    }
+};
+
+const ITEMS = [
+    { id: "yogurt", name: "Greek yogurt, plain", qty: "1 kg tub", note: "Not the multipack", zone: "dairy", photo: true, hint: { s1: "back wall, left of the eggs", s3: "aisle 22, middle" } },
+    { id: "berries", name: "Frozen blueberries", qty: "2 × 1.5 kg", note: "Kirkland bag", zone: "frozen", hint: { s1: "aisle 3, door 6", s3: "aisle 30" } },
+    { id: "bananas", name: "Bananas", qty: "1 bunch", note: "", zone: "produce", hint: { s1: "by the entrance, first table", s3: "front table, by the doors" } },
+    { id: "spinach", name: "Baby spinach", qty: "1 kg clamshell", note: "", zone: "produce", hint: { s1: "cold room, back shelf", s3: "salad cooler" } },
+    { id: "sourdough", name: "Sourdough loaf", qty: "1", note: "Sliced", zone: "bakery", hint: { s1: "end of the bread table", s3: "bread rack" } },
+    { id: "eggs", name: "Eggs", qty: "2 dozen", note: "Large, free range", zone: "dairy", hint: { s1: "back wall, end cooler", s3: "aisle 22, end" } },
+    { id: "chicken", name: "Chicken thighs", qty: "About 1.5 kg", note: "Boneless", zone: "meat", hint: { s1: "second cooler", s3: "back wall, packaged meat" } },
+    { id: "salmon", name: "Salmon fillets", qty: "2", note: "Skin on", zone: "meat", hint: { s1: "fish case", s3: "seafood case" } },
+    { id: "oil", name: "Olive oil", qty: "1 L", note: "", zone: "pantry", hint: { s1: "aisle 9, top shelf", s3: "aisle 14" } },
+    { id: "coffee", name: "Coffee beans", qty: "1 kg", note: "Medium roast", zone: "pantry", hint: { s1: "aisle 11", s3: "aisle 12" } },
+    { id: "towels", name: "Paper towels", qty: "1 pack", note: "", zone: "pantry", hint: { s1: "aisle 14, pallets", s3: "aisle 40" } }
+];
+const PRICES = [
+    { chain: "Costco", price: "$6.49", unit: "1 kg · $6.49/kg", when: "Sep 27 · Costco Eastgate", dir: "down", change: "$0.50 less than last trip" },
+    { chain: "Walmart", price: "$4.97", unit: "750 g · $6.63/kg", when: "Sep 12 · Walmart Supercenter", dir: "same", change: "Same as last trip" }
+];
+
+const SCAN_SVG = `<svg width="358" height="600" viewBox="0 0 358 600" aria-hidden="true" style="position:absolute;left:0;top:0;opacity:.35">
+<rect x="4" y="8" width="350" height="566" rx="4" fill="#ffffff"></rect>
+<g fill="none" stroke="#121521" stroke-width="2"><rect x="10" y="16" width="338" height="548"></rect><rect x="16" y="24" width="170" height="70"></rect><rect x="200" y="24" width="142" height="110"></rect><rect x="16" y="104" width="80" height="220"></rect><rect x="106" y="104" width="80" height="220"></rect>
+<path d="M106 134h80M106 164h80M106 194h80M106 224h80M106 254h80M106 284h80"></path><path d="M206 152h130M206 176h130M206 200h130M206 224h130M206 248h130M206 272h130M206 296h130M206 320h130M206 344h130"></path>
+<circle cx="56" cy="380" r="16"></circle><circle cx="104" cy="380" r="16"></circle><circle cx="152" cy="380" r="16"></circle><circle cx="56" cy="424" r="16"></circle><circle cx="104" cy="424" r="16"></circle><circle cx="152" cy="424" r="16"></circle>
+<path d="M214 400v60M238 400v60M262 400v60M286 400v60M310 400v60M334 400v60"></path><path d="M270 564v-20h56v20"></path></g>
+<g fill="#121521" font-family="Figtree, sans-serif" font-size="10" font-weight="700" letter-spacing="1"><text x="70" y="64">DAIRY · EGGS</text><text x="246" y="84">BAKERY</text><text x="34" y="218">MEAT</text><text x="124" y="122">FROZEN</text><text x="246" y="166">AISLES 1–9</text><text x="70" y="476">PRODUCE</text><text x="244" y="484">CHECKOUTS</text><text x="274" y="538">ENTRANCE</text></g></svg>`;
+const SCAN_TOAST = "Map photo added. Draw a zone over each area.";
+const HINTS = { zone: "Drag to draw a zone", move: "Drag to move · Tap to name", door: "Tap where you walk in" };
+
+/* ---------- Scenarios: named starting states, for links and the side panel ---------- */
+
+const ALL_PICKED_BUT_YOGURT = Object.fromEntries(ITEMS.map((it) => [it.id, it.id === "yogurt" ? "missing" : "picked"]));
+const FIRST_THREE = { bananas: "picked", spinach: "picked", sourdough: "picked" };
+const SCENARIOS = {
+    signin: { group: "Sign-in", label: "Sign in", screen: "signin" },
+    signinBusy: { group: "Sign-in", label: "Signing in", screen: "signin", busy: true },
+    signinDenied: { group: "Sign-in", label: "Not in the household", screen: "signin", denied: true },
+    list: { group: "List", label: "List", screen: "list" },
+    listMore: { group: "List", label: "More sheet", screen: "list", sheet: "more" },
+    listEmpty: { group: "List", label: "Empty list", screen: "list", emptyList: true },
+    itemEdit: { group: "Item", label: "Item", screen: "item", item: "yogurt" },
+    itemNew: { group: "Item", label: "New item", screen: "item", item: null },
+    itemZone: { group: "Item", label: "Choose zone", screen: "item", item: "yogurt", sheet: "zone", zoneStore: "s3" },
+    itemPhoto: { group: "Item", label: "Photo options", screen: "item", item: "yogurt", sheet: "photo" },
+    shopChoose: { group: "Shop", label: "Which store?", screen: "shop" },
+    shop: { group: "Shop", label: "Shopping at Costco", screen: "shop", shopStore: "s1", status: FIRST_THREE },
+    shopMissing: { group: "Shop", label: "Marked missing", screen: "shop", shopStore: "s1", status: Object.assign({}, FIRST_THREE, { yogurt: "missing" }), shopToast: "yogurt" },
+    shopSwitch: { group: "Shop", label: "Change store", screen: "shop", shopStore: "s1", status: FIRST_THREE, sheet: "switch" },
+    shopWalmart: { group: "Shop", label: "Re-routed for Walmart", screen: "shop", shopStore: "s3", status: FIRST_THREE },
+    shopNoMap: { group: "Shop", label: "Store with no map", screen: "shop", shopStore: "s4", status: { bananas: "picked", spinach: "picked" } },
+    shopDone: { group: "Shop", label: "Trip done", screen: "shop", shopStore: "s1", status: ALL_PICKED_BUT_YOGURT },
+    stores: { group: "Stores", label: "Stores", screen: "stores" },
+    storesAdd: { group: "Stores", label: "Add a store", screen: "stores", sheet: "add", newName: "Costco Kirkland" },
+    storesEmpty: { group: "Stores", label: "No stores", screen: "stores", emptyStores: true },
+    store: { group: "Stores", label: "Store with a map", screen: "store", storeId: "s1" },
+    storeNoMap: { group: "Stores", label: "Store with no map", screen: "store", storeId: "s4" },
+    mapStart: { group: "Map editor", label: "Start a map", screen: "mapStart", storeId: "s4" },
+    mapSource: { group: "Map editor", label: "Use a store map", screen: "mapStart", storeId: "s4", sheet: "source" },
+    mapSketch: { group: "Map editor", label: "Sketching zones", screen: "mapEdit", storeId: "s1", mapPreset: "five", tool: "zone", draft: { x: 200, y: 146, w: 142, h: 220 } },
+    mapLabel: { group: "Map editor", label: "Name a zone", screen: "mapEdit", storeId: "s1", tool: "zone", sel: "z6", sheet: "label" },
+    mapScan: { group: "Map editor", label: "Drawing over a photo", screen: "mapEdit", storeId: "s1", mapPreset: "three", scan: true, tool: "zone", edToast: SCAN_TOAST },
+    mapPhoto: { group: "Map editor", label: "Map photo options", screen: "mapEdit", storeId: "s1", mapPreset: "three", scan: true, tool: "zone", sheet: "photo-map" }
+};
+
+/* ---------- State ---------- */
+
+const q = new URLSearchParams(location.search);
+if (q.get("theme") === "dark" || q.get("theme") === "light") document.documentElement.dataset.theme = q.get("theme");
+const scenarioName = SCENARIOS[q.get("scenario")] ? q.get("scenario") : "signin";
+const base = SCENARIOS[scenarioName];
+const app = document.getElementById("app");
+let timer = null;
+
+function presetZones(name) {
+    const all = MAPS.s1.zones;
+    if (name === "five") return all.slice(0, 5);
+    if (name === "three") return [all[1], all[0], all[4]];
+    return all;
+}
+
+let S = {
+    screen: base.screen, sheet: base.sheet || null, busy: !!base.busy, denied: !!base.denied,
+    items: base.emptyList ? [] : clone(ITEMS), status: Object.assign({}, base.status || {}), toast: null,
+    stores: base.emptyStores ? [] : clone(STORES), maps: clone(MAPS),
+    storeId: base.storeId || "s1", newName: base.newName || "", newChain: "Costco",
+    shopStore: base.shopStore || null, shopToast: base.shopToast || null,
+    form: null, zoneStore: base.zoneStore || null,
+    ed: null
+};
+if (base.screen === "item") S.form = formFor(base.item ? S.items.find((it) => it.id === base.item) : null);
+if (base.screen === "mapEdit" || base.screen === "mapStart") {
+    S.ed = editorFor(S.storeId);
+    if (base.mapPreset) S.ed.zones = clone(presetZones(base.mapPreset));
+    Object.assign(S.ed, { tool: base.tool || "zone", scan: !!base.scan, sel: base.sel || null, draft: base.draft || null, toast: base.edToast || null });
+}
+
+function set(patch) {
+    S = Object.assign({}, S, patch);
+    render();
+}
+const meta = (it) => [it.qty, it.note].filter(Boolean).join(" · ");
+const zoneFill = (z) => (z.kind ? `var(--z-${z.kind})` : "var(--surface)");
+const zonesText = (n) => n + (n === 1 ? " zone" : " zones");
+const storeById = (id) => S.stores.find((st) => st.id === id);
+
+/* ---------- Main nav and the More sheet (layout mockup) ---------- */
+
+function nav(current) {
+    const tab = (name, icon, key, act) => `<button type="button" data-act="${act}" ${current === key ? 'aria-current="page"' : ""} ${key === "more" ? 'aria-haspopup="dialog"' : ""}><span class="pill">${ic(icon)}</span><span class="name">${name}</span></button>`;
+    return `<nav class="main" aria-label="Main">${tab("List", "list", "list", "goList")}${tab("Shop", "map", "shop", "goShop")}${tab("More", "more", "more", "openMore")}</nav>`;
+}
+
+/* ---------- Sign-in (app-pages mockup) ---------- */
+
+function signinView() {
+    const alert = S.denied ? `<div class="alert" role="alert">${ic("alert")}<div class="col" style="gap:4px"><h2 class="heading">That account isn't in our household</h2><p class="body">You signed in as sam.k.work@gmail.com. Use the Google account you set up Magpie with.</p></div></div>` : "";
+    const btn = S.busy
+        ? `<button type="button" class="primary" disabled aria-busy="true">${ic("spin", 22, 2.5, "spin")}Signing in…</button>`
+        : `<button type="button" class="primary" data-act="signIn">${ic("signin", 22)}${S.denied ? "Try another account" : "Sign in with Google"}</button>`;
+    return `<main class="signin">
+<div class="hero"><span class="mascot"><img src="../../public/icons/icon-512.png" alt=""></span><h1 class="brand">Magpie</h1><p class="body" style="max-width:280px;font-size:18px;line-height:26px">Our shared list, laid out on the store map in walking order.</p></div>
+${alert}${btn}
+<p class="caption" style="margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px">${ic("lock", 16)}Only our household can open this list.</p>
+</main>`;
+}
+
+/* ---------- List (layout mockup) ---------- */
+
+function pickBox(st) {
+    if (st === "picked") return `<span class="box on">${ic("check", 20, 3)}</span>`;
+    if (st === "missing") return `<span class="box miss"></span>`;
+    return `<span class="box"></span>`;
+}
+
+function listView() {
+    const toGet = S.items.filter((it) => S.status[it.id] !== "picked").length;
+    const rows = S.items.map((it) => {
+        const st = S.status[it.id];
+        const sub = st === "missing" ? `<span class="miss-label">${ic("alert", 16)}Missing last trip</span>` : `<span class="caption">${esc(meta(it))}</span>`;
+        return `<div class="prow ${st === "picked" ? "picked" : ""}"><button type="button" class="prow-main" data-act="openItem" data-id="${it.id}"><span class="thumb" style="${it.photo ? "background:var(--z-dairy)" : ""}">${ic("camera", 22, 1.75)}</span><span class="col"><span class="item">${esc(it.name)}</span>${sub}</span></button>
+<button type="button" class="check" role="checkbox" aria-checked="${st === "picked"}" aria-label="Pick ${esc(it.name)}" data-act="togglePick" data-id="${it.id}">${pickBox(st === "picked" ? "picked" : null)}</button></div>`;
+    }).join("");
+    const body = S.items.length
+        ? `<div style="display:flex;flex-direction:column;gap:8px;padding:0 16px 104px">${rows}</div>`
+        : `<div class="list-empty"><div class="empty-card" style="max-width:320px"><span class="tile">${ic("list", 28, 2)}</span><h2 class="heading" style="margin-top:4px">Nothing on the list</h2><p class="body">Tap + to add the first thing.</p></div></div>`;
+    return `<main class="scroll"><header class="head"><span class="eyebrow">Magpie</span><h1 class="display">Our list</h1><p class="caption">${S.items.length ? toGet + (toGet === 1 ? " item" : " items") + " to get" : "0 items"}</p></header>${body}</main>
+<button type="button" class="fab" aria-label="Add item" data-act="newItem">${ic("plus", 28, 2.5)}</button>${nav(S.sheet === "more" ? "more" : "list")}`;
+}
+
+/* ---------- Item (app-pages mockup) ---------- */
+
+function placesFor(it) {
+    const out = {};
+    S.stores.forEach((st) => {
+        const m = S.maps[st.id];
+        if (!m) return;
+        if (it && it.places && it.places[st.id] !== undefined) out[st.id] = it.places[st.id];
+        else {
+            const z = it && it.zone ? m.zones.find((x) => x.kind === it.zone) : null;
+            out[st.id] = z ? z.id : null;
+        }
+    });
+    return out;
+}
+
+function formFor(it) {
+    return {
+        id: it ? it.id : null, name: it ? it.name : "", qty: it ? it.qty : "", note: it ? it.note : "",
+        hasPhoto: it ? !!it.photo : false, places: placesFor(it)
+    };
+}
+
+function itemView() {
+    const f = S.form;
+    const isNew = !f.id;
+    const photo = f.hasPhoto
+        ? `<button type="button" class="photo" aria-haspopup="dialog" aria-label="Photo options" data-act="openPhoto"><svg width="150" height="140" viewBox="0 0 150 140" aria-hidden="true"><path d="M28 34h94l-9 96H37z" fill="#ffffff" stroke="#121521" stroke-width="4" stroke-linejoin="round"/><rect x="22" y="20" width="106" height="18" rx="6" fill="#00a88f" stroke="#121521" stroke-width="4"/><rect x="44" y="62" width="62" height="34" rx="6" fill="#cde2ff" stroke="#121521" stroke-width="3"/><path d="M54 74h42M54 84h28" stroke="#121521" stroke-width="3" stroke-linecap="round"/></svg><span class="tag">${ic("camera", 16)}Photo</span></button>`
+        : `<button type="button" class="addphoto" aria-haspopup="dialog" data-act="openPhoto"><span class="tile" style="color:var(--sheen-ink)">${ic("camera", 26, 2)}</span><span class="col"><span style="font:700 16px/20px var(--f-body);color:var(--sheen-ink)">Add photo</span><span class="caption">A photo helps the shopper grab the right one.</span></span></button>`;
+    const places = S.stores.map((st) => {
+        const m = S.maps[st.id];
+        const zid = f.places[st.id];
+        const z = m && zid ? m.zones.find((x) => x.id === zid) : null;
+        let right;
+        if (z) right = `<button type="button" class="zbtn" aria-haspopup="dialog" aria-label="Zone at ${esc(st.name)}: ${esc(z.name || "Zone")}. Change" data-act="pickZone" data-id="${st.id}"><span class="chip" style="background:${zoneFill(z)};padding-right:8px">${esc(z.name || "Zone")}${ic("chev", 16, 2.5)}</span></button>`;
+        else if (m) right = `<button type="button" class="ghost" aria-haspopup="dialog" data-act="pickZone" data-id="${st.id}" style="padding:0 10px">Choose zone</button>`;
+        else right = `<span class="caption" style="padding:0 10px">No map yet</span>`;
+        return `<div class="place"><span class="col"><span style="font:600 16px/22px var(--f-body)">${esc(st.name)}</span><span class="caption">${esc(st.chain)}</span></span>${right}</div>`;
+    }).join("");
+    const where = S.stores.length ? `<div class="card">${places}</div>` : `<p class="noprice body">Add a store to say where this is.</p>`;
+    const prices = isNew
+        ? `<p class="noprice body">No prices yet. They show up here once you record one while shopping.</p>`
+        : `<div class="card">${PRICES.map((p) => `<div class="price"><div style="display:flex;align-items:baseline;gap:12px"><span style="flex:1;font:600 16px/22px var(--f-body)">${p.chain}</span><span class="amt">${p.price}</span></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="caption" style="flex:1">${p.when}</span><span class="unit">${p.unit}</span></div><span class="trend ${p.dir}">${ic(p.dir, 14, 2.75)}${p.change}</span></div>`).join("")}</div>`;
+    return `<main class="scroll"><header class="head sub"><button type="button" class="back" data-act="goList">${ic("left", 22)}List</button><span class="eyebrow">${isNew ? "New item" : "Item"}</span></header>
+<div class="body-pad" style="padding-bottom:24px">
+${photo}
+<div style="display:flex;flex-direction:column;gap:16px">
+<label class="field"><span class="label">Name</span><input class="big" type="text" data-field="name" value="${esc(f.name)}" placeholder="What do we need?"></label>
+<label class="field"><span class="label">Quantity</span><input type="text" data-field="qty" value="${esc(f.qty)}" placeholder="1, 2 dozen, 1 kg tub"></label>
+<label class="field"><span class="label">Note</span><textarea rows="2" data-field="note" placeholder="Brand, size, anything the shopper should know">${esc(f.note)}</textarea></label>
+</div>
+<section aria-labelledby="where-h" style="display:flex;flex-direction:column;gap:8px"><h2 id="where-h" class="heading">Where it is</h2>${where}</section>
+<section aria-labelledby="prices-h" style="display:flex;flex-direction:column;gap:8px"><h2 id="prices-h" class="heading" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1">Prices</span><span class="caption">Last trip at each chain</span></h2>${prices}</section>
+${isNew ? "" : `<button type="button" class="danger" data-act="removeItem">${ic("trash", 20)}Remove from list</button>`}
+</div></main>
+<div class="actionbar"><button type="button" class="primary" data-act="finishItem">${ic(isNew ? "plus" : "check", 20, 2.5)}${isNew ? "Add to list" : "Done"}</button></div>${nav("list")}`;
+}
+
+/* ---------- Stores and Store (app-pages mockup) ---------- */
+
+function chainsOf(stores) {
+    const out = [];
+    stores.forEach((st) => { if (out.indexOf(st.chain) < 0) out.push(st.chain); });
+    return out;
+}
+
+function storesView() {
+    const chains = chainsOf(S.stores);
+    const n = S.stores.length;
+    const groups = chains.map((ch) => `<section style="display:flex;flex-direction:column;gap:8px"><h2 class="label">${esc(ch)}</h2>${S.stores.filter((st) => st.chain === ch).map((st) => {
+        const m = S.maps[st.id];
+        const tile = m ? "background:var(--z-produce);border:1.5px solid var(--edge);color:var(--ink)" : "background:transparent;border:2px dashed var(--line-strong)";
+        return `<button type="button" class="row" data-act="openStore" data-id="${st.id}"><span class="thumb" style="${tile}">${ic("map", 24, 2)}</span><span class="col"><span class="item">${esc(st.name)}</span><span class="caption">${m ? "Map · " + zonesText(m.zones.length) : "No map yet"}</span></span><span style="color:var(--muted)">${ic("right", 22)}</span></button>`;
+    }).join("")}</section>`).join("");
+    const empty = `<div class="empty-card"><span class="tile">${ic("store", 28, 2)}</span><h2 class="heading" style="margin-top:4px">No stores yet</h2><p class="body" style="max-width:280px">Add the stores you shop at. Then draw each one's map.</p></div>`;
+    return `<main class="scroll"><header class="head"><span class="eyebrow">Magpie</span><h1 class="display">Stores</h1><p class="caption">${n ? n + " stores · " + chains.length + " chains" : "Places you shop"}</p></header>
+<div class="body-pad">${n ? groups : empty}<button type="button" class="primary" aria-haspopup="dialog" data-act="openAdd">${ic("plus", 20, 2.5)}Add a store</button></div></main>${nav("more")}`;
+}
+
+function storeView() {
+    const st = storeById(S.storeId) || { id: "new", name: "New store", chain: "Costco" };
+    const m = S.maps[st.id];
+    const k = 0.55;
+    const r = (v) => Math.round(v * k);
+    const named = m ? m.zones.filter((z) => z.name) : [];
+    let body;
+    if (m) {
+        const zones = m.zones.map((z) => `<div class="z" style="left:${r(z.x)}px;top:${r(z.y)}px;width:${r(z.w)}px;height:${r(z.h)}px;background:${zoneFill(z)}">${esc(z.name || "Zone")}</div>`).join("");
+        const door = m.door ? `<span class="door" style="left:${r(m.door.x) - 12}px;top:${r(m.door.y) - 8}px">IN</span>` : "";
+        const chips = named.map((z) => `<span class="chip" style="background:${zoneFill(z)}">${esc(z.name)}</span>`).join("");
+        body = `<div class="body-pad"><div class="mini" role="img" aria-label="Map of ${esc(st.name)} with ${m.zones.length} zones"><div class="inner">${m.scan ? `<div style="position:absolute;left:0;top:0;width:358px;height:600px;transform:scale(${k});transform-origin:0 0">${SCAN_SVG}</div>` : ""}${zones}${door}</div></div>
+<section aria-label="Zones" style="display:flex;flex-direction:column;gap:8px"><h2 class="heading" style="display:flex;align-items:baseline;gap:8px"><span style="flex:1">Zones</span><span class="caption">${named.length} named</span></h2><div class="chips">${chips}</div></section>
+<button type="button" class="secondary" data-act="editMap">${ic("edit", 20)}Edit map</button></div>`;
+    } else {
+        body = `<div class="body-pad" style="gap:16px"><div class="empty-card"><span class="tile">${ic("map", 28, 2)}</span><h2 class="heading" style="margin-top:4px">No map yet</h2><p class="body" style="max-width:280px">Draw a rough map once. Then the list lays out here in walking order.</p></div>
+<button type="button" class="primary" data-act="drawMap">${ic("edit", 20)}Draw the map</button></div>`;
+    }
+    return `<main class="scroll"><header class="head sub"><button type="button" class="back" data-act="goStores">${ic("left", 22)}Stores</button><span class="eyebrow">Store</span><h1 class="display">${esc(st.name)}</h1><p class="caption">Chain: ${esc(st.chain)} · ${m ? zonesText(m.zones.length) : "no map yet"}</p></header>${body}</main>${nav("more")}`;
+}
+
+/* ---------- Shop (shop mockup) ---------- */
+
+// The walking plan for a store: zone order, plus the drawn route when the mockup has one.
+function planFor(storeId) {
+    if (ROUTES[storeId]) return ROUTES[storeId];
+    const m = S.maps[storeId];
+    const order = [];
+    if (m) m.zones.forEach((z) => { if (z.kind && order.indexOf(z.kind) < 0) order.push(z.kind); });
+    KIND_ORDER.forEach((k) => { if (order.indexOf(k) < 0) order.push(k); });
+    return { order: order, zones: null, thumb: m ? m.zones.filter((z) => z.kind).slice(0, 4).map((z) => z.kind) : [] };
+}
+
+function orderedItems(plan) {
+    const out = [];
+    plan.order.forEach((k) => S.items.forEach((it) => { if (it.zone === k) out.push(it); }));
+    S.items.forEach((it) => { if (plan.order.indexOf(it.zone) < 0) out.push(it); });
+    return out;
+}
+
+function storeMeta(st) {
+    const plan = ROUTES[st.id];
+    const m = S.maps[st.id];
+    if (!m) return "No map yet";
+    const n = plan ? plan.zones.length : m.zones.length;
+    return "Map ready · " + zonesText(n) + (st.lastTrip ? " · " + st.lastTrip : "");
+}
+
+function storeThumb(st) {
+    if (!S.maps[st.id]) return `<span class="thumb dashed" aria-hidden="true">${ic("map", 22)}</span>`;
+    const thumb = planFor(st.id).thumb;
+    return `<span class="thumb grid" aria-hidden="true" style="display:grid">${thumb.map((k) => `<span style="background:var(--z-${k})"></span>`).join("")}</span>`;
+}
+
+function shopMapHtml(plan, ordered, next, label) {
+    const zones = plan.zones.map((z) => `<div class="zone" style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;background:var(--z-${z.k})">${esc(z.label)}</div>`).join("");
+    const stops = plan.order.map((k, i) => {
+        const rows = ordered.filter((it) => it.zone === k);
+        const done = rows.length > 0 && rows.every((it) => S.status[it.id]);
+        const isNext = !!next && next.zone === k;
+        const size = isNext ? 34 : 28;
+        const xy = plan.stops[k];
+        const bg = done ? "var(--sheen)" : isNext ? "var(--trinket)" : "var(--surface)";
+        const ring = done ? "var(--sheen)" : isNext ? "var(--ink)" : "var(--berry)";
+        const fg = done ? "var(--on-sheen)" : isNext ? "var(--on-trinket)" : "var(--ink)";
+        return `<span class="stop" style="left:${xy[0] - size / 2}px;top:${xy[1] - size / 2}px;width:${size}px;height:${size}px;background:${bg};border-color:${ring};color:${fg}">${done ? ic("check", 14, 3.5) : i + 1}</span>`;
+    }).join("");
+    return `<div class="smap" role="img" aria-label="${esc(label)}">${zones}
+<svg class="route" width="358" height="220" viewBox="0 0 358 220" aria-hidden="true"><path d="${plan.route}"></path></svg>
+<span class="door" style="left:${plan.door[0]}px;top:${plan.door[1]}px">IN</span>${stops}</div>`;
+}
+
+function shopChooseView() {
+    const toGet = S.items.filter((it) => S.status[it.id] !== "picked").length;
+    const cards = S.stores.map((st) => `<button type="button" class="card-btn" data-act="shopAt" data-id="${st.id}">${storeThumb(st)}
+<span class="col"><span class="item">${esc(st.name)}</span><span class="caption">${esc(storeMeta(st))}</span></span>
+${st.last ? `<span class="badge">Last trip</span>` : ""}<span style="color:var(--muted)">${ic("right", 22)}</span></button>`).join("");
+    return `<main class="scroll"><header class="head"><span class="eyebrow">Shop</span><h1 class="display">Which store?</h1>
+<p class="caption">${toGet} items on the list. Pick the store you are in and the list lays out on its map.</p></header>
+<div class="stack"><span class="label" style="padding:8px 0 4px">Your stores</span>${cards}
+<button type="button" class="ghost" style="align-self:flex-start;margin-top:4px" data-act="shopAddStore">${ic("plus", 22, 2.5)}Add a store</button></div></main>${nav("shop")}`;
+}
+
+function shopView() {
+    if (!S.shopStore || !storeById(S.shopStore)) return shopChooseView();
+    const st = storeById(S.shopStore);
+    const plan = planFor(st.id);
+    const ordered = orderedItems(plan);
+    const next = ordered.find((it) => !S.status[it.id]) || null;
+    const total = ordered.length;
+    const picked = ordered.filter((it) => S.status[it.id] === "picked");
+    const missing = ordered.filter((it) => S.status[it.id] === "missing");
+    const handled = picked.length + missing.length;
+
+    if (!next) {
+        return `<main class="scroll"><header class="head"><span class="eyebrow">${esc(st.name)}</span><h1 class="display">Trip done</h1>
+<p class="caption">${picked.length} picked · ${missing.length} missing</p></header>
+${plan.zones ? shopMapHtml(plan, ordered, null, `Map of ${st.name}, every stop done`) : ""}
+<div class="stack" style="gap:12px">
+${missing.length ? `<section class="missing-card" aria-label="Missing"><h2 class="heading">Missing</h2>
+${missing.map((it) => `<div class="mrow">${ic("alert")}<span class="item" style="flex:1;color:var(--ink)">${esc(it.name)}</span><span style="font:700 13px/18px var(--f-body)">Missing</span></div>`).join("")}
+<p class="caption">These stay on the list for next time.</p></section>` : ""}
+<button type="button" class="primary" style="margin-top:8px" data-act="finishTrip">${ic("check", 20, 3)}Finish trip</button>
+<p class="caption" style="text-align:center">Clears the ${picked.length} picked items from the list.</p>
+${missing.length ? `<button type="button" class="secondary" data-act="retryMissing">Look for missing again</button>` : ""}</div></main>${nav("shop")}`;
+    }
+
+    const progress = `${picked.length} picked · ${total - handled} to go${missing.length ? ` · ${missing.length} missing` : ""}`;
+    const groupKeys = plan.order.slice();
+    if (ordered.some((it) => plan.order.indexOf(it.zone) < 0)) groupKeys.push(null);
+    const groups = groupKeys.map((k) => {
+        const rows = ordered.filter((it) => (k === null ? plan.order.indexOf(it.zone) < 0 : it.zone === k));
+        if (!rows.length) return "";
+        const n = rows.filter((it) => S.status[it.id]).length;
+        const name = k === null ? "Not placed yet" : KIND_NAMES[k];
+        return `<section class="group" aria-label="${esc(name)}"><h2 class="heading"><span class="swatch ${k ? "" : "none"}" style="${k ? `background:var(--z-${k})` : ""}" aria-hidden="true"></span>
+<span style="flex:1">${esc(name)}</span><span class="caption">${n} of ${rows.length}</span></h2>
+${rows.map((it) => {
+    const s = S.status[it.id];
+    const sub = s === "missing" ? `<span class="miss-label">${ic("alert", 16)}Missing</span>` : `<span class="caption">${esc(meta(it))}</span>`;
+    return `<div class="prow ${s || ""}"><div class="prow-main"><span class="thumb" aria-hidden="true" style="${it.photo ? "background:var(--z-dairy)" : ""}">${ic("camera", 22, 1.75)}</span>
+<span class="col"><span class="item">${esc(it.name)}</span>${sub}</span></div>
+<button type="button" class="check" role="checkbox" aria-checked="${s === "picked"}" aria-label="Pick ${esc(it.name)}" data-act="togglePick" data-id="${it.id}">${pickBox(s)}</button></div>`;
+}).join("")}</section>`;
+    }).join("");
+    const hint = next.hint && next.hint[st.id];
+    const zoneName = KIND_NAMES[next.zone] || "Not placed yet";
+    const where = hint ? `${zoneName} · ${hint}` : zoneName;
+    const mapBlock = plan.zones
+        ? shopMapHtml(plan, ordered, next, `Map of ${st.name} with your route`)
+        : `<div class="nomap"><span class="thumb" aria-hidden="true">${ic("map", 24, 2)}</span>
+<div class="col"><span style="font:600 16px/22px var(--f-body)">${S.maps[st.id] ? "No route drawn yet" : "No map for this store yet"}</span><span class="caption">The list is grouped by zone for now.</span></div>
+${S.maps[st.id] ? "" : `<button type="button" class="ghost" data-act="drawMapFor" data-id="${st.id}">Draw it</button>`}</div>`;
+    const toast = S.shopToast ? `<div class="toast high" role="status"><span style="color:var(--missing)">${ic("alert")}</span>
+<span style="flex:1;font:500 14px/19px var(--f-body)">Marked missing. It stays on the list for next time.</span>
+<button type="button" class="ghost" data-act="undoMissing">Undo</button></div>` : "";
+    return `<main class="shop">
+<header class="shop-head"><div class="col" style="gap:0"><span class="eyebrow">Shopping at</span><h1 class="title">${esc(st.name)}</h1>
+<span class="caption">${progress}</span></div>
+<button type="button" class="secondary" aria-haspopup="dialog" data-act="openSwitch">${ic("swap", 20)}Change</button></header>
+${mapBlock}
+<div class="slist">${groups}</div>
+${toast}
+<section class="next" aria-label="Next up"><span class="eyebrow">Next up · ${handled + 1} of ${total}</span>
+<span class="title">${esc(next.name)}</span><span class="where">${ic("pin", 16)}${esc(where)}</span>
+<span style="font:500 13px/18px var(--f-body)">${esc(meta(next))}</span>
+<div class="actions"><button type="button" class="btn-miss" data-act="markMissing">${ic("alert", 20)}Missing</button>
+<button type="button" class="btn-got" data-act="gotIt">${ic("check", 20, 3)}Got it</button></div></section></main>${nav("shop")}`;
+}
+
+/* ---------- Map editor (map-editor mockup) ---------- */
+
+function editorFor(storeId) {
+    const m = S.maps[storeId];
+    return {
+        zones: m ? clone(m.zones) : [], door: m ? m.door : null, scan: m ? !!m.scan : false,
+        tool: m ? "move" : "zone", sel: null, draft: null, drag: null, toast: null, past: [], future: []
+    };
+}
+
+const snap = () => ({ zones: S.ed.zones, door: S.ed.door, scan: S.ed.scan });
+function setEd(patch) {
+    S.ed = Object.assign({}, S.ed, patch);
+    render();
+}
+function commitEd(patch) {
+    setEd(Object.assign({ past: S.ed.past.concat([snap()]).slice(-30), future: [] }, patch));
+}
+
+function canvasHtml() {
+    const s = S.ed;
+    const d = s.draft;
+    const sel = s.zones.find((z) => z.id === s.sel);
+    const zones = s.zones.map((z) => {
+        const border = z.kind ? "1.5px solid var(--edge)" : "2px dashed var(--line-strong)";
+        const ring = z.id === s.sel ? "0 0 0 3px var(--sheen-ink)" : "none";
+        return `<div class="zone" style="left:${z.x}px;top:${z.y}px;width:${z.w}px;height:${z.h}px;background:${zoneFill(z)};border:${border};box-shadow:${ring};color:${z.name ? "var(--ink)" : "var(--muted)"}">${esc(z.name || "New zone")}</div>`;
+    }).join("");
+    const handles = sel && s.tool === "move" && !S.sheet
+        ? [[sel.x, sel.y], [sel.x + sel.w, sel.y], [sel.x, sel.y + sel.h], [sel.x + sel.w, sel.y + sel.h]]
+            .map((p) => `<span class="handle" style="left:${p[0] - 9}px;top:${p[1] - 9}px"></span>`).join("")
+        : "";
+    const draft = d ? `<div class="draft" style="left:${d.x}px;top:${d.y}px;width:${d.w}px;height:${d.h}px"><span>${Math.round(d.w / 4)} × ${Math.round(d.h / 4)}</span></div>` : "";
+    const door = s.door ? `<span class="door" style="left:${s.door.x - 15}px;top:${s.door.y - 10}px">IN</span>` : "";
+    const empty = s.zones.length === 0 && !s.scan && !d;
+    const emptyMsg = empty ? `<div class="empty-msg"><p class="body">Drag anywhere to draw your first zone. Start with the one by the entrance.</p></div>` : "";
+    const hint = !S.sheet && !s.toast && !empty ? `<div class="pill-msg"><span>${HINTS[s.tool]}</span></div>` : "";
+    return (s.scan ? SCAN_SVG : "") + zones + draft + handles + door + emptyMsg + hint;
+}
+function renderCanvas() {
+    const el = app.querySelector(".canvas");
+    if (el) el.innerHTML = canvasHtml();
+}
+
+function mapView() {
+    const s = S.ed;
+    const st = storeById(S.storeId) || { name: "Store" };
+    const n = s.zones.length;
+    const isStart = S.screen === "mapStart";
+    const caption = isStart ? "Nothing drawn yet" : `${n} ${n === 1 ? "zone" : "zones"} · Saved on this phone`;
+    const head = `<header class="ed-head"><button type="button" class="icon-btn" aria-label="Back to ${esc(st.name)}" data-act="mapBack">${ic("left", 24)}</button>
+<div class="col" style="gap:0"><span class="eyebrow">${esc(st.name)} map</span><h1 class="title">${isStart ? "New map" : "Edit map"}</h1><span class="caption">${caption}</span></div>
+${isStart ? "" : `<button type="button" class="icon-btn" aria-label="Undo" data-act="mapUndo" ${s.past.length ? "" : "disabled"}>${ic("undo", 24)}</button>
+<button type="button" class="icon-btn" aria-label="Redo" data-act="mapRedo" ${s.future.length ? "" : "disabled"}>${ic("redo", 24)}</button>`}</header>`;
+    if (isStart) {
+        return head + `<main class="start"><div class="dots"><div class="intro"><span class="tile">${ic("map", 28, 2)}</span>
+<h2 class="heading" style="margin-top:4px">Rough is fine</h2><p class="body">A few boxes in about the right places is enough to put the list in walking order. You can fix it next trip.</p></div></div>
+<span class="label" style="padding:8px 0 0">How do you want to start?</span>
+<button type="button" class="start-opt" data-act="mapSketch"><span class="tile">${ic("edit", 24)}</span><span class="col"><span class="item">Sketch it</span><span class="caption">Draw a box for each part of the store on a blank canvas.</span></span><span style="color:var(--muted)">${ic("right", 22)}</span></button>
+<button type="button" class="start-opt" aria-haspopup="dialog" data-act="mapOpenSource"><span class="tile">${ic("camera", 24, 2)}</span><span class="col"><span class="item">Use a store map</span><span class="caption">Photo the map by the door, or pick one you saved. Draw zones on top.</span></span><span style="color:var(--muted)">${ic("right", 22)}</span></button></main>`;
+    }
+    const tools = [["move", "Move"], ["zone", "Zone"], ["door", "Entrance"]].map((t) =>
+        `<button type="button" class="tool" aria-pressed="${s.tool === t[0]}" data-act="mapTool" data-id="${t[0]}"><span class="tpill">${ic(t[0], 24)}</span>${t[1]}</button>`).join("");
+    const toast = s.toast && !S.sheet ? `<div class="toast" role="status"><span style="color:var(--sheen-ink)">${ic("check", 22, 3)}</span>
+<span style="flex:1;font:500 14px/19px var(--f-body)">${esc(s.toast)}</span>
+<button type="button" class="ghost" data-act="mapDismiss">OK</button></div>` : "";
+    return head + `<main class="ed-main"><div class="canvas dots ${s.tool === "move" ? "grab" : "cross"}" aria-label="Map canvas. ${HINTS[s.tool]}">${canvasHtml()}</div></main>
+<div class="tools" role="toolbar" aria-label="Map tools">${tools}
+<button type="button" class="tool" aria-haspopup="dialog" data-act="mapPhotoSheet"><span class="tpill">${ic("image", 24)}</span>Map photo</button></div>${toast}`;
+}
+
+// Keeps what was drawn, so the Store, Item and Shop pages see it.
+function saveMap() {
+    const s = S.ed;
+    const maps = Object.assign({}, S.maps);
+    if (s.zones.length || s.scan) maps[S.storeId] = { zones: clone(s.zones), door: s.door, scan: s.scan };
+    else delete maps[S.storeId];
+    return maps;
+}
+
+/* ---------- Sheets ---------- */
+
+function sheetHead(title, cap) {
+    return `<span class="grabber" aria-hidden="true"></span><div class="sheet-head"><div class="col" style="gap:4px"><h2 id="sheet-title" class="title">${esc(title)}</h2>${cap ? `<p class="caption">${esc(cap)}</p>` : ""}</div>
+<button type="button" class="icon-btn" aria-label="Close" data-act="closeSheet">${ic("close", 24)}</button></div>`;
+}
+const modal = (inner) => `<div class="sheet-wrap"><button type="button" class="scrim" aria-label="Close" data-act="closeSheet"></button><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">${inner}</div></div>`;
+
+function sheetView() {
+    const sh = S.sheet;
+    if (!sh) return "";
+    if (sh === "more") {
+        return modal(`${sheetHead("More")}<div style="display:flex;flex-direction:column;gap:4px;margin:-8px -8px 0">
+<button type="button" class="menu-opt" data-act="goStores"><span class="tile">${ic("store", 24, 2)}</span><span class="col"><span class="item">Stores</span><span class="caption">Store maps and zones</span></span><span style="color:var(--muted)">${ic("right", 22)}</span></button></div>`);
+    }
+    if (sh === "zone") {
+        const st = storeById(S.zoneStore);
+        const m = S.maps[S.zoneStore];
+        const opts = m.zones.map((z) => {
+            const on = S.form.places[S.zoneStore] === z.id;
+            return `<button type="button" class="zopt" role="radio" aria-checked="${on}" data-act="setZone" data-id="${z.id}" style="background:${zoneFill(z)}"><span>${esc(z.name || "Zone")}</span>${on ? ic("check", 20, 3) : ""}</button>`;
+        }).join("");
+        return modal(`${sheetHead("Where at " + (st ? st.name : "this store") + "?", "Pick the zone on that store's map.")}
+<div class="zgrid" role="radiogroup" aria-labelledby="sheet-title">${opts}</div><button type="button" class="ghost" data-act="clearZone">Not sure yet</button>`);
+    }
+    if (sh === "photo") {
+        return modal(`${sheetHead("Photo", "Show the shopper exactly which one to grab.")}
+<div style="display:flex;flex-direction:column;gap:8px"><button type="button" class="opt" data-act="takePhoto">${ic("camera", 22)}Take a photo</button><button type="button" class="opt" data-act="takePhoto">${ic("image", 22)}Choose from photos</button>${S.form.hasPhoto ? `<button type="button" class="opt bad" data-act="removePhoto">${ic("trash", 22)}Remove photo</button>` : ""}</div>`);
+    }
+    if (sh === "add") {
+        const known = chainsOf(S.stores.length ? S.stores : STORES);
+        const chains = known.concat(["New chain"]).map((ch) => `<button type="button" class="cchip" role="radio" aria-checked="${S.newChain === ch}" data-act="setChain" data-id="${esc(ch)}">${ch === "New chain" ? "+ New chain" : esc(ch)}</button>`).join("");
+        return modal(`${sheetHead("Add a store", "You can draw its map next.")}
+<label class="field"><span class="label">Store name</span><input class="big" type="text" data-field="newName" value="${esc(S.newName)}" placeholder="Costco Eastgate"></label>
+<div role="radiogroup" aria-labelledby="chain-h" style="display:flex;flex-direction:column;gap:8px"><span id="chain-h" class="label">Chain</span><div class="chips">${chains}</div><span class="caption">Prices compare across stores of the same chain.</span></div>
+<button type="button" class="primary" data-act="addStore">Add store</button>`);
+    }
+    if (sh === "switch") {
+        const opts = S.stores.map((st) => `<button type="button" class="sheet-store" data-act="shopAt" data-id="${st.id}" aria-current="${st.id === S.shopStore}">
+<span class="col"><span class="item">${esc(st.name)}</span><span class="caption">${esc(storeMeta(st))}</span></span>
+${st.id === S.shopStore ? `<span class="here">${ic("check", 18, 3)}Here now</span>` : ""}</button>`).join("");
+        return modal(`${sheetHead("Change store", "What you picked stays picked. The rest of the list re-routes for the new store.")}<div style="display:flex;flex-direction:column;gap:8px">${opts}</div>`);
+    }
+    if (sh === "source") {
+        return modal(`${sheetHead("Use a store map")}
+<p class="body" style="margin-top:-8px">Big stores often post a map by the door or on their website. A photo of it works. It sits faded under your zones, so it does not need to be sharp.</p>
+<button type="button" class="primary" data-act="mapUsePhoto">${ic("camera", 20)}Take a photo</button>
+<button type="button" class="secondary" data-act="mapUsePhoto">${ic("image", 20)}Choose from photos</button>`);
+    }
+    if (sh === "photo-map") {
+        return modal(`${sheetHead("Map photo")}
+<p class="body" style="margin-top:-8px">The photo only helps you draw. Shoppers see your zones, not the photo. Zones stay put if you remove it.</p>
+<button type="button" class="secondary" data-act="mapUsePhoto">${ic("camera", 20)}Replace photo</button>
+<button type="button" class="danger" data-act="mapRemovePhoto">${ic("trash", 20)}Remove photo</button>`);
+    }
+    if (sh === "label") {
+        const sel = S.ed.zones.find((z) => z.id === S.ed.sel);
+        if (!sel) return "";
+        // No scrim: the zone being named stays visible above the sheet.
+        return `<div class="sheet-wrap bare"><section class="sheet" aria-labelledby="sheet-title">${sheetHead("Name this zone")}
+<label class="field"><span class="label">Name</span><input id="zone-name" type="text" value="${esc(sel.name)}" placeholder="Dairy, Aisle 5, Garden centre"></label>
+<div class="field"><span class="label">Color</span><div class="kinds">
+${KIND_ORDER.map((k) => `<button type="button" class="kind" aria-pressed="${sel.kind === k}" data-act="mapKind" data-id="${k}"><span class="sw" style="background:var(--z-${k})"></span><span style="flex:1;min-width:0">${KIND_NAMES[k]}</span>${sel.kind === k ? ic("check", 16, 3.5) : ""}</button>`).join("")}</div></div>
+<div class="pair"><button type="button" class="danger" data-act="mapDelete">${ic("trash", 20)}Delete zone</button>
+<button type="button" class="primary sm" data-act="closeSheet">${ic("check", 20, 3)}Done</button></div></section></div>`;
+    }
+    return "";
+}
+
+/* ---------- Render ---------- */
+
+function render() {
+    const views = { signin: signinView, list: listView, item: itemView, stores: storesView, store: storeView, shop: shopView, mapStart: mapView, mapEdit: mapView };
+    const toast = S.toast && S.screen === "list" ? `<div class="toast" role="status"><span style="color:var(--sheen-ink)">${ic("check", 22, 3)}</span><span style="flex:1;font:500 14px/19px var(--f-body)">${esc(S.toast)}</span><button type="button" class="ghost" data-act="dismissToast">OK</button></div>` : "";
+    app.innerHTML = views[S.screen]() + toast + sheetView();
+}
+
+/* ---------- Actions ---------- */
+
+function setPick(id, value) {
+    const st = Object.assign({}, S.status);
+    if (value) st[id] = value; else delete st[id];
+    return st;
+}
+function shopNext() {
+    const ordered = orderedItems(planFor(S.shopStore));
+    return ordered.find((it) => !S.status[it.id]) || null;
+}
+function goStore(id) {
+    set({ screen: "store", storeId: id, sheet: null, ed: null });
+}
+
+const ACTS = {
+    signIn: () => {
+        if (S.busy) return;
+        set({ busy: true, denied: false });
+        clearTimeout(timer);
+        timer = setTimeout(() => set({ busy: false, screen: "list" }), 1100);
+    },
+    goList: () => set({ screen: "list", sheet: null, form: null }),
+    goShop: () => set({ screen: "shop", sheet: null, toast: null }),
+    goStores: () => set({ screen: "stores", sheet: null, toast: null }),
+    openMore: () => set({ sheet: "more" }),
+    closeSheet: () => {
+        if (S.sheet === "label" && S.ed) S.ed = Object.assign({}, S.ed, { sel: null });
+        set({ sheet: null });
+    },
+    dismissToast: () => set({ toast: null }),
+
+    togglePick: (id) => set({ status: setPick(id, S.status[id] === "picked" ? null : "picked"), shopToast: null }),
+    openItem: (id) => set({ screen: "item", sheet: null, toast: null, form: formFor(S.items.find((it) => it.id === id)) }),
+    newItem: () => set({ screen: "item", sheet: null, toast: null, form: formFor(null) }),
+    finishItem: () => {
+        const f = S.form;
+        const zoneKind = (() => {
+            for (const sid of Object.keys(f.places)) {
+                const z = f.places[sid] && S.maps[sid] ? S.maps[sid].zones.find((x) => x.id === f.places[sid]) : null;
+                if (z && z.kind) return z.kind;
+            }
+            return null;
+        })();
+        if (f.id) {
+            const items = S.items.map((it) => (it.id === f.id ? Object.assign({}, it, { name: f.name || it.name, qty: f.qty, note: f.note, photo: f.hasPhoto, places: f.places, zone: zoneKind || it.zone }) : it));
+            return set({ items: items, screen: "list", form: null, sheet: null });
+        }
+        const it = { id: "n" + Date.now(), name: f.name || "New item", qty: f.qty, note: f.note, photo: f.hasPhoto, places: f.places, zone: zoneKind, hint: {} };
+        set({ items: S.items.concat([it]), screen: "list", form: null, sheet: null, toast: it.name + " added to the list." });
+    },
+    removeItem: () => {
+        const name = S.form.name;
+        const status = setPick(S.form.id, null);
+        set({ items: S.items.filter((it) => it.id !== S.form.id), status: status, screen: "list", form: null, sheet: null, toast: "Removed " + name + " from the list." });
+    },
+    openPhoto: () => set({ sheet: "photo" }),
+    takePhoto: () => set({ sheet: null, form: Object.assign({}, S.form, { hasPhoto: true }) }),
+    removePhoto: () => set({ sheet: null, form: Object.assign({}, S.form, { hasPhoto: false }) }),
+    pickZone: (id) => set({ sheet: "zone", zoneStore: id }),
+    setZone: (id) => set({ sheet: null, form: Object.assign({}, S.form, { places: Object.assign({}, S.form.places, { [S.zoneStore]: id }) }) }),
+    clearZone: () => set({ sheet: null, form: Object.assign({}, S.form, { places: Object.assign({}, S.form.places, { [S.zoneStore]: null }) }) }),
+
+    openStore: (id) => goStore(id),
+    openAdd: () => set({ sheet: "add", newName: "", newChain: "Costco" }),
+    setChain: (id) => set({ newChain: id }),
+    addStore: () => {
+        const id = "n" + Date.now();
+        const chain = S.newChain === "New chain" ? (S.newName || "New store") : S.newChain;
+        set({ stores: S.stores.concat([{ id: id, name: S.newName || "New store", chain: chain }]), storeId: id, screen: "store", sheet: null });
+    },
+    editMap: () => {
+        S.ed = editorFor(S.storeId);
+        set({ screen: "mapEdit", sheet: null });
+    },
+    drawMap: () => {
+        S.ed = editorFor(S.storeId);
+        set({ screen: "mapStart", sheet: null });
+    },
+    drawMapFor: (id) => {
+        S.storeId = id;
+        ACTS.drawMap();
+    },
+
+    shopAt: (id) => set({ screen: "shop", shopStore: id, sheet: null, shopToast: null }),
+    shopAddStore: () => set({ screen: "stores", sheet: "add", newName: "", newChain: "Costco" }),
+    openSwitch: () => set({ sheet: "switch" }),
+    gotIt: () => {
+        const nx = shopNext();
+        if (nx) set({ status: setPick(nx.id, "picked"), shopToast: null });
+    },
+    markMissing: () => {
+        const nx = shopNext();
+        if (nx) set({ status: setPick(nx.id, "missing"), shopToast: nx.id });
+    },
+    undoMissing: () => set({ status: setPick(S.shopToast, null), shopToast: null }),
+    retryMissing: () => {
+        const st = Object.assign({}, S.status);
+        Object.keys(st).forEach((k) => { if (st[k] === "missing") delete st[k]; });
+        set({ status: st });
+    },
+    finishTrip: () => {
+        const pickedIds = Object.keys(S.status).filter((k) => S.status[k] === "picked");
+        const status = {};
+        Object.keys(S.status).forEach((k) => { if (S.status[k] === "missing") status[k] = "missing"; });
+        const stores = S.stores.map((st) => Object.assign({}, st, { last: st.id === S.shopStore, lastTrip: st.id === S.shopStore ? "last trip today" : st.lastTrip }));
+        set({ items: S.items.filter((it) => pickedIds.indexOf(it.id) < 0), status: status, stores: stores, shopStore: null, shopToast: null, screen: "list",
+            toast: "Trip done. Cleared " + pickedIds.length + " picked items." });
+    },
+
+    mapBack: () => {
+        const maps = saveMap();
+        S.maps = maps;
+        goStore(S.storeId);
+    },
+    mapSketch: () => { S.ed.tool = "zone"; set({ screen: "mapEdit", sheet: null }); },
+    mapOpenSource: () => set({ sheet: "source" }),
+    mapUsePhoto: () => {
+        const msg = S.ed.scan ? "Map photo replaced." : SCAN_TOAST;
+        const tool = S.screen === "mapStart" ? "zone" : S.ed.tool;
+        S.sheet = null;
+        S.screen = "mapEdit";
+        commitEd({ scan: true, tool: tool, toast: msg });
+    },
+    mapRemovePhoto: () => { S.sheet = null; commitEd({ scan: false, toast: "Map photo removed. Your zones stay." }); },
+    mapPhotoSheet: () => { S.sheet = S.ed.scan ? "photo-map" : "source"; setEd({ sel: null, toast: null }); },
+    mapTool: (id) => { S.sheet = null; setEd({ tool: id, sel: null, draft: null }); },
+    mapDismiss: () => setEd({ toast: null }),
+    mapKind: (k) => commitEd({ zones: S.ed.zones.map((z) => (z.id === S.ed.sel ? Object.assign({}, z, { kind: k, name: z.name || KIND_NAMES[k] }) : z)) }),
+    mapDelete: () => { S.sheet = null; commitEd({ zones: S.ed.zones.filter((z) => z.id !== S.ed.sel), sel: null }); },
+    mapUndo: () => {
+        const e = S.ed;
+        if (!e.past.length) return;
+        S.sheet = null;
+        setEd(Object.assign({}, e.past[e.past.length - 1], { past: e.past.slice(0, -1), future: [snap()].concat(e.future), sel: null }));
+    },
+    mapRedo: () => {
+        const e = S.ed;
+        if (!e.future.length) return;
+        S.sheet = null;
+        setEd(Object.assign({}, e.future[0], { future: e.future.slice(1), past: e.past.concat([snap()]), sel: null }));
+    }
+};
+
+app.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-act]");
+    if (!el || el.disabled) return;
+    ACTS[el.dataset.act](el.dataset.id);
+});
+app.addEventListener("input", (e) => {
+    const f = e.target.dataset.field;
+    if (f === "newName") S.newName = e.target.value;
+    else if (f && S.form) S.form[f] = e.target.value;
+    if (e.target.id === "zone-name" && S.ed) {
+        S.ed.zones = S.ed.zones.map((z) => (z.id === S.ed.sel ? Object.assign({}, z, { name: e.target.value }) : z));
+        renderCanvas();
+    }
+});
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && S.sheet) ACTS.closeSheet();
+});
+
+/* ---------- Map editor canvas gestures ---------- */
+
+const pt = (e, el) => {
+    const r = el.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top, maxX: el.clientWidth, maxY: el.clientHeight };
+};
+const grid = (v) => Math.round(v / 4) * 4;
+
+app.addEventListener("pointerdown", (e) => {
+    let el = e.target.closest(".canvas");
+    if (!el || S.sheet || S.screen !== "mapEdit") return;
+    const ed = S.ed;
+    const p = pt(e, el);
+    if (ed.toast) {
+        ed.toast = null;
+        render();
+        el = app.querySelector(".canvas");
+    }
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    if (ed.tool === "zone") {
+        ed.drag = { mode: "draw", x0: p.x, y0: p.y };
+        ed.draft = { x: p.x, y: p.y, w: 0, h: 0 };
+        ed.sel = null;
+        renderCanvas();
+        return;
+    }
+    if (ed.tool === "door") return commitEd({ door: { x: Math.round(p.x), y: Math.round(p.y) }, toast: null });
+    const selZ = ed.zones.find((z) => z.id === ed.sel);
+    if (selZ) {
+        const corners = { nw: [selZ.x, selZ.y], ne: [selZ.x + selZ.w, selZ.y], sw: [selZ.x, selZ.y + selZ.h], se: [selZ.x + selZ.w, selZ.y + selZ.h] };
+        const hit = Object.keys(corners).find((k) => Math.hypot(p.x - corners[k][0], p.y - corners[k][1]) < 22);
+        if (hit) { ed.drag = { mode: "resize", id: selZ.id, corner: hit, o: Object.assign({}, selZ), moved: false }; return; }
+    }
+    let hit = null;
+    for (let i = ed.zones.length - 1; i >= 0; i--) {
+        const z = ed.zones[i];
+        if (p.x >= z.x && p.x <= z.x + z.w && p.y >= z.y && p.y <= z.y + z.h) { hit = z; break; }
+    }
+    if (hit) { ed.sel = hit.id; ed.drag = { mode: "move", id: hit.id, dx: p.x - hit.x, dy: p.y - hit.y, moved: false }; }
+    else ed.sel = null;
+    renderCanvas();
+});
+
+app.addEventListener("pointermove", (e) => {
+    const ed = S.ed;
+    const d = ed && ed.drag;
+    const el = app.querySelector(".canvas");
+    if (!d || !el) return;
+    const p = pt(e, el);
+    const cx = (v) => Math.max(0, Math.min(p.maxX, v));
+    const cy = (v) => Math.max(0, Math.min(p.maxY, v));
+    if (d.mode === "draw") {
+        const x1 = cx(p.x), y1 = cy(p.y);
+        ed.draft = { x: grid(Math.min(d.x0, x1)), y: grid(Math.min(d.y0, y1)), w: grid(Math.abs(x1 - d.x0)), h: grid(Math.abs(y1 - d.y0)) };
+        return renderCanvas();
+    }
+    if (!d.moved) { ed.past = ed.past.concat([snap()]).slice(-30); ed.future = []; d.moved = true; }
+    ed.zones = ed.zones.map((z) => {
+        if (z.id !== d.id) return z;
+        if (d.mode === "move") return Object.assign({}, z, { x: grid(Math.max(0, Math.min(p.maxX - z.w, p.x - d.dx))), y: grid(Math.max(0, Math.min(p.maxY - z.h, p.y - d.dy))) });
+        const o = d.o;
+        const l = d.corner.includes("w") ? cx(p.x) : o.x;
+        const r = d.corner.includes("e") ? cx(p.x) : o.x + o.w;
+        const t = d.corner.includes("n") ? cy(p.y) : o.y;
+        const b = d.corner.includes("s") ? cy(p.y) : o.y + o.h;
+        return Object.assign({}, z, { x: grid(Math.min(l, r)), y: grid(Math.min(t, b)), w: Math.max(28, grid(Math.abs(r - l))), h: Math.max(28, grid(Math.abs(b - t))) });
+    });
+    renderCanvas();
+});
+
+function endDrag() {
+    const ed = S.ed;
+    const d = ed && ed.drag;
+    if (!d) return;
+    if (d.mode === "draw") {
+        const f = ed.draft;
+        if (f && f.w >= 28 && f.h >= 28) {
+            const id = "n" + Date.now();
+            S.sheet = "label";
+            return commitEd({ zones: ed.zones.concat([{ id: id, kind: null, name: "", x: f.x, y: f.y, w: f.w, h: f.h }]), sel: id, draft: null, drag: null });
+        }
+        return setEd({ draft: null, drag: null });
+    }
+    if (d.mode === "move" && !d.moved) { S.sheet = "label"; return setEd({ drag: null }); }
+    setEd({ drag: null });
+}
+app.addEventListener("pointerup", endDrag);
+app.addEventListener("pointercancel", endDrag);
+
+/* ---------- Side panel: jump to any mocked state (wide screens only) ---------- */
+
+(function protoPanel() {
+    const theme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+    const href = (name, th) => `?scenario=${name}${th === "dark" ? "&theme=dark" : ""}`;
+    let html = `<h1>Magpie</h1><p class="caption">All mockups in one prototype. Tap through the phone, or jump to a state. Sample data only.</p>
+<div class="row-btns"><a class="secondary" style="text-decoration:none" href="${href(scenarioName, theme === "dark" ? "light" : "dark")}">${theme === "dark" ? "Light" : "Dark"} theme</a><a class="secondary" style="text-decoration:none" href="${href(scenarioName, theme)}">Reset</a></div><div class="jump">`;
+    let group = "";
+    Object.keys(SCENARIOS).forEach((name) => {
+        const sc = SCENARIOS[name];
+        if (sc.group !== group) { group = sc.group; html += `<span class="label">${esc(group)}</span>`; }
+        html += `<a href="${href(name, theme)}" ${name === scenarioName ? 'aria-current="true"' : ""}>${esc(sc.label)}</a>`;
+    });
+    document.getElementById("proto").innerHTML = html + "</div>";
+})();
+
+render();
+</script>
+</body>
+</html>

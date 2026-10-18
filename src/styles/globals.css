@@ -49,6 +49,7 @@
     --zone-frozen: #e0d6ff;
     --zone-pantry: #ffd9bd;
     --zone-edge: rgba(18, 21, 33, 0.35);
+    --canvas-dot: rgba(117, 126, 151, 0.4);
 
     --shadow-sticker: 0 3px 0 rgba(18, 21, 33, 0.14);
     --shadow-press: 0 4px 0 #03211c;
@@ -132,6 +133,7 @@
         --zone-frozen: #352a5e;
         --zone-pantry: #4f2f1a;
         --zone-edge: rgba(241, 243, 249, 0.35);
+        --canvas-dot: rgba(104, 113, 144, 0.5);
 
         --shadow-sticker: 0 3px 0 rgba(0, 0, 0, 0.55);
         --shadow-press: 0 4px 0 #04463b;
@@ -165,6 +167,7 @@
     --zone-frozen: #352a5e;
     --zone-pantry: #4f2f1a;
     --zone-edge: rgba(241, 243, 249, 0.35);
+    --canvas-dot: rgba(104, 113, 144, 0.5);
 
     --shadow-sticker: 0 3px 0 rgba(0, 0, 0, 0.55);
     --shadow-press: 0 4px 0 #04463b;
@@ -198,6 +201,7 @@
     --color-zone-frozen: var(--zone-frozen);
     --color-zone-pantry: var(--zone-pantry);
     --color-zone-edge: var(--zone-edge);
+    --color-canvas-dot: var(--canvas-dot);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);

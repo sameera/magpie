@@ -1,0 +1,11 @@
+Generated with the built-in image_gen tool.
+Reference: public/icons/magpie-mascot.png (brand reference).
+
+Use case: ads-marketing
+Asset type: final YouTube thumbnail, landscape 16:9, 1920x1080.
+Primary request: Attention grabbing thumbnail for a developer's walkthrough of building Magpie, a household grocery-list web app, using Nexus.
+Input image: supporting brand reference only: existing Magpie cartoon mascot, black-and-white bird with teal wings holding yellow shopping bag. Preserve its appearance if included.
+Design: premium bold editorial tech thumbnail, exceptionally readable at tiny mobile size. Near-black navy background, subtle code-editor texture behind subjects, teal-green glow and rich yellow accents drawn from mascot. Strong visual hierarchy and intentional negative space.
+Composition: left 55% huge heavy condensed sans typography in three lines: 'I BUILT' white, 'THIS' white, 'WITH NEXUS' dark ink in a vivid lime-green rectangular banner. Right 45% one large polished phone mockup tilted slightly, filling most of the height, with warm white app screen and teal accents. Screen is a conceptual Magpie grocery-list UI, not a screenshot: heading 'Magpie', simple clean grocery rows 'Milk', 'Eggs', 'Apples', big check circles, teal plus button. Small faithful mascot as app branding near phone, secondary in scale. One bold yellow curved arrow points from THIS toward the phone; keep it elegant. Gentle phone rim light and strong dimensional depth.
+Text (verbatim): 'I BUILT', 'THIS', 'WITH NEXUS'; app header 'Magpie'. No other promotional text.
+Constraints: exact spelling, massive headline, all primary elements inside generous safe margins, no human faces, no invented Nexus logos, no claims about elapsed time or cost, no watermarks, no YouTube play badge, no tiny busy interface, no random floating icons. Thumbnail must feel energetic, clear, credible, crafted; avoid generic AI futuristic clutter.

@@ -26,7 +26,7 @@ describe("Shop page", () => {
         const next = screen.getByRole("region", { name: "Next up" });
         expect(within(next).getByText("Bread")).toBeInTheDocument();
         expect(within(next).getByText("Bakery")).toBeInTheDocument();
-        const list = within(screen.getByRole("list", { name: "List in walking order" })).getAllByRole("listitem");
+        const list = within(screen.getByRole("list", { name: "List in walking order" })).getAllByRole("checkbox").map(pick => pick.closest("li")!);
         expect(list.map((row) => row.textContent)).toEqual([expect.stringContaining("Bread"), expect.stringContaining("Milk")]);
         expect(within(list[0]).getByText("Qty 1 · Bakery")).toBeInTheDocument();
         expect(within(list[1]).getByText("Qty 2 · Dairy")).toBeInTheDocument();

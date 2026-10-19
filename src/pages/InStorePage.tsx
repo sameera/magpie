@@ -7,6 +7,7 @@ import { setTripPath } from "../app/tripStore";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useList, useStore } from "../data/hooks";
+import { categoryName, listGroups } from "../data/categoryGroups";
 import { quantityLabel, walkingOrder, zoneOf, type Item } from "../data/model";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
@@ -92,14 +93,21 @@ export function InStorePage() {
                     </button>
                 </p>
             )}
-            <ul aria-label="List in walking order" className="flex flex-col gap-3">
-                {items.map((item) => (
-                    <ShopRow
-                        key={item.id}
-                        item={item}
-                        zone={zoneOf(item, store.value)?.label}
-                        onPurchase={() => purchase(item)}
-                    />
+            <ul aria-label="List in walking order" className="flex flex-col gap-6">
+                {listGroups(items, "appearance").map(({ category, items }) => (
+                    <li key={category ?? "none"}>
+                        <h2 id={`shop-category-${category ?? "none"}`} className="mb-3 text-heading">{categoryName(category)}</h2>
+                        <ul aria-labelledby={`shop-category-${category ?? "none"}`} className="flex flex-col gap-3">
+                            {items.map((item) => (
+                                <ShopRow
+                                    key={item.id}
+                                    item={item}
+                                    zone={zoneOf(item, store.value)?.label}
+                                    onPurchase={() => purchase(item)}
+                                />
+                            ))}
+                        </ul>
+                    </li>
                 ))}
             </ul>
         </>

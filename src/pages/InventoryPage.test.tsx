@@ -7,14 +7,14 @@ import type { Item } from "../data/model";
 import type { Watched } from "../services/types";
 
 describe("Inventory", () => {
-    it("shows every item by name in alphabetical order without changing household data", () => {
+    it("shows every item by name under categories without changing household data", () => {
         const services = new FakeServices();
         const household = services.households.get("h1")!;
         household.items.push(testItem({ id: "off", name: "Apples", onList: false }));
         const before = structuredClone(household);
         renderApp(["/inventory"], services);
         const list = screen.getByRole("list", { name: "Inventory" });
-        expect(within(list).getAllByRole("link").map(link => link.textContent)).toEqual(["Apples", "Bread", "Milk"]);
+        expect(within(list).getAllByRole("link").map(link => link.textContent)).toEqual(["Milk", "Bread", "Apples"]);
         expect(household).toEqual(before);
         expect(services.reads.every(id => id === "h1")).toBe(true);
     });
@@ -96,6 +96,6 @@ describe("Inventory", () => {
         await user.type(name, "Almond milk");
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/inventory");
-        expect((await screen.findAllByRole("listitem")).map(row => row.textContent)).toEqual(["Almond milk", "Bread"]);
+        expect(within(await screen.findByRole("list", { name: "Inventory" })).getAllByRole("link").map(link => link.textContent)).toEqual(["Almond milk", "Bread"]);
     });
 });

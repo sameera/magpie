@@ -1,8 +1,8 @@
 ---
 title: List Category Groups
 aliases: [category headings, grouped list, No category, drag to category, hold to drag, drop tray, category drop]
-touches: [item-category, household-data-writes]
-last_updated_by: "#79"
+touches: [item-category, household-data-writes, inventory-page, trip-store]
+last_updated_by: "#86"
 status: active
 verification: verified
 ---
@@ -32,9 +32,15 @@ Releasing on another category sends a category-only write without waiting. Relea
 
 - [item-category](item-category.md) — a drop sets the same category that places the item in a store.
 - [household-data-writes](household-data-writes.md) — a drop is a category-only item update under the existing item update rule.
+- [inventory-page](inventory-page.md) — the Inventory page shows the same headings in the same order.
+- [trip-store](trip-store.md) — the in-store list shows the same headings, ordered by walking order.
 
 ## Decision Log
 
 ### 2026-10-18 — #79 — Group the List page by category and set a category by dragging to a drop tray
 
 The List page now groups items under category headings and sets a category by a drag, so a long list shows what is still uncategorized and one drag fixes an item. Grouping is built on the phone from the existing list read, so it needs no new read, index or stored order. A drag starts with a hold anywhere on the row, because a leftward swipe always moves before the hold time ends and so can never become a drag. The refuted alternative was a grip handle on each row. It lost because it takes about 48 px from item names on a 360 px screen, and a swipe starting on the handle would start a drag. The drag extends the row's own touch handling. A drag-and-drop library was refuted, because its touch handling competes with the swipe on the same row and it adds about 20 KB. Targets sit in a fixed tray, not on the headings. Headings as targets were refuted, because the list moves under the finger and needs auto-scroll. A drop is a category-only write sent without waiting. Reusing the Item page's save was refuted, because it rewrites name, quantity and note from a copy that may be out of date and blocks offline. Only a server refusal is a failure. Waiting briefly for the server was refuted, because it fails every drop made offline. The trade-offs: the gesture is hidden, there is no keyboard drag, and when both phones edit the same item the last write wins.
+
+### 2026-10-18 — #86 — Reciprocal links from inventory-page and trip-store
+
+The Inventory page and the in-store list now show items under the same category headings. This page lists inventory-page and trip-store as neighbours, to match their links to this one.

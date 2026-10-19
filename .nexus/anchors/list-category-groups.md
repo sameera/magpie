@@ -1,6 +1,6 @@
 ---
 concept: list-category-groups
-source_sha: 2e76acb4bc2fbfcb654ffdb309a439a7cc213012
+source_sha: 144d89e9f92591bbcb6cb47eff71147b45e8e407
 generated: 2026-10-18
 ---
 
@@ -9,10 +9,11 @@ generated: 2026-10-18
 
 # Code Anchors: List Category Groups
 
-- `src/data/categoryGroups.ts` — builds the groups in the fixed category order, with "No category" last, and names each group
+- `src/data/categoryGroups.ts` — builds the groups in the fixed category order, with "No category" last, and names each group (#89)
 - `src/pages/ListPage.tsx` — the grouped list, the hold-to-drag gesture beside the swipe, the drop tray, the category drop and its refusal notice
 - `src/services/firestoreData.ts` — the category-only item update
 - `src/services/types.ts` — the data service's category-only update
 - `src/data/categoryGroups.test.ts` — tests the grouping order, "No category" and hidden empty groups
 - `src/pages/ListPage.test.tsx` — tests the grouped list, the hold, the swipe, the drop, the cancel and the refusal
 - `rules-tests/categoryDrop.rules.test.ts` — tests that a member's category drop keeps every other field and that outsiders are refused
+- `src/pages/CategoryHeadings.test.tsx` — tests that the Inventory and in-store lists use the List page's headings (#89)

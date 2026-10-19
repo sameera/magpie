@@ -1,11 +1,16 @@
 import { ChevronRight } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router";
+import { CategoryDragRow } from "../components/CategoryDragRow";
+import { useCategoryDrag } from "../components/CategoryDrag";
 import { useItems } from "../data/hooks";
 import { categoryName, listGroups } from "../data/categoryGroups";
 import { PageHeader } from "./PageHeader";
 
 export function InventoryPage() {
     const items = useItems();
+    const [refusal, setRefusal] = useState("");
+    const categoryDrag = useCategoryDrag(items.status === "ready" ? items.value : [], setRefusal);
 
     return (
         <>
@@ -22,22 +27,28 @@ export function InventoryPage() {
                             <h2 id={`inventory-category-${category ?? "none"}`} className="mb-3 text-heading">{categoryName(category)}</h2>
                             <ul aria-labelledby={`inventory-category-${category ?? "none"}`} className="flex flex-col gap-3">
                                 {items.map(item => (
-                                    <li key={item.id}>
+                                    <CategoryDragRow key={item.id} item={item} {...categoryDrag.rowActions(item)}>
                                         <Link
                                             to={`/items/${item.id}`}
                                             state={{ returnTo: "/inventory" }}
-                                            className="flex min-h-tap-cart items-center gap-3 rounded-md bg-surface px-4 py-3 shadow-sticker"
+                                            draggable={false}
+                                            className="flex min-h-tap-cart min-w-0 flex-1 items-center gap-3 px-3 py-3"
                                         >
                                             <span className="min-w-0 flex-1 break-words text-item">{item.name}</span>
                                             <ChevronRight aria-hidden="true" className="shrink-0" />
                                         </Link>
-                                    </li>
+                                    </CategoryDragRow>
                                 ))}
                             </ul>
                         </li>
                     ))}
                 </ul>
             )}
+            {categoryDrag.layer}
+            {refusal && !categoryDrag.active && <p role="alert" className="fixed right-4 bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-4 z-10 mx-auto flex max-w-132 items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
+                <span className="min-w-0 flex-1">{refusal}</span>
+                <button type="button" onClick={() => setRefusal("")} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">Dismiss</button>
+            </p>}
         </>
     );
 }

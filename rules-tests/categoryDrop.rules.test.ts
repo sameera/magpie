@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import type { ZoneKind } from "../src/data/model";
+import { zoneKinds, type ZoneKind } from "../src/data/model";
 import { createFirestoreData } from "../src/services/firestoreData";
 
 let env: RulesTestEnvironment;
@@ -42,13 +42,17 @@ async function storedNow() {
     return data;
 }
 
-describe("A category drop from the List page", () => {
-    it.each([["produce" as const], [null]])("lets a member set the category to %s, keeping every other field, and the other member reads it", async category => {
+describe.each([true, false])("A category drop from List or Inventory (onList=%s)", onList => {
+    const item = { ...stored, onList };
+    beforeEach(async () => {
+        await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(), path), item); });
+    });
+    it.each([...zoneKinds, null])("lets a member set the category to %s, keeping every other field, and the other member reads it", async category => {
         await withData("alex", async data => {
             await assertSucceeds(data.setCategory("h1", "milk", category));
         });
         await withData("sam", async (_data, db) => {
-            expect((await getDoc(doc(db, path))).data()).toEqual({ ...stored, category });
+            expect((await getDoc(doc(db, path))).data()).toEqual({ ...item, category });
         });
     });
 
@@ -56,13 +60,14 @@ describe("A category drop from the List page", () => {
         await withData("alex", async data => {
             await assertFails(data.setCategory("h1", "milk", "snacks" as ZoneKind));
         });
-        expect(await storedNow()).toEqual(stored);
+        expect(await storedNow()).toEqual(item);
     });
 
     it.each([null, "stranger", "other"])("refuses the same change from outsider %s, leaving the item unchanged", async uid => {
-        await withData(uid, async data => {
+        await withData(uid, async (data, db) => {
+            await assertFails(getDoc(doc(db, path)));
             await assertFails(data.setCategory("h1", "milk", "produce"));
         });
-        expect(await storedNow()).toEqual(stored);
+        expect(await storedNow()).toEqual(item);
     });
 });

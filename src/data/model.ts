@@ -31,6 +31,7 @@ export interface Item {
     // The kind of zone the item sits in, in every store; null for none.
     category: ZoneKind | null;
     onList: boolean;
+    preferredChain?: string;
     // Absent on items created before purchase history; reads as zero.
     purchaseCount?: number;
     lastPurchasedAt?: Date | null;
@@ -38,7 +39,7 @@ export interface Item {
 }
 
 // The item fields the app writes.
-export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "category">;
+export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "category" | "preferredChain">;
 
 // An existing item put back on the list with a new quantity needed.
 export type ListedItem = Pick<Item, "id" | "quantityNeeded">;
@@ -75,6 +76,7 @@ export const itemConverter: FirestoreDataConverter<Item> = {
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,
         category: toCategory(snap.get("category")),
         onList: snap.get("onList") === true,
+        ...(typeof snap.get("preferredChain") === "string" ? { preferredChain: snap.get("preferredChain") } : {}),
         purchaseCount: snap.get("purchaseCount") ?? 0,
         lastPurchasedAt: (snap.get("lastPurchasedAt", { serverTimestamps: "estimate" }) as { toDate?: () => Date } | undefined)?.toDate?.() ?? null,
         lastPurchaseId: snap.get("lastPurchaseId") ?? null,

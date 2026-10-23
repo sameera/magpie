@@ -67,7 +67,11 @@ service cloud.firestore {
 
                 function validItem(data) {
                     return data.keys().hasAll(itemFields())
-                        && data.keys().hasOnly(itemFields().concat(['places', 'purchaseCount', 'lastPurchasedAt', 'lastPurchaseId']))
+                        && data.keys().hasOnly(itemFields().concat(['places', 'purchaseCount', 'lastPurchasedAt', 'lastPurchaseId', 'preferredChain']))
+                        && (!data.keys().hasAny(['preferredChain'])
+                            || (data.preferredChain is string
+                                && data.preferredChain.size() <= 100
+                                && data.preferredChain.matches('.*[^\\s].*')))
                         && data.get('purchaseCount', 0) is int
                         && data.get('purchaseCount', 0) >= 0
                         && validName(data)

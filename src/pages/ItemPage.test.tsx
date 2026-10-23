@@ -36,11 +36,11 @@ describe("Item page", () => {
         expect(screen.queryByLabelText("Costco Kirkland")).toBeNull();
     });
 
-    it("reads no stores", () => {
+    it("reads household stores for chain suggestions", () => {
         const services = new FakeServices();
         const watchStores = vi.spyOn(services.data, "watchStores");
         renderApp(["/items/i1"], services);
-        expect(watchStores).not.toHaveBeenCalled();
+        expect(watchStores).toHaveBeenCalledWith("h1", expect.any(Function));
     });
 
     it("shows the prices of an item with recorded prices", () => {

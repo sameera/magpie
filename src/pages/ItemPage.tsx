@@ -6,7 +6,8 @@ import { confirmDiscard, confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_
 import { useHouseholdId, useServices } from "../app/session";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
-import { useFileUrl, useItem, usePrices } from "../data/hooks";
+import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
+import { PreferredChainField } from "../components/PreferredChainField";
 import { newItem, parseQuantity, zoneKinds, type Item, type ItemFields, type Price, type ZoneKind } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
@@ -83,14 +84,15 @@ interface Draft {
     quantity: string;
     note: string;
     category: ZoneKind | "";
+    preferredChain: string;
 }
 
 function draftOf(item: Item): Draft {
-    return { name: item.name, quantity: String(item.quantityNeeded), note: item.note, category: item.category ?? "" };
+    return { name: item.name, quantity: String(item.quantityNeeded), note: item.note, category: item.category ?? "", preferredChain: item.preferredChain ?? "" };
 }
 
 function sameFields(a: Draft, b: Draft): boolean {
-    return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category;
+    return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category && a.preferredChain === b.preferredChain;
 }
 
 // Done writes the draft and waits for the server before returning to its parent. An
@@ -109,6 +111,7 @@ function ItemDetails({
     children?: ReactNode;
 }) {
     const [draft, setDraft] = useState<Draft>(() => draftOf(item));
+    const stores = useStores();
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const parent = useItemParent();
@@ -141,9 +144,14 @@ function ItemDetails({
             setError(QUANTITY_ERROR);
             return;
         }
+        const preferredChain = draft.preferredChain.trim();
+        if (preferredChain.length > 100) {
+            setError("Preferred Chain must be at most 100 characters.");
+            return;
+        }
         setError("");
         setSaving(true);
-        confirmSave(save({ id: item.id, name, quantityNeeded, note: draft.note, category: draft.category || null })).then((result) => {
+        confirmSave(save({ id: item.id, name, quantityNeeded, note: draft.note, category: draft.category || null, ...(preferredChain ? { preferredChain } : {}) })).then((result) => {
             if (result === "saved") {
                 finished.current = true;
                 up();
@@ -217,6 +225,8 @@ function ItemDetails({
                 <Field label="Note">
                     <input className={inputClass} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
                 </Field>
+                <PreferredChainField value={draft.preferredChain} onChange={preferredChain => setDraft({ ...draft, preferredChain })}
+                    chains={stores.status === "ready" ? stores.value.map(store => store.chain) : []} />
             </section>
             {children}
         </>

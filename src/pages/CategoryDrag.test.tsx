@@ -46,6 +46,42 @@ describe.each(["/", "/inventory"])("Category handles on %s", path => {
         expect(router.state.location.pathname).toBe(path);
     });
 
+    it.each(["touch", "mouse"])("highlights only the category under a captured %s drag, including No category", pointerType => {
+        const { services } = renderApp([path]);
+        const write = vi.spyOn(services.data, "setCategory");
+        const handle = screen.getByRole("button", { name: "Move Milk to a category" });
+        const pointer = { ...point, pointerType, button: 0 };
+        fireEvent.pointerDown(handle, { ...pointer, clientX: 25, clientY: 40 });
+        fireEvent.pointerMove(handle, { ...pointer, clientX: 26, clientY: 41 });
+        const moveOver = (element: Element | null) => {
+            Object.defineProperty(document, "elementFromPoint", { value: () => element, configurable: true });
+            // Captured pointer events stay on the handle even over the drawer.
+            fireEvent.pointerMove(handle, { ...pointer, clientX: 160, clientY: 600 });
+        };
+        const expectHighlighted = (name: string) => {
+            expect(target(name)).toHaveClass("ring-2", "ring-sheen-ink");
+            expect(within(target(name) as HTMLElement).getByText("Release to move")).toBeVisible();
+            expect(within(tray()!).getAllByText("Release to move")).toHaveLength(1);
+        };
+        moveOver(target("Frozen").querySelector("span"));
+        expectHighlighted("Frozen");
+        moveOver(target("No category").querySelector("span"));
+        expectHighlighted("No category");
+        expect(target("Frozen")).not.toHaveClass("ring-2");
+        moveOver(target("Dairy"));
+        expect(screen.queryByText("Release to move")).toBeNull();
+        expect(target("No category")).not.toHaveClass("ring-2");
+        moveOver(target("Produce"));
+        expectHighlighted("Produce");
+        moveOver(document.body);
+        expect(screen.queryByText("Release to move")).toBeNull();
+        expect(target("Produce")).not.toHaveClass("ring-2");
+        moveOver(target("Frozen"));
+        fireEvent.pointerCancel(handle, pointer);
+        expect(tray()).toBeNull();
+        expect(write).not.toHaveBeenCalled();
+    });
+
     it.each(["cancel", "outside"])("can activate the focused handle from the keyboard after a touch drag ends %s", async ending => {
         renderApp([path]);
         const handle = screen.getByRole("button", { name: "Move Milk to a category" });

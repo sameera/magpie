@@ -12,6 +12,12 @@ const zoneSwatch: Record<ZoneKind, string> = {
 interface Drag {
     item: Item;
     point: { x: number; y: number } | null;
+    overCategory?: ZoneKind | null;
+}
+
+function categoryAtPoint(x: number, y: number): ZoneKind | null | undefined {
+    const target = document.elementFromPoint?.(x, y)?.closest("[data-drop-category]");
+    return target ? (target.getAttribute("data-drop-category") || null) as ZoneKind | null : undefined;
 }
 
 function focusHandle(itemId: string) {
@@ -62,10 +68,13 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
     const rowActions = (item: Item): CategoryRowActions => ({
         lifted: active?.item.id === item.id,
         onDragStart: (x, y) => setDrag({ item, point: { x, y } }),
-        onDragMove: (x, y) => setDrag(d => d && { ...d, point: { x, y } }),
+        onDragMove: (x, y) => {
+            const overCategory = categoryAtPoint(x, y);
+            setDrag(d => d && { ...d, point: { x, y }, overCategory });
+        },
         onDrop: (x, y) => {
-            const target = document.elementFromPoint(x, y)?.closest("[data-drop-category]");
-            if (target && active) choose(active.item, (target.getAttribute("data-drop-category") || null) as ZoneKind | null);
+            const category = categoryAtPoint(x, y);
+            if (category !== undefined && active) choose(active.item, category);
             else finish();
         },
         onDragCancel: finish,
@@ -75,7 +84,7 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
         active,
         rowActions,
         layer: active && <>
-            <DropTray item={active.item} keyboard={!active.point} onChoose={category => choose(active.item, category)} onCancel={finish} />
+            <DropTray item={active.item} keyboard={!active.point} overCategory={active.overCategory} onChoose={category => choose(active.item, category)} onCancel={finish} />
             {active.point && <div
                 aria-hidden="true"
                 className="pointer-events-none fixed z-30 max-w-60 -translate-x-1/2 -translate-y-1/2 truncate rounded-md bg-surface p-3 text-item shadow-float"
@@ -85,9 +94,10 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
     };
 }
 
-function DropTray({ item, keyboard, onChoose, onCancel }: {
+function DropTray({ item, keyboard, overCategory, onChoose, onCancel }: {
     item: Item;
     keyboard: boolean;
+    overCategory?: ZoneKind | null;
     onChoose: (category: ZoneKind | null) => void;
     onCancel: () => void;
 }) {
@@ -114,6 +124,7 @@ function DropTray({ item, keyboard, onChoose, onCancel }: {
     >
         {[...zoneKinds, null].map(category => {
             const current = category === item.category;
+            const highlighted = !current && category === overCategory;
             return <button
                 type="button"
                 key={category ?? "none"}
@@ -122,10 +133,11 @@ function DropTray({ item, keyboard, onChoose, onCancel }: {
                 aria-current={current ? "true" : undefined}
                 tabIndex={keyboard ? 0 : -1}
                 onClick={() => { if (keyboard) onChoose(category); }}
-                className={`flex min-h-tap min-w-0 flex-col items-center justify-center rounded-md border-2 px-1 text-center text-caption ${category ? zoneSwatch[category] : "bg-surface-sunken"} ${current ? "border-dashed border-line opacity-60" : "border-line-strong"}`}
+                className={`flex min-h-tap min-w-0 flex-col items-center justify-center rounded-md border-2 px-1 text-center text-caption ${category ? zoneSwatch[category] : "bg-surface-sunken"} ${current ? "border-dashed border-line opacity-60" : highlighted ? "border-sheen-ink ring-2 ring-sheen-ink" : "border-line-strong"}`}
             >
                 <span>{categoryName(category)}</span>
                 {current && <span className="text-ink-muted">Current</span>}
+                {highlighted && <span>Release to move</span>}
             </button>;
         })}
         {keyboard && <button type="button" onClick={onCancel} className="min-h-tap rounded-md text-caption text-sheen-ink">Cancel</button>}

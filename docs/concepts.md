@@ -4,7 +4,7 @@
 
 # Concept Atlas
 
-Orientation map of the concept store — 19 active concepts. Each links to its full page
+Orientation map of the concept store — 20 active concepts. Each links to its full page
 (behavior, invariants, decision history); code locations live in the matching
 `.nexus/anchors/<slug>.md` sidecar.
 
@@ -18,13 +18,16 @@ Orientation map of the concept store — 19 active concepts. Each links to its f
 - [Trip Store](../.nexus/concepts/trip-store.md) — Shop starts at the store choice, and the chosen store is part of the in-store view's path.
 - [Back Navigation](../.nexus/concepts/back-navigation.md) — Going back with the phone's or browser's back action follows the order the user moved in.
 - [Household Membership](../.nexus/concepts/household-membership.md) — A membership record ties one signed-in account to one household.
+- [Item Category](../.nexus/concepts/item-category.md) — An item has one category: none, or one of the six zone kinds.
+- [Map Editor Page](../.nexus/concepts/map-editor-page.md) — The Map editor is the page for drawing one store's map.
+- [Page Frames](../.nexus/concepts/page-frames.md) — Pages come in two frames.
+- [Category Drop Tray](../.nexus/concepts/category-drop-tray.md) — An item on the List page or the Inventory page can be moved to a category by a drag to a tray at the bottom of the screen.
 - [Map Editor Page](../.nexus/concepts/map-editor-page.md) — The Map editor is the page for drawing one store's map.
 - [Page Frames](../.nexus/concepts/page-frames.md) — Pages come in two frames.
 - [List Category Groups](../.nexus/concepts/list-category-groups.md) — The List page shows the shopping list under category headings, with "No category" last.
 - [Sign-in Gate](../.nexus/concepts/sign-in-gate.md) — Every page except Sign-in first checks that the user is signed in and is a member of the household.
 - [Add Items Drawer](../.nexus/concepts/add-items-drawer.md) — The Add item button on the List page opens a drawer from the bottom of the screen.
 - [Add Store Sheet](../.nexus/concepts/add-store-sheet.md) — The Add store sheet opens over the Stores page and saves a new store with a name and a chain.
-- [Item Category](../.nexus/concepts/item-category.md) — An item has one category: none, or one of the six zone kinds.
 - [Add Box Suggestions](../.nexus/concepts/add-box-suggestions.md) — While a line is typed in the add drawer, up to 4 of the household's items that match it show under the text box.
 - [Item Save](../.nexus/concepts/item-save.md) — Done on the Item page saves a new item onto the list, or saves an edit to an existing item, then returns to List.
 - [Map Draft](../.nexus/concepts/map-draft.md) — The map draft is the copy of a store's map that the Map editor holds on screen.

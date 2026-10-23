@@ -1,37 +1,31 @@
 ---
 title: List Category Groups
-aliases: [category headings, grouped list, No category, drag to category, hold to drag, drop tray, category drop]
-touches: [item-category, household-data-writes, inventory-page, trip-store]
-last_updated_by: "#86"
+aliases: [category headings, grouped list, No category]
+touches: [item-category, category-drop-tray, inventory-page, trip-store]
+last_updated_by: "#90"
 status: active
 verification: verified
 ---
 
 # List Category Groups
 
-The List page shows the shopping list under category headings, with "No category" last. Holding a row starts a drag, and dropping the item on a category in the drop tray sets that category. A drop changes only the category, shows at once, and rolls back only when the server refuses it.
+The List page shows the shopping list under category headings, with "No category" last. A row can be dragged to another category, and a leftward swipe on a row removes it. The drag is described in category-drop-tray.
 
 ## How It Works
 
 The List page groups the items from its existing on-list read. Headings follow the order produce, dairy, bakery, meat, frozen, pantry, then "No category". An item with no category, or with a stored value outside the six, goes under "No category". A category with no items gets no heading. Inside a heading, items keep their order by name. Suggested items stay below the list, ungrouped.
 
-A finger held still on a row for about 0.4 seconds starts a drag. A finger that moves first swipes left to remove or scrolls, as before. During a drag the page does not scroll, the Add button and messages are hidden, and a tray at the bottom shows all seven categories. The item's own category is marked current and takes no drop.
-
-Releasing on another category sends a category-only write without waiting. Releasing anywhere else writes nothing. If the server refuses, the item returns under its old heading, and a message names the item and the category it stayed in.
+A finger that moves on a row before the hold time ends swipes left to remove the row, or scrolls. A swipe never becomes a drag. A drop of the row on the tray regroups it at once.
 
 ## Key Invariants
 
 1. Every item on the list appears under exactly one heading, in the fixed category order, and no heading appears for a category with no items.
 2. A leftward swipe that moves before the hold time removes the row and never starts a drag.
-3. During a drag, the tray shows all seven categories, including empty ones and "No category".
-4. Releasing outside the tray, or on the item's own category, writes nothing.
-5. A drop changes only the item's category, and every other field stays as stored.
-6. Only a server refusal counts as a failed drop. A drop made offline stays under its new heading and is sent when the phone has signal.
 
 ## Integration Points
 
 - [item-category](item-category.md) — a drop sets the same category that places the item in a store.
-- [household-data-writes](household-data-writes.md) — a drop is a category-only item update under the existing item update rule.
+- [category-drop-tray](category-drop-tray.md) — the List page's rows use the shared handle, tray and drop.
 - [inventory-page](inventory-page.md) — the Inventory page shows the same headings in the same order.
 - [trip-store](trip-store.md) — the in-store list shows the same headings, ordered by walking order.
 
@@ -44,3 +38,7 @@ The List page now groups items under category headings and sets a category by a 
 ### 2026-10-18 — #86 — Reciprocal links from inventory-page and trip-store
 
 The Inventory page and the in-store list now show items under the same category headings. This page lists inventory-page and trip-store as neighbours, to match their links to this one.
+
+### 2026-10-19 — #90 — Drag and tray behavior split out to category-drop-tray
+
+The drag handle, keyboard tray and drop rules now apply to the Inventory page as well, and adding them pushed this page past the 400-word cap. They moved to category-drop-tray, which both pages share. The seam is the drag: a task about how a list is grouped loads this page alone, and a task about moving an item loads the tray page. This page keeps the grouping and the swipe. The refuted alternative was to keep the drag text here and drop the Inventory page's copy. It lost because the Inventory page then could not state its own drop behavior without reading the List page.

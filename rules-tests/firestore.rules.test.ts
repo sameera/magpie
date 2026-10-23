@@ -11,7 +11,7 @@ let env: RulesTestEnvironment;
 
 // An item in the shape the rules accept on create.
 function validItem(name: string): Omit<Item, "id"> {
-    return { name, quantityNeeded: 1, quantityRemaining: 0, category: null, note: "", photoPath: null, onList: true, places: {} };
+    return { name, quantityNeeded: 1, quantityRemaining: 0, category: null, note: "", photoPath: null, onList: true };
 }
 
 beforeAll(async () => {
@@ -157,7 +157,7 @@ describe("saving items", () => {
         const ref = doc(env.authenticatedContext("alex").firestore(), path);
         await assertSucceeds(setDoc(ref, item));
         await assertSucceeds(setDoc(ref, item));
-        await assertSucceeds(updateDoc(ref, { name: "Rye", quantityNeeded: 999, note: "x", places: {} }));
+        await assertSucceeds(updateDoc(ref, { name: "Rye", quantityNeeded: 999, note: "x" }));
         await assertSucceeds(updateDoc(doc(env.authenticatedContext("sam").firestore(), "households/h1/items/i1"), { name: "Oat milk" }));
     });
 
@@ -265,11 +265,10 @@ describe("saving items", () => {
         }
     });
 
-    it("accepts a new item with no placement, refuses one with any entry, and refuses a changed placement", async () => {
+    it("accepts a new item with no placement, refuses one with a placement field, and refuses a changed placement", async () => {
         const db = env.authenticatedContext("alex").firestore();
-        const { places: _places, ...withoutPlaces } = item;
-        await assertFails(setDoc(doc(db, path), withoutPlaces));
-        await assertSucceeds(setDoc(doc(db, path), { ...item, places: {} }));
+        await assertSucceeds(setDoc(doc(db, path), item));
+        await assertFails(setDoc(doc(db, "households/h1/items/p-empty"), { ...item, places: {} }));
         await assertFails(setDoc(doc(db, "households/h1/items/p-new"), { ...item, places: { s1: "z1" } }));
         await assertFails(updateDoc(doc(db, path), { places: { s1: "z1" } }));
         await env.withSecurityRulesDisabled(async (ctx) => {
@@ -375,7 +374,7 @@ describe("item persistence through the application adapter", () => {
             const reader = env.authenticatedContext("sam").firestore() as unknown as Firestore;
             const saved = await getDoc(doc(reader, "households/h1/items/new-item"));
             if (
-                saved.get("onList") !== true || saved.get("photoPath") !== null || Object.keys(saved.get("places")).length !== 0
+                saved.get("onList") !== true || saved.get("photoPath") !== null || saved.get("places") !== undefined
                 || saved.get("quantityNeeded") !== 12 || saved.get("quantityRemaining") !== 0 || saved.get("category") !== "dairy"
                 || saved.get("note") !== ""
             ) {

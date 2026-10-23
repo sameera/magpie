@@ -149,7 +149,7 @@ describe("Inventory hold and drop", () => {
     function setup() {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         const services = new FakeServices();
-        services.households.get("h1")!.items[0] = testItem({ id: "i1", name: "Milk", category: "dairy", onList: false, quantityRemaining: 3, note: "Whole", photoPath: "p.jpg", places: { s1: "z1" }, purchaseCount: 2 });
+        services.households.get("h1")!.items[0] = testItem({ id: "i1", name: "Milk", category: "dairy", onList: false, quantityRemaining: 3, note: "Whole", photoPath: "p.jpg", purchaseCount: 2 });
         return renderApp(["/inventory"], services);
     }
     it("shows all seven categories after 400ms and moves an off-list item with every other field intact, even offline", () => {

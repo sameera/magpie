@@ -174,7 +174,7 @@ describe("Add items drawer", () => {
         for (const name of ["Apples", "Cheese", "Jam"]) {
             expect(list.getByText(name)).toBeInTheDocument();
             expect(items(services).find(i => i.name === name)).toMatchObject({
-                quantityNeeded: 1, quantityRemaining: 0, note: "", photoPath: null, category: null, onList: true, places: {},
+                quantityNeeded: 1, quantityRemaining: 0, note: "", photoPath: null, category: null, onList: true,
             });
         }
         expect(items(services)).toHaveLength(5);
@@ -454,7 +454,7 @@ describe("List row actions", () => {
 
     it("removes the item from the list with Remove item from list, leaving every other detail and no Undo", async () => {
         const services = new FakeServices();
-        const milk = { ...items(services)[0], quantityRemaining: 3, note: "Whole", places: {} };
+        const milk = { ...items(services)[0], quantityRemaining: 3, note: "Whole" };
         items(services)[0] = milk;
         const setOnList = vi.spyOn(services.data, "setOnList");
         const user = userEvent.setup();
@@ -814,7 +814,7 @@ describe("Dragging an item to a category", () => {
 
     it("assigns the dropped category with a category-only write and moves the row under its heading", () => {
         const { services } = setup();
-        const before = { ...items(services).find((item) => item.id === "i1")!, quantityRemaining: 3, note: "Whole", photoPath: "p.jpg", places: { s1: "z1" } };
+        const before = { ...items(services).find((item) => item.id === "i1")!, quantityRemaining: 3, note: "Whole", photoPath: "p.jpg" };
         items(services)[0] = before;
         const setCategory = vi.spyOn(services.data, "setCategory");
         const updateItem = vi.spyOn(services.data, "updateItem");

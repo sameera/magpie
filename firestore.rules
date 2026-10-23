@@ -50,14 +50,14 @@ service cloud.firestore {
             }
 
             // The household inventory. Photo and quantity remaining are set on
-            // create. Photo and places are not changed from the app; quantity
+            // create. Photo and legacy places are not changed from the app; quantity
             // remaining changes only in a purchase (see isPurchase). The category is empty or one
             // of the six zone kinds (also listed in src/data/model.ts). The legacy
-            // per-store placement may be left empty on a new item and is frozen
-            // on an update.
+            // per-store placement (`places`) is not on a new item and is frozen
+            // on an update of an item that still has it.
             match /items/{itemId} {
                 function itemFields() {
-                    return ['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList', 'places'];
+                    return ['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList'];
                 }
 
                 function validCategory(data) {
@@ -67,7 +67,7 @@ service cloud.firestore {
 
                 function validItem(data) {
                     return data.keys().hasAll(itemFields())
-                        && data.keys().hasOnly(itemFields().concat(['purchaseCount', 'lastPurchasedAt', 'lastPurchaseId']))
+                        && data.keys().hasOnly(itemFields().concat(['places', 'purchaseCount', 'lastPurchasedAt', 'lastPurchaseId']))
                         && data.get('purchaseCount', 0) is int
                         && data.get('purchaseCount', 0) >= 0
                         && validName(data)
@@ -78,7 +78,7 @@ service cloud.firestore {
                         && data.note is string
                         && data.note.size() <= 1000
                         && data.onList is bool
-                        && data.places is map
+                        && (!data.keys().hasAny(['places']) || data.places is map)
                         && validCategory(data);
                 }
 
@@ -89,7 +89,7 @@ service cloud.firestore {
                 allow create: if isMemberOf(householdId)
                     && validItem(request.resource.data)
                     && request.resource.data.quantityRemaining == 0
-                    && request.resource.data.places.size() == 0
+                    && !request.resource.data.keys().hasAny(['places'])
                     && request.resource.data.photoPath == null
                     && request.resource.data.get('purchaseCount', 0) == 0
                     && !request.resource.data.keys().hasAny(['lastPurchasedAt', 'lastPurchaseId']);

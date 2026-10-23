@@ -9,10 +9,12 @@ generated: 2026-10-19
 
 # Code Anchors: Inventory Page
 
-- `src/pages/InventoryPage.tsx` — lists every item by name with loading, empty and unreadable states, links each to its Item page, and uses the shared row and tray (#59, #95)
-- `src/pages/InventoryPage.test.tsx` — tests the list, its states, the menu entry, returning from an item and the sign-in gate (#59)
+- `src/pages/InventoryPage.tsx` — lists every item under category headings with loading, empty and unreadable states, links each to its Item page, and uses the shared row and tray (#59, #89, #95)
+- `src/data/categoryGroups.ts` — builds the headings and the items under each (#89)
+- `src/pages/InventoryPage.test.tsx` — tests the list, its states, the menu entry, returning from an item and the sign-in gate (#59, #89)
 - `src/app/BottomNav.tsx` — the Inventory link in the menu (#59)
 - `src/app/area.ts` — marks More as the current area on the inventory path (#59)
 - `src/app/routes.tsx` — the Inventory path (#59)
 - `src/pages/ItemPage.tsx` — returns to Inventory when opened from it (#59)
 - `rules-tests/firestore.rules.test.ts` — tests the every-item read for members and its refusal for others (#59)
+- `src/pages/CategoryHeadings.test.tsx` — tests the headings and their order on the Inventory page (#89)

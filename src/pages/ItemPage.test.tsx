@@ -109,7 +109,7 @@ describe("New item page saving", () => {
         await user.click(screen.getByRole("button", { name: "Done" }));
         expect(router.state.location.pathname).toBe("/");
         expect(saved(services)).toEqual([expect.objectContaining({
-            quantityNeeded: 12, quantityRemaining: 0, note: "Free range", places: {}, onList: true, photoPath: null, category: "dairy",
+            quantityNeeded: 12, quantityRemaining: 0, note: "Free range", onList: true, photoPath: null, category: "dairy",
         })]);
         expect(await screen.findByText("Eggs")).toBeInTheDocument();
     });
@@ -266,12 +266,12 @@ describe("Existing item page saving", () => {
     it("leaves the on-the-list flag, photo, quantity remaining and any legacy placement as stored", async () => {
         const services = new FakeServices();
         services.households.get("h1")!.items[0] = testItem({
-            id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy", places: { s1: "z-bakery" },
+            id: "i1", name: "Milk", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy",
         });
         const { user } = open(services);
         await user.type(screen.getByLabelText("Note"), "x");
         await user.click(screen.getByRole("button", { name: "Done" }));
-        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy", places: { s1: "z-bakery" } });
+        expect(milk(services)).toMatchObject({ note: "x", onList: false, photoPath: "p/i1.jpg", quantityRemaining: 4, category: "dairy" });
     });
 
     it.each(["", "0", "2.5", "1000"])("refuses the quantity %j without writing", async (value) => {

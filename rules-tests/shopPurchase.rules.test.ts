@@ -8,7 +8,7 @@ import { createFirestoreData } from "../src/services/firestoreData";
 
 let env: RulesTestEnvironment;
 const path = "households/h1/items/milk";
-const listed = { name: "Milk", quantityNeeded: 2, quantityRemaining: 3, category: "dairy", note: "", photoPath: null, onList: true, places: {} };
+const listed = { name: "Milk", quantityNeeded: 2, quantityRemaining: 3, category: "dairy", note: "", photoPath: null, onList: true };
 beforeAll(async () => {
     env = await initializeTestEnvironment({ projectId: "demo-magpie-shop", firestore: { rules: readFileSync("firestore.rules", "utf8") } });
 });

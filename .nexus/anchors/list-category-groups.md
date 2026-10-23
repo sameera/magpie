@@ -9,10 +9,11 @@ generated: 2026-10-19
 
 # Code Anchors: List Category Groups
 
-- `src/data/categoryGroups.ts` — builds the groups in the fixed category order, with "No category" last, and names each group
+- `src/data/categoryGroups.ts` — builds the groups in the fixed category order, with "No category" last, and names each group (#89)
 - `src/pages/ListPage.tsx` — the grouped list and the shared row and tray (#95)
 - `src/services/firestoreData.ts` — the category-only item update
 - `src/services/types.ts` — the data service's category-only update
 - `src/data/categoryGroups.test.ts` — tests the grouping order, "No category" and hidden empty groups
 - `src/pages/ListPage.test.tsx` — tests the grouped list, the hold, the swipe, the drop, the cancel and the refusal
 - `rules-tests/categoryDrop.rules.test.ts` — tests that a member's category drop keeps every other field and that outsiders are refused
+- `src/pages/CategoryHeadings.test.tsx` — tests that the Inventory and in-store lists use the List page's headings (#89)

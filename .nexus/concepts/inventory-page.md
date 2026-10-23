@@ -1,7 +1,7 @@
 ---
 title: Inventory Page
 aliases: [inventory, inventory view, all items, household inventory page]
-touches: [page-frames, page-paths, household-data-reads, item-page, back-navigation, category-drop-tray, item-category]
+touches: [page-frames, page-paths, household-data-reads, item-page, back-navigation, category-drop-tray, item-category, list-category-groups]
 last_updated_by: "#90"
 status: active
 verification: verified
@@ -9,13 +9,14 @@ verification: verified
 
 # Inventory Page
 
-The Inventory page lists every item the household has recorded, by name, whether or not the item is on the list. The one change it makes is an item's category. Choosing an item opens its Item page, and going back returns to the Inventory page.
+The Inventory page lists every item the household has recorded, under category headings, whether or not the item is on the list. The one change it makes is an item's category. Choosing an item opens its Item page, and going back returns to the Inventory page.
 
 ## How It Works
 
 The page is a framed page. A member opens it from the menu entry labelled "More", which holds a link to Inventory beside the link to Stores. The menu closes, and More is marked as the current area.
 
-The page reads every item in the household and shows the names under category headings, in alphabetical order inside each heading. It shows a loading message while the read is loading. It shows "No items yet." when the inventory is empty. It shows a separate message when the read is missing, so an unreadable inventory is never shown as empty.
+The page reads every item in the household and shows the names under the same category headings as the List page. Headings follow the order produce, dairy, bakery, meat, frozen, pantry, then "No category". An item with no category goes under "No category". A category with no items gets no heading. Inside a heading, names are in alphabetical order. The page shows a loading message while the read is loading. It shows "No items yet." when the inventory is empty. It shows a separate message when the read is missing, so an unreadable inventory is never shown as empty.
+
 
 Each row has a drag handle and drops as described in category-drop-tray. The item moves under its new heading at once, and a server refusal returns it.
 
@@ -23,7 +24,7 @@ Each name is a link to that item's Item page. The link also tells the Item page 
 
 ## Key Invariants
 
-1. Every item in the household shows on the page, on the list or not, under its category heading.
+1. Every item in the household shows on the page, on the list or not, under exactly one heading, in the List page's category order, and alphabetical by name inside a heading.
 2. Opening the page changes nothing in the household's data. Only a category drop changes an item, and it changes only the category.
 3. An empty inventory shows "No items yet.", and an inventory still loading or unreadable never shows that message.
 4. The menu opens the Inventory page from every framed page, and More is marked as the current area.
@@ -39,12 +40,17 @@ Each name is a link to that item's Item page. The link also tells the Item page 
 - [item-category](item-category.md) — a drop sets the category that places the item in a store.
 - [item-page](item-page.md) — each name opens that item's Item page, which treats Inventory as its parent for that visit.
 - [back-navigation](back-navigation.md) — the Item page's up control returns to Inventory when the item was opened from it.
+- [list-category-groups](list-category-groups.md) — the page uses the same headings and heading order as the List page.
 
 ## Decision Log
 
 ### 2026-10-16 — #55 — Items opened from Inventory return to Inventory
 
 The Inventory page lists every item and opens each one on the Item page. The Item page's back control and Done led only to List. A member who opened an item from Inventory would land on List after reading it, and would have to reopen the menu. An Inventory link now carries its page as the return destination, and the Item page uses that destination as its parent. The Item path stays the same, and an item opened from List still returns to List. The back action returns to Inventory too, because the Item page is a new history entry. The refuted alternative was to rely on the back action alone and leave the Item page's controls pointing to List. It needs no change to the Item page. It lost because the on-screen controls would send the member to a different page than the back action does.
+
+### 2026-10-18 — #86 — Group the Inventory page under category headings
+
+The Inventory page was one flat column, so a member could not find an item by its category or see which items still have none. The page now shows the same headings, in the same order, as the List page, built on the phone from the read it already makes, so no data or rule changes. Names stay alphabetical inside a heading, as they were on the whole page. The six categories are not changed. The refuted alternative was to leave the page flat and add a filter by category. It lost because the List page already teaches the headings, and a filter shows one category at a time instead of all of them.
 
 ### 2026-10-19 — #90 — Inventory items can change category by a drag or the keyboard
 

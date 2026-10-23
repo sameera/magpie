@@ -1,4 +1,4 @@
-import { Camera, EllipsisVertical, Minus, Plus } from "lucide-react";
+import { Camera, EllipsisVertical, Minus, Plus, ShoppingBasket, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
@@ -254,7 +254,7 @@ function RowMenu({
     const [text, setText] = useState(String(item.quantityNeeded));
     const amount = parseQuantity(text);
     const step = (by: number) => setText(String(Math.min(MAX_QUANTITY, Math.max(MIN_QUANTITY, (amount ?? MIN_QUANTITY) + by))));
-    const choice = "h-tap min-w-0 flex-1 rounded-md border-2 border-line-strong bg-surface px-3 text-button";
+    const choice = "flex size-tap shrink-0 items-center justify-center rounded-md border-2 border-line-strong bg-surface";
 
     return (
         <div
@@ -263,7 +263,7 @@ function RowMenu({
             onKeyDown={(e) => {
                 if (e.key === "Escape") onClose();
             }}
-            className="absolute inset-x-0 top-0 z-10 flex min-h-full flex-wrap items-center gap-2 rounded-md border-2 border-line-strong bg-surface p-2 shadow-float"
+            className="absolute inset-x-0 top-0 z-10 flex min-h-full flex-wrap items-center justify-end gap-2 rounded-md border-2 border-line-strong bg-surface p-2 shadow-float"
         >
             {asking ? (
                 <form
@@ -302,11 +302,11 @@ function RowMenu({
                 </form>
             ) : (
                 <>
-                    <button type="button" role="menuitem" autoFocus onClick={onRemove} className={choice}>
-                        Remove item from list
+                    <button type="button" role="menuitem" autoFocus onClick={onRemove} aria-label="Remove item from list" title="Remove item from list" className={choice}>
+                        <Trash2 aria-hidden="true" />
                     </button>
-                    <button type="button" role="menuitem" onClick={() => setAsking(true)} className={choice}>
-                        Remove item as purchased
+                    <button type="button" role="menuitem" onClick={() => setAsking(true)} aria-label="Remove item as purchased" title="Remove item as purchased" className={choice}>
+                        <ShoppingBasket aria-hidden="true" />
                     </button>
                     <button type="button" onClick={onClose} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
                         Cancel

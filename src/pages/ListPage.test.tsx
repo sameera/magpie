@@ -619,7 +619,7 @@ describe("Recording a purchase from a row", () => {
         renderApp(["/"]);
         await userEvent.setup().click(screen.getByRole("button", { name: "Actions for Milk" }));
         const actions = within(menu("Milk"));
-        expect(actions.getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["Remove item from list", "Remove item as purchased"]);
+        expect(actions.getAllByRole("menuitem").map((item) => item.getAttribute("aria-label"))).toEqual(["Remove item from list", "Remove item as purchased"]);
     });
 
     it("asks for the quantity, set to the list quantity, before recording anything", async () => {

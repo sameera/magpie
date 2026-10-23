@@ -1,8 +1,8 @@
 ---
 title: Household Data Writes
 aliases: [saving household data, household writes, write rules, all-or-nothing write]
-touches: [household-data-reads, household-membership, add-store-sheet, item-save, add-items-drawer, list-category-groups]
-last_updated_by: "#79"
+touches: [household-data-reads, household-membership, add-store-sheet, item-save, add-items-drawer, category-drop-tray]
+last_updated_by: "#90"
 status: active
 verification: verified
 ---
@@ -31,7 +31,7 @@ The drop is sent without waiting, and the phone's own copy shows it at once. Eac
 - [add-store-sheet](add-store-sheet.md) — the sheet is one of the screens that save, and it creates a store.
 - [item-save](item-save.md) — the Item page creates and updates one item at a time.
 - [add-items-drawer](add-items-drawer.md) — the drawer creates new items and re-lists existing ones in one all-or-nothing write.
-- [list-category-groups](list-category-groups.md) — a drop on the List page updates only the item's category, under the existing item update rule.
+- [category-drop-tray](category-drop-tray.md) — a drop on the List or Inventory page updates only the item's category, under the existing item update rule.
 
 ## Decision Log
 
@@ -46,3 +46,7 @@ The add drawer now puts existing items back on the list in the same write that c
 ### 2026-10-18 — #79 — A category drop on the List page updates an item without waiting
 
 A drop on a category in the List page's drop tray now updates one item, changing only its category. Invariant 1 named only three screens that save, so it is struck through and replaced by invariant 4, which states the rule by kind of write. The security rules do not change. The item update rule already allows a category-only change to none or one of the six kinds and refuses it from signed-out users, non-members and other households. Rule tests now cover that change, check that every other field stays as stored, and check that the other member reads it back. The drop does not wait for the server, unlike the other saves here, because a queued offline write counts as saved. Only a server refusal rolls it back. This page now lists list-category-groups as a neighbour, matching that page's link to this one. The refuted alternative was to reuse the Item page's save. It lost because it rewrites name, quantity and note from a copy that may be out of date, and it blocks offline.
+
+### 2026-10-19 — #90 — Reciprocal link from category-drop-tray
+
+The category drop moved to category-drop-tray, which both the List and Inventory pages use. This page now links to it in place of list-category-groups. The rule is unchanged.

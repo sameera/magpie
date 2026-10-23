@@ -5,7 +5,7 @@ import type { AuthUser, DataService, Membership, Services, Watched } from "../se
 type Listener<T> = (value: T) => void;
 
 export function testItem(fields: Partial<Item> & { id: string; name: string }): Item {
-    return { quantityNeeded: 1, quantityRemaining: 0, note: "", photoPath: null, category: null, onList: true, places: {}, ...fields };
+    return { quantityNeeded: 1, quantityRemaining: 0, note: "", photoPath: null, category: null, onList: true, ...fields };
 }
 
 export function testStore(fields: Partial<Store> & { id: string; name: string }): Store {

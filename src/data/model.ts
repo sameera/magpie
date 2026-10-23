@@ -31,8 +31,6 @@ export interface Item {
     // The kind of zone the item sits in, in every store; null for none.
     category: ZoneKind | null;
     onList: boolean;
-    // Legacy per-store placement: stored as it was, never read or changed.
-    places: Record<string, string>;
     // Absent on items created before purchase history; reads as zero.
     purchaseCount?: number;
     lastPurchasedAt?: Date | null;
@@ -47,7 +45,7 @@ export type ListedItem = Pick<Item, "id" | "quantityNeeded">;
 
 // A new item on the list, in the shape the security rules accept.
 export function newItem(fields: ItemFields): Item {
-    return { ...fields, quantityRemaining: 0, photoPath: null, onList: true, places: {} };
+    return { ...fields, quantityRemaining: 0, photoPath: null, onList: true };
 }
 
 export const MIN_QUANTITY: number = 1;
@@ -60,15 +58,6 @@ export function parseQuantity(text: string): number | null {
     }
     const value = Number(text);
     return value >= MIN_QUANTITY && value <= MAX_QUANTITY ? value : null;
-}
-
-function stringRecord(value: unknown): Record<string, string> {
-    if (!value || typeof value !== "object") {
-        return {};
-    }
-    return Object.fromEntries(
-        Object.entries(value as Record<string, unknown>).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
-    );
 }
 
 function toCategory(value: unknown): ZoneKind | null {
@@ -86,7 +75,6 @@ export const itemConverter: FirestoreDataConverter<Item> = {
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,
         category: toCategory(snap.get("category")),
         onList: snap.get("onList") === true,
-        places: stringRecord(snap.get("places")),
         purchaseCount: snap.get("purchaseCount") ?? 0,
         lastPurchasedAt: (snap.get("lastPurchasedAt", { serverTimestamps: "estimate" }) as { toDate?: () => Date } | undefined)?.toDate?.() ?? null,
         lastPurchaseId: snap.get("lastPurchaseId") ?? null,

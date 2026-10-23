@@ -10,6 +10,7 @@ let env: RulesTestEnvironment;
 const itemPath = "households/h1/items/i1";
 const historyPath = "households/h1/purchases/p1";
 const legacy = { name: "Milk", quantityNeeded: 2, quantityRemaining: 3, category: "dairy", note: "Whole", photoPath: null, onList: true, places: {} };
+const { places: _places, ...newItem } = legacy;
 beforeAll(async () => {
     env = await initializeTestEnvironment({ projectId: "demo-magpie-purchases", firestore: { rules: readFileSync("firestore.rules", "utf8") } });
 });
@@ -135,8 +136,8 @@ describe("purchase history integrity", () => {
         for (const patch of [{ purchaseCount: 0 }, { purchaseCount: 2 }, { lastPurchaseId: "p2" }, { lastPurchasedAt: changedTime }]) {
             await assertFails(updateDoc(doc(db, itemPath), patch));
         }
-        await assertFails(setDoc(doc(db, "households/h1/items/new"), { ...legacy, quantityRemaining: 0, purchaseCount: 1 }));
-        await assertSucceeds(setDoc(doc(db, "households/h1/items/new"), { ...legacy, quantityRemaining: 0, purchaseCount: 0 }));
+        await assertFails(setDoc(doc(db, "households/h1/items/new"), { ...newItem, quantityRemaining: 0, purchaseCount: 1 }));
+        await assertSucceeds(setDoc(doc(db, "households/h1/items/new"), { ...newItem, quantityRemaining: 0, purchaseCount: 0 }));
     });
     it("refuses a server timestamp that changes the stored purchase time", async () => {
         await env.withSecurityRulesDisabled(async ctx => {

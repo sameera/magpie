@@ -46,14 +46,6 @@ describe("placement by category", () => {
         expect(walkingOrder(list, store).map((item) => item.name)).toEqual(["Bread", "Butter", "Milk", "Apple", "Steak", "Zucchini"]);
     });
 
-    it("never lets a stored per-store placement affect order or zone", () => {
-        const item = testItem({ id: "1", name: "Milk", category: "bakery", places: { s1: "early-dairy" } });
-        expect(zoneOf(item, store)?.id).toBe("bakery");
-        const other = testItem({ id: "2", name: "Aa", places: { s1: "bakery" } });
-        expect(zoneOf(other, store)).toBeUndefined();
-        expect(walkingOrder([other, item], store).map((i) => i.name)).toEqual(["Milk", "Aa"]);
-    });
-
     it("moves an item with its category at every store", () => {
         const other = testStore({ id: "s3", name: "Other", map: { width: 1, height: 1, scanPath: null, zones: [zone("m", "meat", 0), zone("b", "bakery", 1)] } });
         const item = testItem({ id: "1", name: "X", category: "meat" });

@@ -10,6 +10,7 @@ import { readItemNow } from "../data/itemNow";
 import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, quantityLabel, type Item } from "../data/model";
 import { AddItemsDrawer } from "./AddItemsDrawer";
 import { PageHeader } from "./PageHeader";
+import { PreferredChainBadge } from "../components/PreferredChainBadge";
 import { CategoryDragRow, type CategoryRowActions } from "../components/CategoryDragRow";
 import { useCategoryDrag } from "../components/CategoryDrag";
 
@@ -219,6 +220,7 @@ function ListRow({
                     <span className="text-caption text-ink-muted">
                         {[quantityLabel(item), item.note].filter(Boolean).join(" · ")}
                     </span>
+                    <PreferredChainBadge chain={item.preferredChain} />
                 </span>
             </Link>
             <button

@@ -8,6 +8,7 @@ import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useList, useStore } from "../data/hooks";
 import { categoryName, listGroups } from "../data/categoryGroups";
+import { chainFilter } from "../data/chainFilter";
 import { quantityLabel, walkingOrder, zoneOf, type Item } from "../data/model";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
@@ -50,7 +51,8 @@ export function InStorePage() {
         });
     };
 
-    const items = list.status === "ready" ? walkingOrder(list.value, store.value) : [];
+    const { shown, hiddenCount } = chainFilter(list.status === "ready" ? list.value : [], store.value);
+    const items = walkingOrder(shown, store.value);
     const next = items[0];
     const nextZone = next ? zoneOf(next, store.value) : undefined;
 
@@ -71,6 +73,9 @@ export function InStorePage() {
                     <p className="rounded-lg bg-surface-sunken p-4 text-body text-ink-muted">This store has no map yet.</p>
                 )}
             </section>
+            {hiddenCount > 0 && <p className="mb-4 text-body text-ink-muted">
+                {hiddenCount} {hiddenCount === 1 ? "item for other chains is" : "items for other chains are"} not shown.
+            </p>}
             {next ? (
                 <section aria-label="Next up" className="mb-6 rounded-lg bg-trinket p-5 text-on-trinket">
                     <p className="text-label uppercase">
@@ -82,7 +87,7 @@ export function InStorePage() {
                         {nextZone?.label ?? "No zone in this store yet"}
                     </p>
                 </section>
-            ) : (
+            ) : hiddenCount === 0 && (
                 <p className="mb-6 text-body text-ink-muted">Nothing on the list.</p>
             )}
             {refusal && (

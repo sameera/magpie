@@ -1,4 +1,4 @@
-import { increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
+import { deleteField, increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
 import { itemConverter, newItem, priceConverter, purchaseConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import type { DataService } from "./types";
@@ -25,8 +25,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             relisted.forEach(({ id, quantityNeeded }) => batch.update(doc(items(householdId), id), { onList: true, quantityNeeded }));
             return batch.commit();
         },
-        updateItem: (householdId, { id, name, quantityNeeded, note, category }) =>
-            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category }),
+        updateItem: (householdId, { id, name, quantityNeeded, note, category, preferredChain }) =>
+            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField() }),
         setOnList: (householdId, itemId, onList) => updateDoc(doc(items(householdId), itemId), { onList }),
         setCategory: (householdId, itemId, category) => updateDoc(doc(items(householdId), itemId), { category }),
         recordPurchase: (householdId, itemId, amount) => {

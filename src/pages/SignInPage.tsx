@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Navigate } from "react-router";
+import { logError } from "../services/errors";
 import { Splash } from "../app/Splash";
 import { readReturnPath, useServices, useSession } from "../app/session";
 
@@ -16,12 +17,13 @@ export function SignInPage() {
         return <Navigate to={readReturnPath() ?? "/"} replace />;
     }
 
-    async function run(action: () => Promise<void>): Promise<void> {
+    async function run(operation: "signIn" | "signOut"): Promise<void> {
         setBusy(true);
         setError(null);
         try {
-            await action();
+            await auth[operation]();
         } catch (error: unknown) {
+            logError(`auth.${operation}`, {}, error);
             setError(error instanceof Error ? error.message : "Sign-in failed. Please try again.");
         } finally {
             setBusy(false);
@@ -42,7 +44,7 @@ export function SignInPage() {
                     <button
                         type="button"
                         disabled={busy}
-                        onClick={() => run(auth.signOut)}
+                        onClick={() => run("signOut")}
                         className="h-tap w-full max-w-sm rounded-md border-2 border-line-strong bg-surface text-button"
                     >
                         Try another account
@@ -54,7 +56,7 @@ export function SignInPage() {
                     <button
                         type="button"
                         disabled={busy}
-                        onClick={() => run(auth.signIn)}
+                        onClick={() => run("signIn")}
                         className="h-tap w-full max-w-sm rounded-md bg-sheen text-button text-on-sheen shadow-press"
                     >
                         {busy ? "Signing in…" : "Sign in with Google"}

@@ -21,6 +21,7 @@ import { connectStorageEmulator, getStorage } from "firebase/storage";
 import { memberConverter } from "../data/model";
 import { createFirestoreData } from "./firestoreData";
 import { authDomainForHost } from "./authDomain";
+import { logError } from "./errors";
 import type { Services } from "./types";
 
 export function createFirebaseServices(): Services {
@@ -48,13 +49,19 @@ export function createFirebaseServices(): Services {
         connectStorageEmulator(storage, "localhost", 9199);
     }
 
+    const context = { projectId: app.options.projectId };
+
     // Completes a sign-in redirect; the user then arrives through onAuthStateChanged.
-    getRedirectResult(auth).catch((error: unknown) => console.error("Sign-in failed", error));
+    getRedirectResult(auth).catch((error: unknown) => logError("auth.getRedirectResult", context, error));
 
     return {
         auth: {
             onUserChanged: (listener) =>
-                onAuthStateChanged(auth, (user) => listener(user ? { uid: user.uid, email: user.email } : null)),
+                onAuthStateChanged(
+                    auth,
+                    (user) => listener(user ? { uid: user.uid, email: user.email } : null),
+                    (error) => logError("auth.onUserChanged", context, error),
+                ),
             onMembershipChanged: (uid, listener) =>
                 onSnapshot(
                     doc(db, "members", uid).withConverter(memberConverter),
@@ -66,7 +73,10 @@ export function createFirebaseServices(): Services {
                             listener(null);
                         }
                     },
-                    () => listener(null),
+                    (error) => {
+                        logError("auth.onMembershipChanged", { ...context, uid }, error);
+                        listener(null);
+                    },
                 ),
             signIn: async () => {
                 // Cross-origin redirects cannot reliably recover the session when

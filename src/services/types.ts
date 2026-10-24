@@ -26,7 +26,8 @@ export interface DataService {
     // Writes under the given ID, so saving again overwrites the same store.
     // Resolves once the server accepts the write; rejects if it is refused.
     createStore(householdId: string, store: Pick<Store, "id" | "name" | "chain">): Promise<void>;
-    // Saves a new item onto the list, with no photo and quantity remaining 0,
+    // Saves a new item onto the list, initializing its typical purchase quantity
+    // from quantityNeeded, with no photo and quantity remaining 0,
     // under the given ID so saving again overwrites the same item. Resolves once the
     // server accepts the write.
     createItem(householdId: string, item: ItemFields): Promise<void>;
@@ -43,7 +44,9 @@ export interface DataService {
     // list, its photo and quantity remaining as stored. Resolves once the
     // server accepts the write.
     updateItem(householdId: string, item: ItemFields): Promise<void>;
-    // Saves Inventory details and optional list/date corrections atomically.
+    // Saves Inventory details, including typical purchase quantity, and optional
+    // list/date corrections atomically. The typical quantity is independent of
+    // quantityNeeded and does not change when an item is relisted.
     // Does not change purchase history, purchase count, stock or photo.
     updateInventoryItem(householdId: string, item: InventoryItemFields): Promise<void>;
     // Takes the item off the list, or puts it back, changing nothing else: not its

@@ -3,7 +3,8 @@ import { parseQuantity } from "./model";
 // What one line of the Add drawer's text box adds.
 export interface ItemLine {
     name: string;
-    quantityNeeded: number;
+    // null means no quantity was typed; resolve it after matching the item.
+    quantityNeeded: number | null;
 }
 
 export const MAX_LINES: number = 50;
@@ -36,7 +37,7 @@ export function splitQuantity(line: string): { name: string; quantity: number | 
 
 function readLine(line: string): ItemLine {
     const { name, quantity } = splitQuantity(line);
-    return { name, quantityNeeded: quantity ?? 1 };
+    return { name, quantityNeeded: quantity };
 }
 
 // Why these lines cannot be added as one write, or null when they can.

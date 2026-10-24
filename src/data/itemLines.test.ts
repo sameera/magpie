@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 import { linesProblem, readItemLines } from "./itemLines";
 
 describe("reading item lines", () => {
-    it("adds one item per non-blank line, trimmed, with quantity 1", () => {
+    it("adds one item per non-blank line, trimmed, without a typed quantity", () => {
         expect(readItemLines("  Whole Milk \n\n   \nBread\r\nEggs  ")).toEqual([
-            { name: "Whole Milk", quantityNeeded: 1 },
-            { name: "Bread", quantityNeeded: 1 },
-            { name: "Eggs", quantityNeeded: 1 },
+            { name: "Whole Milk", quantityNeeded: null },
+            { name: "Bread", quantityNeeded: null },
+            { name: "Eggs", quantityNeeded: null },
         ]);
     });
 
     it("keeps inner spacing and letter case as typed", () => {
-        expect(readItemLines("oat  MILK")).toEqual([{ name: "oat  MILK", quantityNeeded: 1 }]);
+        expect(readItemLines("oat  MILK")).toEqual([{ name: "oat  MILK", quantityNeeded: null }]);
     });
 
     it("reads nothing from blank text", () => {
@@ -42,8 +42,8 @@ describe("reading a quantity in parentheses", () => {
         "Milk ()",
         "(3)",
         "Milk 3)",
-    ])("keeps %j whole, with quantity 1", (line) => {
-        expect(readItemLines(line)).toEqual([{ name: line, quantityNeeded: 1 }]);
+    ])("keeps %j whole, without a typed quantity", (line) => {
+        expect(readItemLines(line)).toEqual([{ name: line, quantityNeeded: null }]);
     });
 });
 

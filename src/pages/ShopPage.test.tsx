@@ -28,8 +28,9 @@ describe("Shop page", () => {
         expect(within(next).getByText("Bakery")).toBeInTheDocument();
         const list = within(screen.getByRole("list", { name: "List in walking order" })).getAllByRole("checkbox").map(pick => pick.closest("li")!);
         expect(list.map((row) => row.textContent)).toEqual([expect.stringContaining("Bread"), expect.stringContaining("Milk")]);
-        expect(within(list[0]).getByText("Qty 1 · Bakery")).toBeInTheDocument();
-        expect(within(list[1]).getByText("Qty 2 · Dairy")).toBeInTheDocument();
+        expect(within(list[0]).getByText("Bakery")).toBeInTheDocument();
+        expect(within(list[1]).getByText("x2")).toBeInTheDocument();
+        expect(within(list[1]).getByText("Dairy")).toBeInTheDocument();
     });
 
     it("reopens the in-store view from a saved link", () => {

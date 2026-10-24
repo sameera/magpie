@@ -9,7 +9,8 @@ import { StoreMap } from "../components/StoreMap";
 import { useList, useStore } from "../data/hooks";
 import { categoryName, listGroups } from "../data/categoryGroups";
 import { chainFilter } from "../data/chainFilter";
-import { quantityLabel, walkingOrder, zoneOf, type Item } from "../data/model";
+import { walkingOrder, zoneOf, type Item } from "../data/model";
+import { QuantityBadge } from "../components/QuantityBadge";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
@@ -163,11 +164,12 @@ function ShopRow({ item, zone, onPurchase }: { item: Item; zone?: string; onPurc
             onPointerCancel={() => { drag.current = null; setOffset(0); }}
         >
             <div className="flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker">
-                <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="break-words text-item">{item.name}</span>
-                    <span className="text-caption text-ink-muted">
-                        {[quantityLabel(item), zone].filter(Boolean).join(" · ")}
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                        <span className="min-w-0 break-words text-item">{item.name}</span>
+                        <QuantityBadge quantity={item.quantityNeeded} />
                     </span>
+                    {zone && <span className="text-caption text-ink-muted">{zone}</span>}
                 </span>
                 <button
                     type="button"

@@ -6,7 +6,7 @@ import { useCategoryDrag } from "../components/CategoryDrag";
 import { useItems } from "../data/hooks";
 import { categoryName, listGroups } from "../data/categoryGroups";
 import { PageHeader } from "./PageHeader";
-import { PreferredChainBadge } from "../components/PreferredChainBadge";
+import { PreferredChainText } from "../components/PreferredChainText";
 
 export function InventoryPage() {
     const items = useItems();
@@ -37,7 +37,7 @@ export function InventoryPage() {
                                         >
                                             <span className="flex min-w-0 flex-1 flex-col gap-1">
                                                 <span className="break-words text-item">{item.name}</span>
-                                                <PreferredChainBadge chain={item.preferredChain} />
+                                                <PreferredChainText chain={item.preferredChain} />
                                             </span>
                                             <ChevronRight aria-hidden="true" className="shrink-0" />
                                         </Link>

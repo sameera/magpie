@@ -70,7 +70,7 @@ describe("Inventory", () => {
         const { router, services } = renderApp(["/inventory"]);
         const update = vi.spyOn(services.data, "updateInventoryItem");
         const user = userEvent.setup();
-        await user.click(screen.getByRole("link", { name: "Milk" }));
+        await user.click(screen.getByRole("link", { name: /Milk/ }));
         expect(router.state.location.pathname).toBe("/inventory/items/i1");
         expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Milk");
         if (back === "browser") await act(() => router.navigate(-1));
@@ -90,7 +90,7 @@ describe("Inventory", () => {
     it("returns to the updated inventory after saving item details", async () => {
         const { router } = renderApp(["/inventory"]);
         const user = userEvent.setup();
-        await user.click(screen.getByRole("link", { name: "Milk" }));
+        await user.click(screen.getByRole("link", { name: /Milk/ }));
         const name = screen.getByRole("textbox", { name: "Name" });
         await user.clear(name);
         await user.type(name, "Almond milk");

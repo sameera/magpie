@@ -6,7 +6,7 @@ import { renderApp } from "../test/renderApp";
 it("edits Inventory details and a first purchase date, then reloads them", async () => {
     const { router, services } = renderApp(["/inventory"]);
     const user = userEvent.setup();
-    await user.click(screen.getByRole("link", { name: "Milk" }));
+    await user.click(screen.getByRole("link", { name: /Milk/ }));
     expect(router.state.location.pathname).toBe("/inventory/items/i1");
     expect(screen.getByLabelText("On the list")).toBeChecked();
     await user.clear(screen.getByLabelText("Name"));

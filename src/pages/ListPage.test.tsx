@@ -12,14 +12,14 @@ describe("List page", () => {
         expect(within(list).getByText("Bread")).toBeInTheDocument();
     });
 
-    it("shows only items flagged as on the list, each with its quantity needed", () => {
+    it("shows only listed items, hiding quantity one and keeping notes", () => {
         const services = new FakeServices();
         services.households.get("h1")!.items.push(testItem({ id: "i3", name: "Jam", onList: false }));
         renderApp(["/"], services);
         const list = screen.getByRole("list", { name: "Shopping list" });
         expect(within(list).queryByText("Jam")).toBeNull();
-        expect(within(list).getByText("Qty 2")).toBeInTheDocument();
-        expect(within(list).getByText("Qty 1 · Sourdough")).toBeInTheDocument();
+        expect(within(list).getByText("x2")).toBeInTheDocument();
+        expect(within(list).getByText("Sourdough")).toBeInTheDocument();
     });
 
     it("reads only the signed-in member's household", () => {
@@ -190,7 +190,7 @@ describe("Add items drawer", () => {
         expect(items(services).find(i => i.name === "Whole Milk")).toMatchObject({ quantityNeeded: 3 });
         expect(items(services).find(i => i.name === "Milk (2%) 1 gal")).toMatchObject({ quantityNeeded: 1 });
         expect(items(services).find(i => i.name === "Milk (organic)")).toMatchObject({ quantityNeeded: 1 });
-        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Qty 3")).toBeInTheDocument();
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("x3")).toBeInTheDocument();
     });
 
     it("keeps the typed text when the drawer is closed and reopened", async () => {
@@ -509,7 +509,7 @@ describe("List row actions", () => {
         renderApp(["/"], services);
         drag(rowOf("Milk"), -150);
         await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
-        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Qty 2")).toBeInTheDocument();
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("x2")).toBeInTheDocument();
         expect(items(services).find((item) => item.id === "i1")).toMatchObject({ onList: true, quantityNeeded: 2, quantityRemaining: 0 });
         expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
     });

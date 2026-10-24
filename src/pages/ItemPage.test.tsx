@@ -30,7 +30,7 @@ describe("Item page", () => {
     it("offers one category choice and no per-store zone choice", () => {
         renderApp(["/items/new"]);
         const options = within(screen.getByLabelText("Category")).getAllByRole("option");
-        expect(options.map((option) => option.textContent)).toEqual(["No category", "Produce", "Dairy", "Bakery", "Meat", "Frozen", "Pantry"]);
+        expect(options.map((option) => option.textContent)).toEqual(["Produce", "Dairy", "Bakery", "Meat", "Frozen", "Pantry", "No category"]);
         expect(screen.queryByRole("region", { name: "Where it sits" })).toBeNull();
         expect(screen.queryByText("Where it sits")).toBeNull();
         expect(screen.queryByLabelText("Costco Kirkland")).toBeNull();

@@ -246,7 +246,7 @@ function SuggestionRow({ row, disabled, onPick }: { row: Suggestion; disabled: b
         >
             <span
                 aria-hidden="true"
-                className={`size-3.5 shrink-0 rounded-[4px] ${kind ? `border-[1.5px] border-zone-edge ${zoneSwatch[kind]}` : ""}`}
+                className={`size-3.5 shrink-0 rounded-[4px] ${kind && kind in zoneSwatch ? `border-[1.5px] border-zone-edge ${zoneSwatch[kind as ZoneKind]}` : ""}`}
             />
             <span className="flex min-w-0 flex-1 flex-col py-1">
                 <span className="truncate text-item">

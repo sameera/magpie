@@ -54,6 +54,18 @@ async function writeTestData(db: Firestore, householdId: string): Promise<void> 
         category: "dairy",
         onList: true,
     });
+    // Custom categories: "Baby" holds an item; "Garden" is empty and shows "0 items".
+    await household.collection("categories").doc("baby").set({ name: "Baby" });
+    await household.collection("categories").doc("garden").set({ name: "Garden" });
+    await household.collection("items").doc("test-formula").set({
+        name: "Formula",
+        quantityNeeded: 1,
+        quantityRemaining: 0,
+        note: "",
+        photoPath: null,
+        category: "baby",
+        onList: true,
+    });
     await household.collection("prices").doc("test-milk-costco").set({
         itemId: "test-milk",
         chain: "Costco",

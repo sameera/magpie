@@ -3,30 +3,38 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { CategoryDragRow } from "../components/CategoryDragRow";
 import { useCategoryDrag } from "../components/CategoryDrag";
-import { useItems } from "../data/hooks";
-import { categoryName, listGroups } from "../data/categoryGroups";
+import { useCategories, useItems } from "../data/hooks";
+import { listGroups } from "../data/categoryGroups";
+import { AddCategoryForm } from "../components/AddCategoryForm";
 import { PageHeader } from "./PageHeader";
 import { PreferredChainText } from "../components/PreferredChainText";
 
 export function InventoryPage() {
     const items = useItems();
+    const categories = useCategories();
     const [refusal, setRefusal] = useState("");
+    const customCategories = categories.status === "ready" ? categories.value : [];
+    const loading = items.status === "loading" || categories.status === "loading";
+    const unreadable = !loading && (items.status === "missing" || categories.status === "missing");
+    const ready = items.status === "ready" && categories.status === "ready";
     const categoryDrag = useCategoryDrag(items.status === "ready" ? items.value : [], setRefusal);
 
     return (
         <>
             <PageHeader title="Inventory" />
-            {items.status === "loading" && <p className="text-body text-ink-muted">Loading inventory…</p>}
-            {items.status === "missing" && <p className="text-body text-ink-muted">The inventory could not be read.</p>}
-            {items.status === "ready" && items.value.length === 0 && (
+            <AddCategoryForm onRefused={setRefusal} />
+            {loading && <p className="text-body text-ink-muted">Loading inventory…</p>}
+            {unreadable && <p className="text-body text-ink-muted">The inventory could not be read.</p>}
+            {ready && items.value.length === 0 && (
                 <p className="text-body text-ink-muted">No items yet.</p>
             )}
-            {items.status === "ready" && items.value.length > 0 && (
+            {ready && (items.value.length > 0 || customCategories.length > 0) && (
                 <ul aria-label="Inventory" className="flex flex-col gap-6">
-                    {listGroups(items.value).map(({ category, items }) => (
-                        <li key={category ?? "none"}>
-                            <h2 id={`inventory-category-${category ?? "none"}`} className="mb-3 text-heading">{categoryName(category)}</h2>
-                            <ul aria-labelledby={`inventory-category-${category ?? "none"}`} className="flex flex-col gap-3">
+                    {listGroups(items.value, "category", customCategories, true).map(({ slug, title, items }) => (
+                        <li key={slug}>
+                            <h2 id={`inventory-category-${slug}`} className="mb-3 text-heading">{title}</h2>
+                            {items.length === 0 && <p className="text-body text-ink-muted">0 items</p>}
+                            <ul aria-labelledby={`inventory-category-${slug}`} className="flex flex-col gap-3">
                                 {items.map(item => (
                                     <CategoryDragRow key={item.id} item={item} {...categoryDrag.rowActions(item)}>
                                         <Link

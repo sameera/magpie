@@ -6,8 +6,8 @@ import { readItemNow } from "../data/itemNow";
 import { setTripPath } from "../app/tripStore";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
-import { useList, useStore } from "../data/hooks";
-import { categoryName, listGroups } from "../data/categoryGroups";
+import { useCategories, useList, useStore } from "../data/hooks";
+import { listGroups } from "../data/categoryGroups";
 import { chainFilter } from "../data/chainFilter";
 import { walkingOrder, zoneOf, type Item } from "../data/model";
 import { QuantityBadge } from "../components/QuantityBadge";
@@ -18,6 +18,8 @@ export function InStorePage() {
     const { storeId = "" } = useParams();
     const store = useStore(storeId);
     const list = useList();
+    const categories = useCategories();
+    const customCategories = categories.status === "ready" ? categories.value : [];
     const navigate = useNavigate();
     const householdId = useHouseholdId();
     const { data } = useServices();
@@ -33,7 +35,7 @@ export function InStorePage() {
     if (store.status === "missing") {
         return <NotFound what="store" parent="/shop" parentLabel="Choose a store" />;
     }
-    if (store.status === "loading" || list.status === "loading") {
+    if (store.status === "loading" || list.status === "loading" || categories.status === "loading") {
         return <p className="text-body text-ink-muted">Loading the store…</p>;
     }
 
@@ -100,10 +102,10 @@ export function InStorePage() {
                 </p>
             )}
             <ul aria-label="List in walking order" className="flex flex-col gap-6">
-                {listGroups(items, "appearance").map(({ category, items }) => (
-                    <li key={category ?? "none"}>
-                        <h2 id={`shop-category-${category ?? "none"}`} className="mb-3 text-heading">{categoryName(category)}</h2>
-                        <ul aria-labelledby={`shop-category-${category ?? "none"}`} className="flex flex-col gap-3">
+                {listGroups(items, "appearance", customCategories).map(({ slug, title, items }) => (
+                    <li key={slug}>
+                        <h2 id={`shop-category-${slug}`} className="mb-3 text-heading">{title}</h2>
+                        <ul aria-labelledby={`shop-category-${slug}`} className="flex flex-col gap-3">
                             {items.map((item) => (
                                 <ShopRow
                                     key={item.id}

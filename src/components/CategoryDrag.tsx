@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useHouseholdId, useServices } from "../app/session";
-import { categoryName } from "../data/categoryGroups";
+import { categoryName, sortedCategories } from "../data/categoryGroups";
+import { useCategories } from "../data/hooks";
 import { readItemNow } from "../data/itemNow";
-import { zoneKinds, type Item, type ZoneKind } from "../data/model";
+import { zoneKinds, type Category, type Item, type ZoneKind } from "../data/model";
 import type { CategoryRowActions } from "./CategoryDragRow";
 
 const zoneSwatch: Record<ZoneKind, string> = {
@@ -12,12 +13,12 @@ const zoneSwatch: Record<ZoneKind, string> = {
 interface Drag {
     item: Item;
     point: { x: number; y: number } | null;
-    overCategory?: ZoneKind | null;
+    overCategory?: string | null;
 }
 
-function categoryAtPoint(x: number, y: number): ZoneKind | null | undefined {
+function categoryAtPoint(x: number, y: number): string | null | undefined {
     const target = document.elementFromPoint?.(x, y)?.closest("[data-drop-category]");
-    return target ? (target.getAttribute("data-drop-category") || null) as ZoneKind | null : undefined;
+    return target ? target.getAttribute("data-drop-category") || null : undefined;
 }
 
 function focusHandle(itemId: string) {
@@ -28,8 +29,10 @@ function focusHandle(itemId: string) {
 export function useCategoryDrag(items: Item[], setRefusal: (message: string) => void) {
     const householdId = useHouseholdId();
     const { data } = useServices();
+    const categories = useCategories();
+    const custom = sortedCategories(categories.status === "ready" ? categories.value : []);
     const [drag, setDrag] = useState<Drag | null>(null);
-    const pendingFocus = useRef<{ id: string; category: ZoneKind | null } | null>(null);
+    const pendingFocus = useRef<{ id: string; category: string | null } | null>(null);
     useEffect(() => {
         const pending = pendingFocus.current;
         if (!pending || !items.some(item => item.id === pending.id && item.category === pending.category)) return;
@@ -50,7 +53,7 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
         }
         setDrag(null);
     };
-    const choose = (item: Item, category: ZoneKind | null) => {
+    const choose = (item: Item, category: string | null) => {
         finish();
         if (category === item.category) return;
         if (drag && !drag.point) pendingFocus.current = { id: item.id, category };
@@ -61,7 +64,7 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
             if (pendingFocus.current?.id === item.id && pendingFocus.current.category === category) pendingFocus.current = null;
             const now = await readItemNow(data, householdId, item.id);
             if (now && now.category !== category) {
-                setRefusal(`${item.name} could not be moved to ${categoryName(category)}. It is still under ${categoryName(now.category)}.`);
+                setRefusal(`${item.name} could not be moved to ${categoryName(category, custom)}. It is still under ${categoryName(now.category, custom)}.`);
             }
         });
     };
@@ -84,7 +87,7 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
         active,
         rowActions,
         layer: active && <>
-            <DropTray item={active.item} keyboard={!active.point} overCategory={active.overCategory} onChoose={category => choose(active.item, category)} onCancel={finish} />
+            <DropTray item={active.item} custom={custom} keyboard={!active.point} overCategory={active.overCategory} onChoose={category => choose(active.item, category)} onCancel={finish} />
             {active.point && <div
                 aria-hidden="true"
                 className="pointer-events-none fixed z-30 max-w-60 -translate-x-1/2 -translate-y-1/2 truncate rounded-md bg-surface p-3 text-item shadow-float"
@@ -94,11 +97,12 @@ export function useCategoryDrag(items: Item[], setRefusal: (message: string) => 
     };
 }
 
-function DropTray({ item, keyboard, overCategory, onChoose, onCancel }: {
+function DropTray({ item, custom, keyboard, overCategory, onChoose, onCancel }: {
     item: Item;
+    custom: Category[];
     keyboard: boolean;
-    overCategory?: ZoneKind | null;
-    onChoose: (category: ZoneKind | null) => void;
+    overCategory?: string | null;
+    onChoose: (category: string | null) => void;
     onCancel: () => void;
 }) {
     const tray = useRef<HTMLDivElement>(null);
@@ -120,9 +124,9 @@ function DropTray({ item, keyboard, overCategory, onChoose, onCancel }: {
                 }
             }
         }}
-        className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-20 grid grid-cols-4 gap-2 rounded-md bg-surface p-2 shadow-float"
+        className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-20 grid max-h-[40vh] grid-cols-4 gap-2 overflow-y-auto rounded-md bg-surface p-2 shadow-float"
     >
-        {[...zoneKinds, null].map(category => {
+        {[...zoneKinds, ...custom.map(({ id }) => id), null].map(category => {
             const current = category === item.category;
             const highlighted = !current && category === overCategory;
             return <button
@@ -133,9 +137,9 @@ function DropTray({ item, keyboard, overCategory, onChoose, onCancel }: {
                 aria-current={current ? "true" : undefined}
                 tabIndex={keyboard ? 0 : -1}
                 onClick={() => { if (keyboard) onChoose(category); }}
-                className={`flex min-h-tap min-w-0 flex-col items-center justify-center rounded-md border-2 px-1 text-center text-caption ${category ? zoneSwatch[category] : "bg-surface-sunken"} ${current ? "border-dashed border-line opacity-60" : highlighted ? "border-sheen-ink ring-2 ring-sheen-ink" : "border-line-strong"}`}
+                className={`flex min-h-tap min-w-0 flex-col items-center justify-center rounded-md border-2 px-1 text-center text-caption ${category && category in zoneSwatch ? zoneSwatch[category as ZoneKind] : "bg-surface-sunken"} ${current ? "border-dashed border-line opacity-60" : highlighted ? "border-sheen-ink ring-2 ring-sheen-ink" : "border-line-strong"}`}
             >
-                <span>{categoryName(category)}</span>
+                <span className="max-w-full break-words">{categoryName(category, custom)}</span>
                 {current && <span className="text-ink-muted">Current</span>}
                 {highlighted && <span>Release to move</span>}
             </button>;

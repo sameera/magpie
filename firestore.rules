@@ -52,7 +52,8 @@ service cloud.firestore {
             // The household inventory. Photo and quantity remaining are set on
             // create. Photo and legacy places are not changed from the app; quantity
             // remaining changes only in a purchase (see isPurchase). The category is empty or one
-            // of the six zone kinds (also listed in src/data/model.ts). The legacy
+            // of the six zone kinds (also listed in src/data/model.ts) or the key of a
+            // custom category of the same household. The legacy
             // per-store placement (`places`) is not on a new item and is frozen
             // on an update of an item that still has it.
             match /items/{itemId} {
@@ -60,9 +61,15 @@ service cloud.firestore {
                     return ['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList'];
                 }
 
+                // None, a built-in category, or the key of a custom category that exists
+                // in this household (one lookup, only for a custom key).
                 function validCategory(data) {
                     return data.category == null
-                        || data.category in ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry'];
+                        || data.category in ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry']
+                        || (data.category is string
+                            && data.category.size() >= 1
+                            && data.category.size() <= 40
+                            && exists(/databases/$(database)/documents/households/$(householdId)/categories/$(data.category)));
                 }
 
                 function validItem(data) {
@@ -140,6 +147,38 @@ service cloud.firestore {
                 allow update: if isMemberOf(householdId)
                     && validItem(request.resource.data)
                     && (isEditOrRelist() || isPurchase());
+            }
+
+            // Custom categories. A member creates one under its key, the cleaned
+            // name in lower case (see src/data/categoryName.ts). It is never
+            // renamed or deleted; only a write of exactly what is stored is accepted,
+            // so a retry, or the other member's identical offline save, is not an error.
+            match /categories/{categoryId} {
+                function reservedKeys() {
+                    return ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry', 'no category'];
+                }
+
+                function validCategoryRecord(data) {
+                    return data.keys().hasAll(['name'])
+                        && data.keys().hasOnly(['name'])
+                        && data.name is string
+                        && data.name.size() >= 1
+                        && data.name.size() <= 40
+                        && data.name.matches('.*[\\p{L}\\p{N}].*')
+                        && !data.name.matches('.*/.*')
+                        && !data.name.matches('.*[^\\S ].*')
+                        && !data.name.matches(' .*|.* |.*  .*')
+                        // The rules lower-case ASCII only, so no capital outside ASCII.
+                        && !data.name.matches('.*([^\\P{Lu}A-Z]|\\p{Lt}|\\p{Nl}).*')
+                        && categoryId == data.name.lower()
+                        && !(categoryId in reservedKeys());
+                }
+
+                allow create: if isMemberOf(householdId) && validCategoryRecord(request.resource.data);
+                allow update: if isMemberOf(householdId)
+                    && request.resource.data == resource.data
+                    && validCategoryRecord(request.resource.data);
+                allow delete: if false;
             }
 
             match /purchases/{purchaseId} {

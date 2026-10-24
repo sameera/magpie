@@ -94,13 +94,15 @@ export function suggestItems(items: Item[], text: string, cursor: number, max: n
     return { kind: "matches", query, rows, exact };
 }
 
-// Replaces the current line with the item's name, keeping a typed quantity
-// suffix, then moves the cursor to a fresh line after it: the next line when it
-// is blank, else a new one.
+// Replaces the current line with the item's name and typical quantity above 1, keeping
+// a typed quantity suffix, then moves the cursor to a fresh line after it: the
+// next line when it is blank, else a new one.
 export function pickSuggestion(text: string, cursor: number, item: Item): { text: string; cursor: number } {
     const current = lineAt(text, cursor);
     const { quantity } = splitQuantity(current.text.trim());
-    const line = quantity === null ? item.name : `${item.name} (${quantity})`;
+    const typicalQuantity = item.typicalPurchaseQuantity ?? 1;
+    const pickedQuantity = quantity ?? (typicalQuantity > 1 ? typicalQuantity : null);
+    const line = pickedQuantity == null ? item.name : `${item.name} (${pickedQuantity})`;
     const before = text.slice(0, current.start) + line;
     const after = text.slice(current.end);
     if (after === "") {

@@ -23,6 +23,8 @@ export interface Item {
     name: string;
     // A whole number from 1 to 999.
     quantityNeeded: number;
+    // Absent on older items; their typical purchase quantity is 1.
+    typicalPurchaseQuantity?: number;
     // Stored as 0; nothing reads or changes it yet.
     quantityRemaining: number;
     note: string;
@@ -42,14 +44,14 @@ export interface Item {
 export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "category" | "preferredChain">;
 
 // Inventory corrections leave purchase history and totals unchanged.
-export type InventoryItemFields = ItemFields & Partial<Pick<Item, "onList" | "lastPurchasedAt">>;
+export type InventoryItemFields = ItemFields & Partial<Pick<Item, "onList" | "lastPurchasedAt" | "typicalPurchaseQuantity">>;
 
 // An existing item put back on the list with a new quantity needed.
 export type ListedItem = Pick<Item, "id" | "quantityNeeded">;
 
 // A new item on the list, in the shape the security rules accept.
 export function newItem(fields: ItemFields): Item {
-    return { ...fields, quantityRemaining: 0, photoPath: null, onList: true };
+    return { ...fields, typicalPurchaseQuantity: fields.quantityNeeded, quantityRemaining: 0, photoPath: null, onList: true };
 }
 
 export const MIN_QUANTITY: number = 1;
@@ -74,6 +76,7 @@ export const itemConverter: FirestoreDataConverter<Item> = {
         id: snap.id,
         name: String(snap.get("name") ?? ""),
         quantityNeeded: typeof snap.get("quantityNeeded") === "number" ? snap.get("quantityNeeded") : MIN_QUANTITY,
+        typicalPurchaseQuantity: snap.get("typicalPurchaseQuantity") ?? MIN_QUANTITY,
         quantityRemaining: typeof snap.get("quantityRemaining") === "number" ? snap.get("quantityRemaining") : 0,
         note: String(snap.get("note") ?? ""),
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,

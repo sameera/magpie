@@ -28,6 +28,21 @@ async function withData(run: (data: ReturnType<typeof createFirestoreData>, db: 
     } finally { await deleteApp(app); }
 }
 
+it.each([
+    { note: "Unsweetened", typicalPurchaseQuantity: 1 },
+    { lastPurchasedAt: new Date("2026-01-15T00:00:00Z") },
+    { note: "Unsweetened", typicalPurchaseQuantity: 4, onList: false, lastPurchasedAt: new Date("2026-01-15T00:00:00Z") },
+])("saves Inventory form fields on a legacy item: %j", async corrections => {
+    await withData(async (data, db) => {
+        await assertSucceeds(data.updateInventoryItem("h1", { ...fields, ...corrections }));
+        const saved = (await getDoc(doc(db, path))).data()!;
+        expect({ ...saved, ...(saved.lastPurchasedAt ? { lastPurchasedAt: saved.lastPurchasedAt.toDate() } : {}) })
+            .toMatchObject({ ...corrections, quantityRemaining: 0 });
+        expect(saved.purchaseCount).toBeUndefined();
+        expect(saved.lastPurchaseId).toBeUndefined();
+    });
+});
+
 it("allows members to set, replace and clear a date without a purchase", async () => {
     const db = env.authenticatedContext("alex").firestore();
     for (const lastPurchasedAt of [new Date("2026-01-15"), new Date("2026-02-01"), null]) {

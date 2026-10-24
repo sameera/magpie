@@ -1,6 +1,7 @@
 import { deleteField, increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
 import { itemConverter, newItem, priceConverter, purchaseConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
+import { loggedOperation, logError } from "./errors";
 import type { DataService } from "./types";
 
 function byName(a: { name: string }, b: { name: string }): number {
@@ -11,27 +12,40 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
     const items = (householdId: string) => collection(db, "households", householdId, "items").withConverter(itemConverter);
     const stores = (householdId: string) => collection(db, "households", householdId, "stores").withConverter(storeConverter);
 
+    const context = { projectId: db.app.options.projectId };
+    const run = <T>(operation: string, details: Record<string, unknown>, action: () => Promise<T>) =>
+        loggedOperation(operation, { ...context, ...details }, action);
+    const failedRead = (operation: string, details: Record<string, unknown>, missing: () => void) =>
+        (error: unknown) => {
+            logError(operation, { ...context, ...details }, error);
+            missing();
+        };
+
     return {
-        createStore: (householdId, { id, name, chain }) => setDoc(doc(stores(householdId), id), { id, name, chain, map: null }),
-        createItem: (householdId, item) => setDoc(doc(items(householdId), item.id), newItem(item)),
-        createItems: (householdId, list) => {
+        createStore: (householdId, { id, name, chain }) =>
+            run("createStore", { householdId, storeId: id }, () => setDoc(doc(stores(householdId), id), { id, name, chain, map: null })),
+        createItem: (householdId, item) =>
+            run("createItem", { householdId, itemId: item.id }, () => setDoc(doc(items(householdId), item.id), newItem(item))),
+        createItems: (householdId, list) => run("createItems", { householdId, itemIds: list.map(({ id }) => id) }, () => {
             const batch = writeBatch(db);
             list.forEach((item) => batch.set(doc(items(householdId), item.id), newItem(item)));
             return batch.commit();
-        },
-        addItems: (householdId, created, relisted) => {
+        }),
+        addItems: (householdId, created, relisted) => run("addItems", { householdId, itemIds: [...created, ...relisted].map(({ id }) => id) }, () => {
             const batch = writeBatch(db);
             created.forEach((item) => batch.set(doc(items(householdId), item.id), newItem(item)));
             relisted.forEach(({ id, quantityNeeded }) => batch.update(doc(items(householdId), id), { onList: true, quantityNeeded }));
             return batch.commit();
-        },
+        }),
         updateItem: (householdId, { id, name, quantityNeeded, note, category, preferredChain }) =>
-            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField() }),
+            run("updateItem", { householdId, itemId: id }, () => updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField() })),
         updateInventoryItem: (householdId, { id, name, quantityNeeded, note, category, preferredChain, ...corrections }) =>
-            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField(), ...corrections }),
-        setOnList: (householdId, itemId, onList) => updateDoc(doc(items(householdId), itemId), { onList }),
-        setCategory: (householdId, itemId, category) => updateDoc(doc(items(householdId), itemId), { category }),
-        recordPurchase: (householdId, itemId, amount) => {
+            run("updateInventoryItem", { householdId, itemId: id }, () => updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField(), ...corrections })),
+        setOnList: (householdId, itemId, onList) =>
+            run("setOnList", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { onList })),
+        setCategory: (householdId, itemId, category) =>
+            run("setCategory", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { category })),
+        recordPurchase: (householdId, itemId, amount) => run("recordPurchase", { householdId, itemId }, () => {
             const entry = doc(collection(db, "households", householdId, "purchases").withConverter(purchaseConverter));
             const batch = writeBatch(db);
             batch.set(entry, { id: entry.id, itemId, amount, purchasedAt: serverTimestamp() });
@@ -43,24 +57,24 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
                 lastPurchaseId: entry.id,
             });
             return batch.commit();
-        },
+        }),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()).sort(byName) }),
-                () => listener({ status: "missing" }),
+                failedRead("watchList", { householdId }, () => listener({ status: "missing" })),
             ),
         watchBoughtItems: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("purchaseCount", ">=", 1)),
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()) }),
-                () => listener({ status: "missing" }),
+                failedRead("watchBoughtItems", { householdId }, () => listener({ status: "missing" })),
             ),
         watchItems: (householdId, listener) =>
             onSnapshot(
                 items(householdId),
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Item => d.data()).sort(byName) }),
-                () => listener({ status: "missing" }),
+                failedRead("watchItems", { householdId }, () => listener({ status: "missing" })),
             ),
         watchItem: (householdId, itemId, listener) =>
             onSnapshot(
@@ -69,7 +83,7 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
                     const item = snap.data();
                     listener(item ? { status: "ready", value: item } : { status: "missing" });
                 },
-                () => listener({ status: "missing" }),
+                failedRead("watchItem", { householdId, itemId }, () => listener({ status: "missing" })),
             ),
         watchPrices: (householdId, itemId, listener) =>
             onSnapshot(
@@ -84,13 +98,13 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
                             .map((d): Price => d.data())
                             .sort((a, b) => b.observedAt.getTime() - a.observedAt.getTime()),
                     }),
-                () => listener({ status: "missing" }),
+                failedRead("watchPrices", { householdId, itemId }, () => listener({ status: "missing" })),
             ),
         watchStores: (householdId, listener) =>
             onSnapshot(
                 stores(householdId),
                 (snap) => listener({ status: "ready", value: snap.docs.map((d): Store => d.data()).sort(byName) }),
-                () => listener({ status: "missing" }),
+                failedRead("watchStores", { householdId }, () => listener({ status: "missing" })),
             ),
         watchStore: (householdId, storeId, listener) =>
             onSnapshot(
@@ -99,8 +113,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
                     const store = snap.data();
                     listener(store ? { status: "ready", value: store } : { status: "missing" });
                 },
-                () => listener({ status: "missing" }),
+                failedRead("watchStore", { householdId, storeId }, () => listener({ status: "missing" })),
             ),
-        fileUrl: (path) => getDownloadURL(ref(storage, path)),
+        fileUrl: (path) => run("fileUrl", { path }, () => getDownloadURL(ref(storage, path))),
     };
 }

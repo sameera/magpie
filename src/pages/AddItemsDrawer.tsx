@@ -92,9 +92,9 @@ export function AddItemsDrawer({ open, onClose }: { open: boolean; onClose: () =
         lines.forEach((line, index) => {
             const item = linked[index];
             if (item) {
-                relisted.set(item.id, { id: item.id, quantityNeeded: line.quantityNeeded });
+                relisted.set(item.id, { id: item.id, quantityNeeded: line.quantityNeeded ?? item.typicalPurchaseQuantity ?? 1 });
             } else {
-                created.push({ id: ids[index], name: line.name, quantityNeeded: line.quantityNeeded, note: "", category: null });
+                created.push({ id: ids[index], name: line.name, quantityNeeded: line.quantityNeeded ?? 1, note: "", category: null });
             }
         });
         confirmSave(data.addItems(householdId, created, [...relisted.values()])).then((result) => {
@@ -227,6 +227,7 @@ function SuggestionTray({
 
 function SuggestionRow({ row, disabled, onPick }: { row: Suggestion; disabled: boolean; onPick: (item: Item) => void }) {
     const { item, at, length } = row;
+    const quantitySuffix = (item.typicalPurchaseQuantity ?? 1) > 1 ? ` (${item.typicalPurchaseQuantity})` : "";
     const kind = item.category;
     const meta = [kind && kind[0].toUpperCase() + kind.slice(1), item.onList && `${item.quantityNeeded} needed`].filter(Boolean).join(" · ");
     // Keeps the focus, and so the keyboard, in the text box.
@@ -236,7 +237,7 @@ function SuggestionRow({ row, disabled, onPick }: { row: Suggestion; disabled: b
             type="button"
             role="option"
             aria-selected="false"
-            aria-label={[item.name, meta, item.onList && "On list"].filter(Boolean).join(", ")}
+            aria-label={[item.name + quantitySuffix, meta, item.onList && "On list"].filter(Boolean).join(", ")}
             disabled={disabled}
             onPointerDown={keepFocus}
             onMouseDown={keepFocus}
@@ -252,6 +253,7 @@ function SuggestionRow({ row, disabled, onPick }: { row: Suggestion; disabled: b
                     {item.name.slice(0, at)}
                     <b className="font-extrabold">{item.name.slice(at, at + length)}</b>
                     {item.name.slice(at + length)}
+                    {quantitySuffix}
                 </span>
                 {meta && <span className="text-caption text-ink-muted">{meta}</span>}
             </span>

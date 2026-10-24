@@ -83,6 +83,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 interface Draft {
     name: string;
     quantity: string;
+    typicalQuantity: string;
     note: string;
     category: ZoneKind | "";
     preferredChain: string;
@@ -95,11 +96,11 @@ function dateInput(date: Date): string {
 }
 
 function draftOf(item: Item): Draft {
-    return { onList: item.onList, lastPurchaseDate: item.lastPurchasedAt ? dateInput(item.lastPurchasedAt) : "", name: item.name, quantity: String(item.quantityNeeded), note: item.note, category: item.category ?? "", preferredChain: item.preferredChain ?? "" };
+    return { onList: item.onList, lastPurchaseDate: item.lastPurchasedAt ? dateInput(item.lastPurchasedAt) : "", name: item.name, quantity: String(item.quantityNeeded), typicalQuantity: String(item.typicalPurchaseQuantity ?? 1), note: item.note, category: item.category ?? "", preferredChain: item.preferredChain ?? "" };
 }
 
 function sameFields(a: Draft, b: Draft): boolean {
-    return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category && a.preferredChain === b.preferredChain && a.onList === b.onList && a.lastPurchaseDate === b.lastPurchaseDate;
+    return a.name === b.name && a.quantity === b.quantity && a.typicalQuantity === b.typicalQuantity && a.note === b.note && a.category === b.category && a.preferredChain === b.preferredChain && a.onList === b.onList && a.lastPurchaseDate === b.lastPurchaseDate;
 }
 
 // Done writes the draft and waits for the server before returning to its parent. An
@@ -154,6 +155,11 @@ function ItemDetails({
             return;
         }
         const preferredChain = draft.preferredChain.trim();
+        const typicalPurchaseQuantity = parseQuantity(draft.typicalQuantity.trim());
+        if (inventory && typicalPurchaseQuantity === null) {
+            setError("Typical purchase quantity must be a whole number from 1 to 999.");
+            return;
+        }
         if (preferredChain.length > 100) {
             setError("Preferred Chain must be at most 100 characters.");
             return;
@@ -163,6 +169,7 @@ function ItemDetails({
             return;
         }
         const inventoryFields = inventory ? {
+            typicalPurchaseQuantity: typicalPurchaseQuantity!,
             ...(draft.onList !== item.onList ? { onList: draft.onList } : {}),
             ...(draft.lastPurchaseDate !== draftOf(item).lastPurchaseDate ? {
                 lastPurchasedAt: draft.lastPurchaseDate ? new Date(`${draft.lastPurchaseDate}T00:00:00`) : null,
@@ -247,6 +254,16 @@ function ItemDetails({
                 <PreferredChainField value={draft.preferredChain} onChange={preferredChain => setDraft({ ...draft, preferredChain })}
                     chains={stores.status === "ready" ? stores.value.map(store => store.chain) : []} />
                 {inventory && <>
+                    <Field label="Typical purchase quantity">
+                        <input
+                            className={inputClass}
+                            inputMode="numeric"
+                            aria-invalid={error.startsWith("Typical purchase quantity")}
+                            aria-describedby={error.startsWith("Typical purchase quantity") ? "quantity-error" : undefined}
+                            value={draft.typicalQuantity}
+                            onChange={e => setDraft({ ...draft, typicalQuantity: e.target.value })}
+                        />
+                    </Field>
                     <label className="flex min-h-tap items-center gap-3 text-body">
                         <input type="checkbox" checked={draft.onList} onChange={e => setDraft({ ...draft, onList: e.target.checked })} />
                         On the list

@@ -1,10 +1,22 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FakeServices } from "../test/fakeServices";
 import { renderApp } from "../test/renderApp";
 
 describe("sign-in gate", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it.each(["signIn", "signOut"] as const)("logs %s failures with the original error", async (operation) => {
+        const services = new FakeServices(operation === "signIn" ? null : { uid: "stranger", email: null });
+        const failure = Object.assign(new Error("Authentication failed"), { code: "auth/network-request-failed" });
+        vi.mocked(services.auth[operation]).mockRejectedValueOnce(failure);
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        renderApp(["/sign-in"], services);
+        await userEvent.setup().click(screen.getByRole("button", { name: operation === "signIn" ? "Sign in with Google" : "Try another account" }));
+        expect(screen.getByRole("alert")).toHaveTextContent("Authentication failed");
+        expect(log).toHaveBeenCalledWith(expect.stringContaining(operation), expect.any(Object), failure);
+    });
     it("shows authentication failures and allows another attempt", async () => {
         const services = new FakeServices(null);
         vi.mocked(services.auth.signIn).mockRejectedValueOnce(new Error("Firebase: Error (auth/popup-blocked)."));

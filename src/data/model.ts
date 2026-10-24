@@ -30,8 +30,10 @@ export interface Item {
     note: string;
     // Cloud Storage path of the item's photo.
     photoPath: string | null;
-    // The kind of zone the item sits in, in every store; null for none.
-    category: ZoneKind | null;
+    // A zone kind, which places the item in every store; or the key of a custom
+    // category of the household, which places it nowhere; null for none. A stored
+    // value that is neither is shown as no category.
+    category: string | null;
     onList: boolean;
     preferredChain?: string;
     // Absent on items created before purchase history; reads as zero.
@@ -80,7 +82,7 @@ export const itemConverter: FirestoreDataConverter<Item> = {
         quantityRemaining: typeof snap.get("quantityRemaining") === "number" ? snap.get("quantityRemaining") : 0,
         note: String(snap.get("note") ?? ""),
         photoPath: typeof snap.get("photoPath") === "string" ? snap.get("photoPath") : null,
-        category: toCategory(snap.get("category")),
+        category: typeof snap.get("category") === "string" && snap.get("category") !== "" ? snap.get("category") : null,
         onList: snap.get("onList") === true,
         ...(typeof snap.get("preferredChain") === "string" ? { preferredChain: snap.get("preferredChain") } : {}),
         purchaseCount: snap.get("purchaseCount") ?? 0,
@@ -191,6 +193,7 @@ export const storeConverter: FirestoreDataConverter<Store> = {
 // The zone an item sits in at a store: the first zone, in walking order, whose
 // kind is the item's category. Nothing is stored per store.
 export function zoneOf(item: Item, store: Store): Zone | undefined {
+    // A custom category's key is never a zone kind, so it never matches a zone.
     if (!item.category) {
         return undefined;
     }

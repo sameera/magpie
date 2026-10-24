@@ -12,3 +12,13 @@
 - **Choice:** Inventory shows loading or unreadable if either the items or the categories read is loading or unreadable.
 - **Why:** D7 treats the categories read like the items read, so "No items yet." never shows on a partial read.
 - **Refuted alternative:** Render items while categories load, adding custom headings later.
+
+## 2026-10-23 — Item category is a free string; unknown values handled at display and save
+- **Choice:** `Item.category` is `string | null`; groups and the Item page treat a value that is neither built-in nor a known custom key as no category, and the Item page saves it as none once categories are read.
+- **Why:** The converter cannot know custom keys, and the older "unknown value reads as none" behaviour must hold (G12, G25).
+- **Refuted alternative:** Keep normalising in the converter; it would drop every custom key to none.
+
+## 2026-10-23 — Item page chooser order follows D8
+- **Choice:** Chooser lists built-ins, custom, then "No category", changing the old "No category" first order.
+- **Why:** D8 states one list order for chooser and tray.
+- **Refuted alternative:** Keep "No category" first in the chooser only.

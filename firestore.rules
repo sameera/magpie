@@ -52,7 +52,8 @@ service cloud.firestore {
             // The household inventory. Photo and quantity remaining are set on
             // create. Photo and legacy places are not changed from the app; quantity
             // remaining changes only in a purchase (see isPurchase). The category is empty or one
-            // of the six zone kinds (also listed in src/data/model.ts). The legacy
+            // of the six zone kinds (also listed in src/data/model.ts) or the key of a
+            // custom category of the same household. The legacy
             // per-store placement (`places`) is not on a new item and is frozen
             // on an update of an item that still has it.
             match /items/{itemId} {
@@ -60,9 +61,15 @@ service cloud.firestore {
                     return ['name', 'quantityNeeded', 'quantityRemaining', 'category', 'note', 'photoPath', 'onList'];
                 }
 
+                // None, a built-in category, or the key of a custom category that exists
+                // in this household (one lookup, only for a custom key).
                 function validCategory(data) {
                     return data.category == null
-                        || data.category in ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry'];
+                        || data.category in ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry']
+                        || (data.category is string
+                            && data.category.size() >= 1
+                            && data.category.size() <= 40
+                            && exists(/databases/$(database)/documents/households/$(householdId)/categories/$(data.category)));
                 }
 
                 function validItem(data) {

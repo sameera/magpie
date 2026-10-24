@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
 import { useHouseholdId, useServices } from "../app/session";
-import { categoryName, listGroups } from "../data/categoryGroups";
-import { useBoughtItems, useList } from "../data/hooks";
+import { listGroups } from "../data/categoryGroups";
+import { useBoughtItems, useCategories, useList } from "../data/hooks";
 import { suggestedItems } from "../data/suggestions";
 import { readItemNow } from "../data/itemNow";
 import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, type Item } from "../data/model";
@@ -22,6 +22,8 @@ export function ListPage() {
     const { data } = useServices();
     const list = useList();
     const bought = useBoughtItems();
+    const categories = useCategories();
+    const customCategories = categories.status === "ready" ? categories.value : [];
     const suggestions = bought.status === "ready" ? suggestedItems(bought.value) : [];
     const [adding, setAdding] = useState(false);
     const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -96,11 +98,11 @@ export function ListPage() {
             )}
             {list.status === "ready" && list.value.length > 0 && (
                 <ul aria-label="Shopping list" className="flex flex-col gap-6">
-                    {listGroups(list.value).map(({ category, items }) => {
-                        const headingId = `group-${category ?? "none"}`;
+                    {listGroups(list.value, "category", customCategories).map(({ slug, title, items }) => {
+                        const headingId = `group-${slug}`;
                         return (
                             <li key={headingId}>
-                                <h2 id={headingId} className="mb-3 text-heading">{categoryName(category)}</h2>
+                                <h2 id={headingId} className="mb-3 text-heading">{title}</h2>
                                 <ul aria-labelledby={headingId} className="flex flex-col gap-3">
                                     {items.map((item) => (
                                         <ListRow

@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { CategoryDragRow } from "../components/CategoryDragRow";
 import { useCategoryDrag } from "../components/CategoryDrag";
 import { useCategories, useItems } from "../data/hooks";
-import { inventoryGroups } from "../data/categoryGroups";
+import { listGroups } from "../data/categoryGroups";
 import { AddCategoryForm } from "../components/AddCategoryForm";
 import { PageHeader } from "./PageHeader";
 import { PreferredChainText } from "../components/PreferredChainText";
@@ -30,11 +30,11 @@ export function InventoryPage() {
             )}
             {ready && (items.value.length > 0 || customCategories.length > 0) && (
                 <ul aria-label="Inventory" className="flex flex-col gap-6">
-                    {inventoryGroups(items.value, customCategories).map(({ key, title, items }) => (
-                        <li key={key}>
-                            <h2 id={`inventory-category-${key}`} className="mb-3 text-heading">{title}</h2>
+                    {listGroups(items.value, "category", customCategories, true).map(({ slug, title, items }) => (
+                        <li key={slug}>
+                            <h2 id={`inventory-category-${slug}`} className="mb-3 text-heading">{title}</h2>
                             {items.length === 0 && <p className="text-body text-ink-muted">0 items</p>}
-                            <ul aria-labelledby={`inventory-category-${key}`} className="flex flex-col gap-3">
+                            <ul aria-labelledby={`inventory-category-${slug}`} className="flex flex-col gap-3">
                                 {items.map(item => (
                                     <CategoryDragRow key={item.id} item={item} {...categoryDrag.rowActions(item)}>
                                         <Link

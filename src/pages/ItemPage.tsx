@@ -6,8 +6,9 @@ import { confirmDiscard, confirmSave, newRecordId, REFUSED_MESSAGE, UNCONFIRMED_
 import { useHouseholdId, useServices } from "../app/session";
 import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
-import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
+import { useCategories, useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
 import { PreferredChainField } from "../components/PreferredChainField";
+import { categoryName } from "../data/categoryGroups";
 import { newItem, parseQuantity, zoneKinds, type Item, type InventoryItemFields, type Price, type ZoneKind } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
@@ -85,7 +86,7 @@ interface Draft {
     quantity: string;
     typicalQuantity: string;
     note: string;
-    category: ZoneKind | "";
+    category: string;
     preferredChain: string;
     onList: boolean;
     lastPurchaseDate: string;
@@ -122,6 +123,11 @@ function ItemDetails({
 }) {
     const [draft, setDraft] = useState<Draft>(() => draftOf(item));
     const stores = useStores();
+    const categories = useCategories();
+    const customCategories = categories.status === "ready" ? categories.value : [];
+    // A stored value that is neither built-in nor a custom category is no category.
+    const isKnown = (category: string): boolean => zoneKinds.includes(category as ZoneKind) || customCategories.some(({ id }) => id === category);
+    const savedCategory = (): string | null => (categories.status !== "ready" || isKnown(draft.category) ? draft.category || null : null);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
     const parent = useItemParent();
@@ -177,7 +183,7 @@ function ItemDetails({
         } : {};
         setError("");
         setSaving(true);
-        confirmSave(save({ ...inventoryFields, id: item.id, name, quantityNeeded, note: draft.note, category: draft.category || null, ...(preferredChain ? { preferredChain } : {}) })).then((result) => {
+        confirmSave(save({ ...inventoryFields, id: item.id, name, quantityNeeded, note: draft.note, category: savedCategory(), ...(preferredChain ? { preferredChain } : {}) })).then((result) => {
             if (result === "saved") {
                 finished.current = true;
                 up();
@@ -237,15 +243,18 @@ function ItemDetails({
                 <Field label="Category">
                     <select
                         className={inputClass}
-                        value={draft.category}
-                        onChange={(e) => setDraft({ ...draft, category: e.target.value as ZoneKind | "" })}
+                        value={isKnown(draft.category) ? draft.category : ""}
+                        onChange={(e) => setDraft({ ...draft, category: e.target.value })}
                     >
-                        <option value="">No category</option>
                         {zoneKinds.map((kind) => (
                             <option key={kind} value={kind}>
-                                {kind[0].toUpperCase() + kind.slice(1)}
+                                {categoryName(kind)}
                             </option>
                         ))}
+                        {customCategories.map(({ id, name }) => (
+                            <option key={id} value={id}>{name}</option>
+                        ))}
+                        <option value="">No category</option>
                     </select>
                 </Field>
                 <Field label="Note">

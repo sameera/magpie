@@ -71,8 +71,9 @@ describe("Inventory reads", () => {
     }
 
     it("shows loading, never No items yet., while the categories load", () => {
-        let set: (value: Watched<Category[]>) => void = () => {};
-        const services = withCategories(s => { set = s; s({ status: "loading" }); }, { status: "ready", value: [] });
+        const listeners: ((value: Watched<Category[]>) => void)[] = [];
+        const set = (value: Watched<Category[]>) => listeners.forEach(listener => listener(value));
+        const services = withCategories(s => { listeners.push(s); s({ status: "loading" }); }, { status: "ready", value: [] });
         renderApp(["/inventory"], services);
         expect(screen.getByText("Loading inventory…")).toBeInTheDocument();
         expect(screen.queryByText("No items yet.")).toBeNull();

@@ -1,4 +1,4 @@
-import type { Category, Item, ItemFields, InventoryItemFields, ListedItem, Price, Store, ZoneKind } from "../data/model";
+import type { Category, Item, ItemFields, InventoryItemFields, ListedItem, Price, Store } from "../data/model";
 
 export interface AuthUser {
     uid: string;
@@ -53,10 +53,10 @@ export interface DataService {
     // list quantity, inventory or any other detail. Resolves once the server
     // accepts the write; rejects if it is refused. Callers do not wait for it.
     setOnList(householdId: string, itemId: string, onList: boolean): Promise<void>;
-    // Sets only the item's category, to one of the six kinds or null for none,
-    // changing nothing else. Resolves once the server accepts the write; rejects
+    // Sets only the item's category, to one of the six kinds, the key of a custom
+    // category of the household, or null for none, changing nothing else. Resolves once the server accepts the write; rejects
     // if it is refused. Callers do not wait for it.
-    setCategory(householdId: string, itemId: string, category: ZoneKind | null): Promise<void>;
+    setCategory(householdId: string, itemId: string, category: string | null): Promise<void>;
     // Records a purchase in one atomic batch with its immutable history entry
     // and item purchase totals. Takes the item off the list and adds the
     // amount, a whole number from 1 to 999, to its quantity remaining as a

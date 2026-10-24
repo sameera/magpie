@@ -5,13 +5,14 @@ import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useFileUrl, useStore } from "../data/hooks";
-import type { Store, StoreMapData } from "../data/model";
+import { zoneKinds, type Store, type StoreMapData, type ZoneKind } from "../data/model";
+import { categoryName } from "../data/categoryGroups";
 import { ZoneEditingLayer } from "./ZoneEditingLayer";
 import { addDraftZone, moveDraftPlace, normalizeDraftOrder, removeDraftZone } from "./zoneDraft";
 import { RemoveZoneSheet } from "./RemoveZoneSheet";
 import { defaultDots } from "./editorDots";
 
-type Mode = "sketch" | "label";
+type Mode = "sketch" | "category";
 
 const emptyMap: StoreMapData = { width: 100, height: 60, zones: [], scanPath: null };
 
@@ -44,7 +45,7 @@ export function MapEditorPage() {
 
 // Drafts stay in the editor: saving maps comes with the Maps feature epic.
 function Editor({ store, parent }: { store: Store; parent: string }) {
-    const [mode, setMode] = useState<Mode>(store.map ? "label" : "sketch");
+    const [mode, setMode] = useState<Mode>(store.map ? "category" : "sketch");
     const [map, setMap] = useState<StoreMapData>(() => store.map ? normalizeDraftOrder(store.map) : addDraftZone(emptyMap));
     const [dots, setDots] = useState(() => defaultDots(store.map ?? emptyMap));
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,8 +93,9 @@ function Editor({ store, parent }: { store: Store; parent: string }) {
 
     const addZone = () => setMap(addDraftZone);
 
-    const relabel = (id: string, label: string) =>
-        setMap({ ...map, zones: map.zones.map((zone) => (zone.id === id ? { ...zone, label } : zone)) });
+    const setCategory = (id: string, kind: ZoneKind) =>
+        setMap(current => ({ ...current, zones: current.zones.map(zone =>
+            zone.id === id ? { ...zone, kind, label: categoryName(kind) } : zone) }));
 
     const removeControl = selected && (
         <button type="button" aria-label={`Remove ${selected.label}`} title={`Remove ${selected.label}`}
@@ -125,14 +127,18 @@ function Editor({ store, parent }: { store: Store; parent: string }) {
                         </p>
                     )}
                 </div>
-                {mode === "label" && (
-                    <section aria-label="Zone labels" className="flex min-h-0 max-h-[25dvh] flex-col gap-3 overflow-y-auto overscroll-contain">
-                        {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to label it.</p>}
+                {mode === "category" && (
+                    <section aria-label="Zone categories" className="flex min-h-0 max-h-[25dvh] flex-col gap-3 overflow-y-auto overscroll-contain">
+                        {map.zones.length === 0 && <p className="text-body text-ink-muted">Add a zone to choose its category.</p>}
                         {[...map.zones].sort((a, b) => a.order - b.order).map(zone => (
                             <div key={zone.id} className="flex shrink-0 items-end gap-2">
                                 <label className={`flex-1 ${fieldClass}`}>
-                                    {`Zone ${zone.order + 1}`}
-                                    <input className={inputClass} value={zone.label} onChange={(e) => relabel(zone.id, e.target.value)} />
+                                    {`Zone ${zone.order + 1} category`}
+                                    <select aria-label={`Category of zone ${zone.order + 1}`} className={`w-full min-w-0 ${inputClass}`}
+                                        value={zone.kind ?? ""} onChange={event => setCategory(zone.id, event.target.value as ZoneKind)}>
+                                        {zone.kind === null && <option value="" disabled>Choose category</option>}
+                                        {zoneKinds.map(kind => <option key={kind} value={kind}>{categoryName(kind)}</option>)}
+                                    </select>
                                 </label>
                                 <label className={`shrink-0 ${fieldClass}`}>
                                     Place
@@ -157,9 +163,9 @@ function Editor({ store, parent }: { store: Store; parent: string }) {
                         <ToolIcon><Pencil aria-hidden="true" /></ToolIcon>
                         Sketch
                     </button>
-                    <button type="button" aria-pressed={mode === "label"} className={toolClass} onClick={() => setMode("label")}>
+                    <button type="button" aria-pressed={mode === "category"} className={toolClass} onClick={() => setMode("category")}>
                         <ToolIcon><Tag aria-hidden="true" /></ToolIcon>
-                        Label
+                        Category
                     </button>
                     <button type="button" className={toolClass} onClick={addZone}>
                         <ToolIcon><Plus aria-hidden="true" /></ToolIcon>

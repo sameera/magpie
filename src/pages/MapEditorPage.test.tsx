@@ -46,7 +46,7 @@ describe("Map editor page", () => {
         renderApp(["/stores/s1/map"]);
         const tools = await screen.findByRole("toolbar", { name: "Map tools" });
         const sketch = within(tools).getByRole("button", { name: "Sketch" });
-        const label = within(tools).getByRole("button", { name: "Label" });
+        const label = within(tools).getByRole("button", { name: "Category" });
         expect(within(tools).getByRole("button", { name: "Add zone" })).toBeInTheDocument();
         expect(within(tools).getByLabelText("Map photo")).toHaveAttribute("type", "file");
         expect(label).toHaveAttribute("aria-pressed", "true");
@@ -54,10 +54,10 @@ describe("Map editor page", () => {
         await user.click(sketch);
         expect(sketch).toHaveAttribute("aria-pressed", "true");
         expect(label).toHaveAttribute("aria-pressed", "false");
-        expect(screen.queryByRole("region", { name: "Zone labels" })).toBeNull();
+        expect(screen.queryByRole("region", { name: "Zone categories" })).toBeNull();
     });
 
-    it("lets the user start a sketch, start from a scan, and label zones", async () => {
+    it("starts a new sketch with Produce and changes its category and color", async () => {
         const user = userEvent.setup();
         renderApp(["/stores/s2/map"]);
         await screen.findByRole("heading", { name: "Edit map" });
@@ -67,11 +67,37 @@ describe("Map editor page", () => {
         expect(screen.getByRole("button", { name: "Checkout" })).toHaveTextContent("PAY");
         expect(screen.getByLabelText("Map photo")).toHaveAttribute("type", "file");
         await user.click(screen.getByRole("button", { name: "Sketch" }));
-        await user.click(screen.getByRole("button", { name: "Label" }));
-        const label = within(screen.getByRole("region", { name: "Zone labels" })).getByLabelText("Zone 1");
-        await user.clear(label);
-        await user.type(label, "Produce");
-        expect(within(screen.getByRole("img", { name: "Map of Safeway Main St" })).getByText("PRODUCE")).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Category" }));
+        const picker = screen.getByRole("combobox", { name: "Category of zone 1" });
+        expect(picker).toHaveValue("produce");
+        expect(within(picker).getAllByRole("option").map(option => option.textContent)).toEqual(
+            ["Produce", "Dairy", "Bakery", "Meat", "Frozen", "Pantry"]);
+        expect(screen.queryByRole("textbox")).toBeNull();
+        const map = screen.getByRole("img", { name: "Map of Safeway Main St" });
+        expect(within(map).getByText("PRODUCE")).toBeInTheDocument();
+        expect(map.querySelector("[data-zone] rect")).toHaveAttribute("fill", "var(--zone-produce)");
+        await user.selectOptions(picker, "frozen");
+        expect(within(map).getByText("FROZEN")).toBeInTheDocument();
+        expect(map.querySelector("[data-zone] rect")).toHaveAttribute("fill", "var(--zone-frozen)");
+        expect(screen.getByRole("combobox", { name: "Walking place of Frozen" })).toHaveValue("1");
+    });
+
+    it("defaults every added zone to Produce without changing existing categories", async () => {
+        renderApp(["/stores/s1/map"]);
+        await screen.findByRole("heading", { name: "Edit map" });
+        const user = userEvent.setup();
+        await user.click(screen.getByRole("button", { name: "Add zone" }));
+        await user.click(screen.getByRole("button", { name: "Add zone" }));
+        expect(screen.getByRole("combobox", { name: "Category of zone 1" })).toHaveValue("bakery");
+        expect(screen.getByRole("combobox", { name: "Category of zone 2" })).toHaveValue("dairy");
+        for (const place of [3, 4]) {
+            expect(screen.getByRole("combobox", { name: `Category of zone ${place}` })).toHaveValue("produce");
+        }
+        const zones = screen.getByRole("img", { name: "Map of Costco Kirkland" }).querySelectorAll("[data-zone]");
+        for (const zone of Array.from(zones).slice(2)) {
+            expect(within(zone as HTMLElement).getByText("PRODUCE")).toBeInTheDocument();
+            expect(zone.querySelector("rect")).toHaveAttribute("fill", "var(--zone-produce)");
+        }
     });
 
     it("adds only the two selectable dots to an empty stored map and never offers dot tools", async () => {

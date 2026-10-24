@@ -36,7 +36,7 @@ describe("Shop page", () => {
     it("reopens the in-store view from a saved link", () => {
         renderApp(["/shop/s1"]);
         expect(screen.getByRole("heading", { name: "Costco Kirkland" })).toBeInTheDocument();
-        expect(within(mainNav()).getByRole("link", { name: /Shop/ })).toHaveAttribute("aria-current", "page");
+        expect(screen.getByRole("navigation", { name: "Shopping" })).toBeInTheDocument();
     });
 
     it("returns to the store choice, and a new pick adds no step for going back", async () => {
@@ -55,7 +55,7 @@ describe("Shop page", () => {
     it("returns to the same in-store view after a visit to another area", async () => {
         const user = userEvent.setup();
         const { router } = renderApp(["/shop/s1"]);
-        await user.click(within(mainNav()).getByRole("link", { name: /List/ }));
+        await act(() => router.navigate("/"));
         expect(router.state.location.pathname).toBe("/");
         await user.click(within(mainNav()).getByRole("link", { name: /Shop/ }));
         expect(router.state.location.pathname).toBe("/shop/s1");

@@ -96,9 +96,9 @@ describe("List and in-store with custom categories", () => {
     it("List and in-store offer no add-category action", async () => {
         const services = stock();
         const { router } = renderApp(["/"], services);
-        expect(screen.queryByRole("button", { name: "Add category" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Add Category" })).toBeNull();
         await act(() => router.navigate("/shop/s1"));
-        expect(screen.queryByRole("button", { name: "Add category" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Add Category" })).toBeNull();
     });
 
     it("the in-store view lists a custom-category item after every item placed on the map, ordered by name with the other unplaced items", async () => {

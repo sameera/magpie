@@ -9,7 +9,7 @@ const household = (services: FakeServices) => services.households.get("h1")!;
 
 async function addCategory(name: string) {
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Add category" }));
+    await user.click(screen.getByRole("button", { name: "Add Category" }));
     const field = screen.getByLabelText("Category name");
     await user.clear(field);
     if (name) await user.type(field, name);
@@ -22,7 +22,7 @@ describe("Adding a custom category on Inventory", () => {
         renderApp(["/inventory"]);
         const user = userEvent.setup();
         expect(screen.queryByLabelText("Category name")).toBeNull();
-        await user.click(screen.getByRole("button", { name: "Add category" }));
+        await user.click(screen.getByRole("button", { name: "Add Category" }));
         expect(screen.getAllByRole("textbox")).toHaveLength(1);
         expect(screen.getByLabelText("Category name")).toHaveFocus();
         await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -93,9 +93,9 @@ describe("Adding a custom category on Inventory", () => {
 
     it("offers no add action on List or in the store", async () => {
         const { router } = renderApp(["/"]);
-        expect(screen.queryByRole("button", { name: "Add category" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Add Category" })).toBeNull();
         await act(() => router.navigate("/shop/s1"));
-        expect(screen.queryByRole("button", { name: "Add category" })).toBeNull();
+        expect(screen.queryByRole("button", { name: "Add Category" })).toBeNull();
     });
 
     it("keeps built-in headings unchanged", () => {

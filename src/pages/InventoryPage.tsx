@@ -17,12 +17,12 @@ export function InventoryPage() {
     const loading = items.status === "loading" || categories.status === "loading";
     const unreadable = !loading && (items.status === "missing" || categories.status === "missing");
     const ready = items.status === "ready" && categories.status === "ready";
+    const groups = ready ? listGroups(items.value, "category", customCategories, true) : [];
     const categoryDrag = useCategoryDrag(items.status === "ready" ? items.value : [], setRefusal);
 
     return (
         <>
             <PageHeader title="Inventory" />
-            <AddCategoryForm onRefused={setRefusal} />
             {loading && <p className="text-body text-ink-muted">Loading inventory…</p>}
             {unreadable && <p className="text-body text-ink-muted">The inventory could not be read.</p>}
             {ready && items.value.length === 0 && (
@@ -30,9 +30,13 @@ export function InventoryPage() {
             )}
             {ready && (items.value.length > 0 || customCategories.length > 0) && (
                 <ul aria-label="Inventory" className="flex flex-col gap-6">
-                    {listGroups(items.value, "category", customCategories, true).map(({ slug, title, items }) => (
+                    {groups.map(({ category, slug, title, items }) => (
                         <li key={slug}>
-                            <h2 id={`inventory-category-${slug}`} className="mb-3 text-heading">{title}</h2>
+                            {category === null ? (
+                                <AddCategoryForm onRefused={setRefusal} heading={<h2 id={`inventory-category-${slug}`} className="text-heading">{title}</h2>} />
+                            ) : (
+                                <h2 id={`inventory-category-${slug}`} className="mb-3 text-heading">{title}</h2>
+                            )}
                             {items.length === 0 && <p className="text-body text-ink-muted">0 items</p>}
                             <ul aria-labelledby={`inventory-category-${slug}`} className="flex flex-col gap-3">
                                 {items.map(item => (
@@ -56,6 +60,7 @@ export function InventoryPage() {
                     ))}
                 </ul>
             )}
+            {!groups.some(group => group.category === null) && <AddCategoryForm onRefused={setRefusal} />}
             {categoryDrag.layer}
             {refusal && !categoryDrag.active && <p role="alert" className="fixed right-4 bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-4 z-10 mx-auto flex max-w-132 items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
                 <span className="min-w-0 flex-1">{refusal}</span>

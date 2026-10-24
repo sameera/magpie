@@ -11,10 +11,31 @@ const household = (services: FakeServices) => services.households.get("h1")!;
 const section = (name: string) => screen.getByRole("heading", { level: 2, name }).closest("li")!;
 
 describe("A new custom category on Inventory", () => {
+    it("offers an icon-only Add Category button beside No category and opens the category form", async () => {
+        const services = new FakeServices();
+        household(services).items = [testItem({ id: "c", name: "Candles" })];
+        renderApp(["/inventory"], services);
+        const heading = screen.getByRole("heading", { name: "No category" });
+        const button = within(heading.parentElement!).getByRole("button", { name: "Add Category" });
+        expect(button).toHaveAttribute("title", "Add Category");
+        expect(button.textContent).toBe("");
+        expect(button.querySelector("svg")).toBeInTheDocument();
+        await userEvent.setup().click(button);
+        expect(screen.getByLabelText("Category name")).toHaveFocus();
+        await userEvent.setup().click(screen.getByRole("button", { name: "Cancel" }));
+        expect(screen.getByRole("button", { name: "Add Category" })).toBeInTheDocument();
+    });
+
+    it("keeps the add button available when there is no uncategorized group", () => {
+        renderApp(["/inventory"]);
+        expect(screen.queryByRole("heading", { name: "No category" })).toBeNull();
+        expect(screen.getByRole("button", { name: "Add Category" })).toHaveAttribute("title", "Add Category");
+    });
+
     it("shows a heading with 0 items as soon as it is saved, without a reload", async () => {
         renderApp(["/inventory"]);
         const user = userEvent.setup();
-        await user.click(screen.getByRole("button", { name: "Add category" }));
+        await user.click(screen.getByRole("button", { name: "Add Category" }));
         await user.type(screen.getByLabelText("Category name"), "Baby");
         await user.click(screen.getByRole("button", { name: "Save" }));
         expect(headings()).toEqual(["Dairy", "Bakery", "Baby"]);
@@ -27,7 +48,7 @@ describe("A new custom category on Inventory", () => {
         services.saveBehavior = "hang";
         renderApp(["/inventory"], services);
         const user = userEvent.setup();
-        await user.click(screen.getByRole("button", { name: "Add category" }));
+        await user.click(screen.getByRole("button", { name: "Add Category" }));
         await user.type(screen.getByLabelText("Category name"), "Baby");
         await user.click(screen.getByRole("button", { name: "Save" }));
         expect(within(section("Baby")).getByText("0 items")).toBeInTheDocument();

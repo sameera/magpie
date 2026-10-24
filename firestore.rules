@@ -24,9 +24,9 @@ service cloud.firestore {
             allow read: if isMemberOf(householdId);
             allow write: if false;
 
-            // A member may create a store, create items and update an item.
-            // Nothing else is written from the app: no deletes, no store edits
-            // (bar the same-content retry of a save), no prices.
+            // A member may create a store and create, update or delete items.
+            // Store edits are limited to same-content save retries; prices
+            // are not written from the app.
             function validName(data) {
                 return data.name is string
                     && data.name.matches('.*[^\\s].*')
@@ -170,6 +170,8 @@ service cloud.firestore {
                     && validItem(request.resource.data)
                     && (isEditOrRelist() || isPurchase()
                         || validPurchaseUndo(itemId, resource.data.lastPurchaseId));
+
+                allow delete: if isMemberOf(householdId);
             }
 
             // Custom categories. A member creates one under its key, the cleaned

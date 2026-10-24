@@ -89,9 +89,12 @@ it("saves and reloads Inventory details through the real adapter, preserving pur
 });
 
 
-it("allows members to delete an inventory item", async () => {
-    await assertSucceeds(deleteDoc(doc(env.authenticatedContext("alex").firestore(), path)));
-    expect((await getDoc(doc(env.authenticatedContext("alex").firestore(), path))).exists()).toBe(false);
+it.each([true, false])("allows members to delete an inventory item through the adapter (onList: %s)", async onList => {
+    await withData(async (data, db) => {
+        await updateDoc(doc(db, path), { onList });
+        await assertSucceeds(data.deleteItem("h1", "milk"));
+        expect((await getDoc(doc(db, path))).exists()).toBe(false);
+    });
 });
 
 it.each([null, "stranger", "other"])("denies inventory deletion for outsider %s", async uid => {

@@ -14,7 +14,7 @@ function fixture() {
     ];
     return s;
 }
-it("filters before walking order, grouping, next-up count and map highlight, without any writes", () => {
+it("filters before walking order, grouping, next-up count and map highlight, without any writes", async () => {
     const s = fixture();
     const before = structuredClone(s.households.get("h1")!.items);
     const purchase = vi.spyOn(s.data, "recordPurchase");
@@ -27,6 +27,7 @@ it("filters before walking order, grouping, next-up count and map highlight, wit
     expect(screen.queryByRole("heading", { name: "Bakery" })).toBeNull();
     expect(screen.getByRole("region", { name: "Next up" })).toHaveTextContent("Next up · 1 of 2MilkDairy");
     expect(screen.getByText("2 items for other chains are not shown.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Store map" }));
     const map = screen.getByRole("img", { name: "Map of Costco Kirkland" });
     expect(map.querySelector('[data-zone="z-dairy"] rect')).toHaveAttribute("stroke", "var(--trinket)");
     expect(map.querySelector('[data-zone="z-bakery"] rect')).toHaveAttribute("stroke", "var(--zone-edge)");

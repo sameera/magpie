@@ -197,6 +197,12 @@ export class FakeServices implements Services {
                 });
                 this.itemsChanged(householdId);
             }),
+        deleteItem: (householdId, itemId) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.filter(item => item.id !== itemId);
+                this.itemsChanged(householdId);
+            }),
         setOnList: (householdId, itemId, onList) =>
             this.save(() => {
                 const household = this.household(householdId);

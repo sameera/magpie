@@ -1,4 +1,4 @@
-import { deleteField, increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
+import { deleteDoc, deleteField, increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
 import { categoryConverter, itemConverter, newItem, priceConverter, purchaseConverter, storeConverter, type Category, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import { loggedOperation, logError } from "./errors";
@@ -45,6 +45,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             run("updateItem", { householdId, itemId: id }, () => updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField() })),
         updateInventoryItem: (householdId, { id, name, quantityNeeded, note, category, preferredChain, ...corrections }) =>
             run("updateInventoryItem", { householdId, itemId: id }, () => updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField(), ...corrections })),
+        deleteItem: (householdId, itemId) =>
+            run("deleteItem", { householdId, itemId }, () => deleteDoc(doc(items(householdId), itemId))),
         setOnList: (householdId, itemId, onList) =>
             run("setOnList", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { onList })),
         setCategory: (householdId, itemId, category) =>

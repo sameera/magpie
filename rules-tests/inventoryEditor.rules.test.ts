@@ -1,6 +1,6 @@
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { deleteApp, initializeApp } from "firebase/app";
-import { doc, getDoc, setDoc, updateDoc, type Firestore } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc, type Firestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { readFileSync } from "node:fs";
 import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
@@ -86,4 +86,16 @@ it("saves and reloads Inventory details through the real adapter, preserving pur
         await assertSucceeds(data.updateInventoryItem("h1", { ...fields, note: "Keep purchase time" }));
         expect((await getDoc(doc(db, path))).data()).toMatchObject({ lastPurchasedAt: bought.lastPurchasedAt, purchaseCount: 1, quantityRemaining: 2 });
     });
+});
+
+
+it("allows members to delete an inventory item", async () => {
+    await assertSucceeds(deleteDoc(doc(env.authenticatedContext("alex").firestore(), path)));
+    expect((await getDoc(doc(env.authenticatedContext("alex").firestore(), path))).exists()).toBe(false);
+});
+
+it.each([null, "stranger", "other"])("denies inventory deletion for outsider %s", async uid => {
+    const db = (uid === null ? env.unauthenticatedContext() : env.authenticatedContext(uid)).firestore();
+    await assertFails(deleteDoc(doc(db, path)));
+    expect((await getDoc(doc(env.authenticatedContext("alex").firestore(), path))).exists()).toBe(true);
 });

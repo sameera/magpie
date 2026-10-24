@@ -164,6 +164,7 @@ describe("zone gestures in the editor", () => {
     });
     it("keeps the in-store drawing read-only", async () => {
         renderApp(["/shop/s1"]);
+        await userEvent.click(screen.getByRole("button", { name: "Store map" }));
         await screen.findByRole("img", { name: /map/i });
         expect(screen.queryByRole("group", { name: "Edit zones" })).toBeNull();
         expect(screen.queryByRole("button", { name: "Move Bakery" })).toBeNull();

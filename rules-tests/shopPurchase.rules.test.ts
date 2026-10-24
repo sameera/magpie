@@ -108,3 +108,44 @@ describe("Shop purchase undo authorization", () => {
         await assertFails(updateDoc(doc(db, path), { onList: true, quantityRemaining: 3, purchaseCount: 0 }));
     });
 });
+
+// Side sheet relisting uses the existing addItems adapter and changes only
+// onList/quantityNeeded. No purchase or inventory reversal is authorized here.
+describe("Shop side sheet relisting", () => {
+    beforeEach(async () => {
+        await env.withSecurityRulesDisabled(async ctx => {
+            await setDoc(doc(ctx.firestore(), path), {
+                ...listed, onList: false, quantityNeeded: 7, quantityRemaining: 5,
+                purchaseCount: 1, lastPurchaseId: "p1", lastPurchasedAt: new Date("2026-10-01"),
+            });
+        });
+    });
+    it.each(["alex", "sam"])("lets member %s relist the captured quantity without changing stock or history", async uid => {
+        const app = initializeApp({ projectId: "demo-magpie-shop" }, `relist-${uid}`);
+        try {
+            const db = env.authenticatedContext(uid).firestore() as unknown as Firestore;
+            const data = createFirestoreData(db, getStorage(app));
+            const before = (await getDoc(doc(db, path))).data()!;
+            await assertSucceeds(data.addItems("h1", [], [{ id: "milk", quantityNeeded: 2 }]));
+            expect((await getDoc(doc(db, path))).data()).toEqual({ ...before, onList: true, quantityNeeded: 2 });
+            // Unavailable items are already onList, but must also recover their captured quantity.
+            await assertSucceeds(data.addItems("h1", [], [{ id: "milk", quantityNeeded: 3 }]));
+            expect((await getDoc(doc(db, path))).data()).toEqual({ ...before, onList: true, quantityNeeded: 3 });
+        } finally { await deleteApp(app); }
+    });
+    it.each([null, "stranger", "other"])("denies relisting to outsider %s", async uid => {
+        const app = initializeApp({ projectId: "demo-magpie-shop" }, `relist-${uid}`);
+        try {
+            const db = (uid === null ? env.unauthenticatedContext() : env.authenticatedContext(uid)).firestore() as unknown as Firestore;
+            await assertFails(createFirestoreData(db, getStorage(app)).addItems("h1", [], [{ id: "milk", quantityNeeded: 2 }]));
+        } finally { await deleteApp(app); }
+    });
+    it.each([0, -1, 1.5, 1000])("denies invalid relisted quantity %s", async quantityNeeded => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertFails(updateDoc(doc(db, path), { onList: true, quantityNeeded }));
+    });
+    it("denies changing inventory while relisting", async () => {
+        const db = env.authenticatedContext("alex").firestore();
+        await assertFails(updateDoc(doc(db, path), { onList: true, quantityNeeded: 2, quantityRemaining: 3 }));
+    });
+});

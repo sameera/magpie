@@ -49,6 +49,8 @@ export interface DataService {
     // quantityNeeded and does not change when an item is relisted.
     // Does not change purchase history, purchase count, stock or photo.
     updateInventoryItem(householdId: string, item: InventoryItemFields): Promise<void>;
+    // Deletes only the item document, preserving purchase and price history.
+    deleteItem(householdId: string, itemId: string): Promise<void>;
     // Takes the item off the list, or puts it back, changing nothing else: not its
     // list quantity, inventory or any other detail. Resolves once the server
     // accepts the write; rejects if it is refused. Callers do not wait for it.

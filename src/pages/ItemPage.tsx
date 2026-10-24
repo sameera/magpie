@@ -1,4 +1,4 @@
-import { Camera } from "lucide-react";
+import { Camera, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useBlocker, useLocation, useParams } from "react-router";
 import { useUp } from "../app/history";
@@ -10,6 +10,7 @@ import { useCategories, useFileUrl, useItem, usePrices, useStores } from "../dat
 import { PreferredChainField } from "../components/PreferredChainField";
 import { categoryName } from "../data/categoryGroups";
 import { newItem, parseQuantity, zoneKinds, type Item, type InventoryItemFields, type Price, type ZoneKind } from "../data/model";
+import { DeleteItemSheet } from "./DeleteItemSheet";
 import { PageHeader } from "./PageHeader";
 
 export const QUANTITY_ERROR: string = "Quantity must be a whole number from 1 to 999.";
@@ -49,22 +50,34 @@ function ExistingItem({ itemId, inventory }: { itemId: string; inventory: boolea
     const { data } = useServices();
     const item = useItem(itemId);
     const parent = useItemParent();
-    if (item.status === "missing") {
+    // Keep the editor mounted while Firestore emits its optimistic local deletion.
+    const [deleting, setDeleting] = useState(false);
+    const lastItem = useRef<Item | null>(null);
+    if (item.status === "ready") lastItem.current = item.value;
+    const value = item.status === "ready" ? item.value : deleting ? lastItem.current : null;
+    if (item.status === "missing" && !value) {
         return <NotFound what="item" parent={parent.path} parentLabel={parent.label} />;
     }
-    if (item.status === "loading") {
+    if (!value) {
         return <p className="text-body text-ink-muted">Loading the item…</p>;
     }
     return (
         <ItemDetails
-            key={item.value.id}
-            title={item.value.name}
-            item={item.value}
+            key={value.id}
+            title={value.name}
+            item={value}
             existing
+            remove={inventory ? () => {
+                setDeleting(true);
+                return data.deleteItem(householdId, itemId).catch(error => {
+                    setDeleting(false);
+                    throw error;
+                });
+            } : undefined}
             inventory={inventory}
             save={(fields) => inventory ? data.updateInventoryItem(householdId, fields) : data.updateItem(householdId, fields)}
         >
-            <Prices itemId={item.value.id} />
+            <Prices itemId={value.id} />
         </ItemDetails>
     );
 }
@@ -110,6 +123,7 @@ function ItemDetails({
     title,
     item,
     save,
+    remove,
     existing = false,
     inventory = false,
     children,
@@ -117,6 +131,7 @@ function ItemDetails({
     title: string;
     item: Item;
     save: (fields: InventoryItemFields) => Promise<void>;
+    remove?: () => Promise<void>;
     existing?: boolean;
     inventory?: boolean;
     children?: ReactNode;
@@ -129,6 +144,9 @@ function ItemDetails({
     const isKnown = (category: string): boolean => zoneKinds.includes(category as ZoneKind) || customCategories.some(({ id }) => id === category);
     const savedCategory = (): string | null => (categories.status !== "ready" || isKnown(draft.category) ? draft.category || null : null);
     const [saving, setSaving] = useState(false);
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [deletePending, setDeletePending] = useState(false);
     const [error, setError] = useState("");
     const parent = useItemParent();
     const up = useUp(parent.path);
@@ -145,7 +163,7 @@ function ItemDetails({
         }
     }, [blocker]);
     const done = () => {
-        if (saving) return;
+        if (saving || deletePending) return;
         if (existing && !dirty) {
             up();
             return;
@@ -193,6 +211,24 @@ function ItemDetails({
             setError(`The item ${result === "refused" ? REFUSED_MESSAGE : UNCONFIRMED_MESSAGE}`);
         });
     };
+    const deleteItem = () => {
+        if (!remove || saving || deleting) return;
+        setConfirmDelete(false);
+        setDeleting(true);
+        setDeletePending(true);
+        setError("");
+        const write = remove();
+        // A delayed acknowledgement can arrive after the timeout.
+        void write.then(() => { finished.current = true; up(); }, () => undefined);
+        void confirmSave(write).then(result => {
+            if (result === "saved") return;
+            setDeleting(false);
+            if (result === "refused") setDeletePending(false);
+            setError(result === "refused"
+                ? "The item could not be deleted. Try again."
+                : "Deletion is not confirmed yet. It will be sent when the connection returns.");
+        });
+    };
     const photoUrl = useFileUrl(item.photoPath);
 
     return (
@@ -204,7 +240,7 @@ function ItemDetails({
                     <button
                         type="button"
                         onClick={done}
-                        disabled={saving}
+                        disabled={saving || deletePending}
                         className="inline-flex h-tap min-w-tap items-center justify-center gap-2 rounded-md px-2 text-button text-sheen-ink"
                     >
                         {saving ? "Saving…" : "Done"}
@@ -216,7 +252,7 @@ function ItemDetails({
                     {error}
                 </p>
             )}
-            <section aria-label="Details" className="mb-6 flex flex-col gap-4">
+            <fieldset disabled={saving || deletePending} aria-label="Details" className="mb-6 flex min-w-0 flex-col gap-4">
                 <div className="flex size-24 items-center justify-center overflow-hidden rounded-md bg-surface-sunken text-ink-muted">
                     {photoUrl ? (
                         <img src={photoUrl} alt={`Photo of ${item.name}`} className="size-full object-cover" />
@@ -282,8 +318,14 @@ function ItemDetails({
                             value={draft.lastPurchaseDate} onChange={e => setDraft({ ...draft, lastPurchaseDate: e.target.value })} />
                     </Field>
                 </>}
-            </section>
+            </fieldset>
             {children}
+            {remove && <button type="button" disabled={saving || deleting}
+                className="mt-6 inline-flex h-tap items-center justify-center gap-2 rounded-md border-2 border-danger px-3.5 text-button text-danger"
+                onClick={() => setConfirmDelete(true)}>
+                <Trash2 aria-hidden="true" />{deleting ? "Deleting…" : "Delete item"}
+            </button>}
+            {confirmDelete && <DeleteItemSheet name={item.name} onConfirm={deleteItem} onCancel={() => setConfirmDelete(false)} />}
         </>
     );
 }

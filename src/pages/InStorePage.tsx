@@ -1,4 +1,4 @@
-import { Check, MapPin } from "lucide-react";
+import { Check, ChevronDown, MapPin } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useHouseholdId, useServices } from "../app/session";
@@ -28,15 +28,13 @@ export function InStorePage() {
     const close = useCallback(() => setSidebar(null), []);
     return (
         <>
-            <InStoreBody />
-            {sidebar === "purchased" && <PurchasedSidebar storeId={storeId} onClose={close} />}
-            {sidebar === "unavailable" && <UnavailableSidebar storeId={storeId} onClose={close} />}
+            <InStoreBody sidebar={sidebar} onCloseSidebar={close} />
             <InStoreMenu sidebar={sidebar} onSidebar={setSidebar} />
         </>
     );
 }
 
-function InStoreBody() {
+function InStoreBody({ sidebar, onCloseSidebar }: { sidebar: Sidebar | null; onCloseSidebar: () => void }) {
     const { storeId = "" } = useParams();
     const store = useStore(storeId);
     const list = useList();
@@ -46,12 +44,14 @@ function InStoreBody() {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const [refusal, setRefusal] = useState("");
+    const [mapExpanded, setMapExpanded] = useState(false);
     const [confirmation, setConfirmation] = useState<{ item: Item; id: string; action: "purchase" | "unavailable" } | null>(null);
     const session = useSession();
     const unavailable = new Set(session.storeId === storeId ? session.unavailable.map((entry) => entry.itemId) : []);
     useEffect(() => {
         enterSession(storeId);
         setConfirmation(null);
+        setMapExpanded(false);
     }, [storeId]);
     useEffect(() => {
         if (!confirmation) return;
@@ -100,6 +100,24 @@ function InStoreBody() {
         setConfirmation({ item, id: crypto.randomUUID(), action: "unavailable" });
     };
 
+    const readd = (itemId: string, name: string, quantity: number) => {
+        const before = getSession();
+        const purchases = before.purchased.filter(entry => entry.itemId === itemId);
+        const missing = before.unavailable.find(entry => entry.itemId === itemId);
+        setConfirmation(current => current?.item.id === itemId ? null : current);
+        setRefusal("");
+        purchases.forEach(entry => unlogPurchase(entry.id));
+        unmarkUnavailable(itemId);
+        // Reuse the relist write: it preserves stock and purchase history.
+        data.addItems(householdId, [], [{ id: itemId, quantityNeeded: quantity }]).catch((error: unknown) => {
+            console.error("Shop relist failed", error);
+            if (getSession().storeId !== before.storeId) return;
+            purchases.forEach(restorePurchase);
+            if (missing) logUnavailable(missing);
+            setRefusal(`${name} could not be added back to the list. Try again.`);
+        });
+    };
+
     const undoAction = () => {
         if (!confirmation) return;
         const { item, id, action } = confirmation;
@@ -125,6 +143,8 @@ function InStoreBody() {
 
     return (
         <>
+            {sidebar === "purchased" && <PurchasedSidebar storeId={storeId} onClose={onCloseSidebar} onReadd={readd} />}
+            {sidebar === "unavailable" && <UnavailableSidebar storeId={storeId} onClose={onCloseSidebar} onReadd={readd} />}
             <PageHeader
                 title={store.value.name}
                 after={
@@ -135,7 +155,21 @@ function InStoreBody() {
             />
             <section className="mb-6">
                 {store.value.map ? (
-                    <StoreMap map={store.value.map} label={`Map of ${store.value.name}`} nextZoneId={nextZone?.id} />
+                    <div className="rounded-lg bg-surface">
+                        <button
+                            type="button"
+                            aria-expanded={mapExpanded}
+                            aria-controls="store-map-pane"
+                            onClick={() => setMapExpanded(expanded => !expanded)}
+                            className="flex min-h-tap-cart w-full items-center justify-between rounded-lg px-4 text-button text-sheen-ink"
+                        >
+                            Store map
+                            <ChevronDown aria-hidden="true" className={`size-6 ${mapExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                        <div id="store-map-pane" hidden={!mapExpanded}>
+                            <StoreMap map={store.value.map} label={`Map of ${store.value.name}`} nextZoneId={nextZone?.id} />
+                        </div>
+                    </div>
                 ) : (
                     <p className="rounded-lg bg-surface-sunken p-4 text-body text-ink-muted">This store has no map yet.</p>
                 )}

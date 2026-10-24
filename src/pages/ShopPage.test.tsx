@@ -17,12 +17,13 @@ describe("Shop page", () => {
         expect(screen.getByRole("button", { name: /Costco Kirkland/ })).toBeInTheDocument();
     });
 
-    it("shows the chosen store's map, the list and the next item to pick", async () => {
+    it("starts with the chosen store's map collapsed alongside the list and next item", async () => {
         const user = userEvent.setup();
         const { router } = renderApp(["/shop"]);
         await user.click(screen.getByRole("button", { name: /Costco Kirkland/ }));
         expect(router.state.location.pathname).toBe("/shop/s1");
-        expect(screen.getByRole("img", { name: "Map of Costco Kirkland" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Store map" })).toHaveAttribute("aria-expanded", "false");
+        expect(screen.queryByRole("img", { name: "Map of Costco Kirkland" })).toBeNull();
         const next = screen.getByRole("region", { name: "Next up" });
         expect(within(next).getByText("Bread")).toBeInTheDocument();
         expect(within(next).getByText("Bakery")).toBeInTheDocument();
@@ -31,6 +32,23 @@ describe("Shop page", () => {
         expect(within(list[0]).getByText("Bakery")).toBeInTheDocument();
         expect(within(list[1]).getByText("x2")).toBeInTheDocument();
         expect(within(list[1]).getByText("Dairy")).toBeInTheDocument();
+    });
+
+    it("opens and closes the store map with keyboard and pointer controls", async () => {
+        const user = userEvent.setup();
+        renderApp(["/shop/s1"]);
+        const toggle = screen.getByRole("button", { name: "Store map" });
+        toggle.focus();
+        await user.keyboard("{Enter}");
+        expect(toggle).toHaveAttribute("aria-expanded", "true");
+        const map = screen.getByRole("img", { name: "Map of Costco Kirkland" });
+        expect(map).toBeVisible();
+        expect(document.getElementById(toggle.getAttribute("aria-controls")!)).toContainElement(map);
+        await user.click(toggle);
+        expect(toggle).toHaveAttribute("aria-expanded", "false");
+        expect(map).not.toBeVisible();
+        expect(screen.getByRole("region", { name: "Next up" })).toBeVisible();
+        expect(screen.getByRole("list", { name: "List in walking order" })).toBeVisible();
     });
 
     it("reopens the in-store view from a saved link", () => {

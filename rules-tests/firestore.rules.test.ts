@@ -166,8 +166,8 @@ describe("saving items", () => {
         await assertSucceeds(getDocs(query(collection(db, "households/h1/items"), where("onList", "==", true))));
     });
 
-    it("refuses deletes from everyone", async () => {
-        for (const ctx of [env.authenticatedContext("alex"), ...others()]) {
+    it("refuses deletes from outsiders", async () => {
+        for (const ctx of others()) {
             await assertFails(deleteDoc(doc(ctx.firestore(), "households/h1/items/i1")));
         }
     });
@@ -436,7 +436,6 @@ describe("inventory shape and household boundary", () => {
             await assertFails(setDoc(doc(db, "households/h1/items/new"), partial));
             await assertFails(setDoc(doc(db, "households/h1/items/i1"), partial));
         }
-        await assertFails(deleteDoc(doc(db, "households/h1/items/i1")));
     });
 });
 
@@ -601,8 +600,8 @@ describe("removing items from the list", () => {
         if ((await stored("households/h2/items/i9")).onList !== true) throw new Error("A refused removal changed data");
     });
 
-    it("refuses deleting the item, for a member and for everyone else", async () => {
-        for (const ctx of [env.authenticatedContext("alex"), env.authenticatedContext("olga"), env.unauthenticatedContext()]) {
+    it("refuses deleting the item for outsiders", async () => {
+        for (const ctx of [env.authenticatedContext("stranger"), env.authenticatedContext("olga"), env.unauthenticatedContext()]) {
             await assertFails(deleteDoc(doc(ctx.firestore(), path)));
         }
         if (!(await stored(path))) throw new Error("A refused delete removed the item");
@@ -763,9 +762,8 @@ describe("recording a purchase", () => {
         if ((await stored("households/h2/items/i9")).onList !== true) throw new Error("A refused purchase changed data");
     });
 
-    it("still refuses deleting the item and writing memberships", async () => {
+    it("still refuses writing memberships", async () => {
         const db = env.authenticatedContext("alex").firestore();
-        await assertFails(deleteDoc(doc(db, path)));
         await assertFails(setDoc(doc(db, "members/alex"), { householdId: "h1" }));
     });
 

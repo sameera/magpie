@@ -33,7 +33,7 @@ it("edits the typical quantity and note together without changing the list quant
     await user.type(screen.getByLabelText("Note"), "Weekly");
     await user.click(screen.getByRole("button", { name: "Done" }));
     expect(services.households.get("h1")!.items[0]).toMatchObject({ typicalPurchaseQuantity: 4, quantityNeeded: 2, note: "Weekly" });
-    await user.click(await screen.findByRole("link", { name: "Milk" }));
+    await user.click(await screen.findByRole("link", { name: /Milk/ }));
     expect(screen.getByLabelText("Typical purchase quantity")).toHaveValue("4");
     expect(router.state.location.pathname).toBe("/inventory/items/i1");
 });

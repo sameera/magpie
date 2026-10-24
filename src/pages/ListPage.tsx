@@ -7,10 +7,11 @@ import { categoryName, listGroups } from "../data/categoryGroups";
 import { useBoughtItems, useList } from "../data/hooks";
 import { suggestedItems } from "../data/suggestions";
 import { readItemNow } from "../data/itemNow";
-import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, quantityLabel, type Item } from "../data/model";
+import { MAX_QUANTITY, MIN_QUANTITY, parseQuantity, type Item } from "../data/model";
 import { AddItemsDrawer } from "./AddItemsDrawer";
 import { PageHeader } from "./PageHeader";
-import { PreferredChainBadge } from "../components/PreferredChainBadge";
+import { PreferredChainText } from "../components/PreferredChainText";
+import { QuantityBadge } from "../components/QuantityBadge";
 import { CategoryDragRow, type CategoryRowActions } from "../components/CategoryDragRow";
 import { useCategoryDrag } from "../components/CategoryDrag";
 
@@ -215,12 +216,13 @@ function ListRow({
                 <span className="flex size-thumb shrink-0 items-center justify-center rounded-sm bg-surface-sunken text-ink-muted">
                     <Camera aria-hidden="true" />
                 </span>
-                <span className="flex min-w-0 flex-col">
-                    <span className="text-item">{item.name}</span>
-                    <span className="text-caption text-ink-muted">
-                        {[quantityLabel(item), item.note].filter(Boolean).join(" · ")}
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="flex flex-wrap items-center gap-2">
+                        <span className="min-w-0 break-words text-item">{item.name}</span>
+                        <QuantityBadge quantity={item.quantityNeeded} />
                     </span>
-                    <PreferredChainBadge chain={item.preferredChain} />
+                    <PreferredChainText chain={item.preferredChain} />
+                    {item.note && <span className="break-words text-caption text-ink-muted">{item.note}</span>}
                 </span>
             </Link>
             <button

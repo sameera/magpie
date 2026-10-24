@@ -1,30 +1,28 @@
 ---
 title: Inventory Page
 aliases: [inventory, inventory view, all items, household inventory page]
-touches: [page-frames, page-paths, household-data-reads, item-page, back-navigation, category-drop-tray, item-category, list-category-groups]
-last_updated_by: "#90"
+touches: [page-frames, page-paths, household-data-reads, item-page, back-navigation, category-drop-tray, item-category, list-category-groups, custom-categories]
+last_updated_by: "#115"
 status: active
 verification: verified
 ---
 
 # Inventory Page
 
-The Inventory page lists every item the household has recorded, under category headings, whether or not the item is on the list. The one change it makes is an item's category. Choosing an item opens its Item page, and going back returns to the Inventory page.
+The Inventory page lists every item the household has recorded, under category headings, whether or not the item is on the list. It changes an item's category, and it adds custom categories. Choosing an item opens its Item page, and going back returns to the Inventory page.
 
 ## How It Works
 
 The page is a framed page. A member opens it from the menu entry labelled "More", which holds a link to Inventory beside the link to Stores. The menu closes, and More is marked as the current area.
 
-The page reads every item in the household and shows the names under the same category headings as the List page. Headings follow the order produce, dairy, bakery, meat, frozen, pantry, then "No category". An item with no category goes under "No category". A category with no items gets no heading. Inside a heading, names are in alphabetical order. The page shows a loading message while the read is loading. It shows "No items yet." when the inventory is empty. It shows a separate message when the read is missing, so an unreadable inventory is never shown as empty.
+The page reads every item in the household and shows the names under category headings. Headings follow the order produce, dairy, bakery, meat, frozen, pantry, then the household's custom categories in alphabetical order, then "No category". An item with no category goes under "No category". A built-in category with no items gets no heading. A custom category always gets a heading, and one with no items shows 0 items. Inside a heading, names are in alphabetical order. The page shows a loading message while the items or the categories are loading. It shows "No items yet." when the inventory is empty. It shows a separate message when either read is missing, so an unreadable inventory is never shown as empty.
 
-
-Each row has a drag handle and drops as described in category-drop-tray. The item moves under its new heading at once, and a server refusal returns it.
 
 Each name is a link to that item's Item page. The link also tells the Item page to treat Inventory as its parent. The Item page's back control and Done then return to Inventory, and so does the back action. An item opened from anywhere else keeps List as its parent.
 
 ## Key Invariants
 
-1. Every item in the household shows on the page, on the list or not, under exactly one heading, in the List page's category order, and alphabetical by name inside a heading.
+1. Every item in the household shows on the page, on the list or not, under exactly one heading, in the heading order above, and alphabetical by name inside a heading.
 2. Opening the page changes nothing in the household's data. Only a category drop changes an item, and it changes only the category.
 3. An empty inventory shows "No items yet.", and an inventory still loading or unreadable never shows that message.
 4. The menu opens the Inventory page from every framed page, and More is marked as the current area.
@@ -40,7 +38,8 @@ Each name is a link to that item's Item page. The link also tells the Item page 
 - [item-category](item-category.md) — a drop sets the category that places the item in a store.
 - [item-page](item-page.md) — each name opens that item's Item page, which treats Inventory as its parent for that visit.
 - [back-navigation](back-navigation.md) — the Item page's up control returns to Inventory when the item was opened from it.
-- [list-category-groups](list-category-groups.md) — the page uses the same headings and heading order as the List page.
+- [list-category-groups](list-category-groups.md) — the page uses the List page's headings and heading order, and also shows empty custom headings.
+- [custom-categories](custom-categories.md) — the page holds the action that adds a custom category and shows each one as a heading.
 
 ## Decision Log
 
@@ -55,3 +54,7 @@ The Inventory page was one flat column, so a member could not find an item by it
 ### 2026-10-19 — #90 — Inventory items can change category by a drag or the keyboard
 
 The Inventory page showed category headings but could not change a category, so a member opened each Item page to fix one. It now shows the shared handle and drop tray. The row, the tray and the category-only write are shared with the List page. The write is the existing category-only item update, so the same household membership rule covers items that are not on the list, and no rule changed. The page's summary and first invariant now match the headings it already showed. Names still open the Item page. The refuted alternative was a write interface or rule branch specific to Inventory. It lost because Inventory changes the same item document as List and needs no new permission.
+
+### 2026-10-24 — #115 — Inventory adds custom categories and always shows their headings
+
+A member building the inventory could not add a category beyond the six built-in ones. The page now holds the action that adds one, described in custom-categories. A custom category always gets a heading, and one with no items shows 0 items, so a member sees a new category work before any item is in it. Built-in categories and "No category" with no items still get no heading, because six empty headings would crowd a short inventory. Custom headings follow the built-in ones in alphabetical order, so a member needs no stored position. The page now waits for both the items and the categories, so "No items yet." never shows on a partial read. The sentence about the drag handle and the refusal return moved out of this page because its facts already live in category-drop-tray, and the page had no room under the word cap. The page no longer claims to show exactly the List page's headings. The refuted alternative was to order custom categories by creation time. It lost because it needs a stored timestamp and gives an order a member cannot predict once there are several.

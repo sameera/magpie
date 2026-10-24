@@ -12,3 +12,8 @@
 - **Choice:** InStoreSidebar holds the dialog, scrim, Escape and slide; PurchasedSidebar fills it.
 - **Why:** #126 reuses the shell for the unavailable list.
 - **Refuted alternative:** One component per sidebar with duplicated chrome.
+
+## 2026-10-24 — Unavailable entries stored oldest-first, shown newest-first
+- **Choice:** Session keeps marks in order made; the sidebar reverses them for display.
+- **Why:** Matches the purchased list's newest-first order without a second sort key.
+- **Refuted alternative:** none

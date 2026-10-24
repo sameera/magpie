@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-    enterSession, getSession, logPurchase, purchasedLines, endSession, restorePurchase, unlogPurchase,
+    enterSession, getSession, logPurchase, markUnavailable, purchasedLines, endSession, restorePurchase, unlogPurchase,
+    unmarkUnavailable,
 } from "./shoppingSession";
 
 const milk = { id: "p1", itemId: "i1", name: "Milk", amount: 2 };
@@ -52,5 +53,27 @@ describe("shopping session", () => {
             { itemId: "i1", name: "Milk", amount: 5 },
             { itemId: "i2", name: "Bread", amount: 1 },
         ]);
+    });
+
+    it("keeps the unavailable list with the session and empties it with the session", () => {
+        enterSession("s1");
+        markUnavailable({ itemId: "i1", name: "Milk", quantity: 2 });
+        enterSession("s1");
+        expect(getSession().unavailable).toEqual([{ itemId: "i1", name: "Milk", quantity: 2 }]);
+        unmarkUnavailable("i1");
+        expect(getSession().unavailable).toEqual([]);
+        markUnavailable({ itemId: "i1", name: "Milk", quantity: 2 });
+        enterSession("s2");
+        expect(getSession().unavailable).toEqual([]);
+        markUnavailable({ itemId: "i2", name: "Bread", quantity: 1 });
+        endSession();
+        expect(getSession().unavailable).toEqual([]);
+    });
+
+    it("keeps marks in the order made", () => {
+        enterSession("s1");
+        markUnavailable({ itemId: "i1", name: "Milk", quantity: 2 });
+        markUnavailable({ itemId: "i2", name: "Bread", quantity: 1 });
+        expect(getSession().unavailable.map((entry) => entry.itemId)).toEqual(["i1", "i2"]);
     });
 });

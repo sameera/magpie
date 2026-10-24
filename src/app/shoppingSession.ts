@@ -17,14 +17,22 @@ interface LoggedPurchase extends PurchaseEntry {
     seq: number;
 }
 
+// An item marked unavailable, with the name and quantity at that moment.
+export interface UnavailableEntry {
+    itemId: string;
+    name: string;
+    quantity: number;
+}
+
 export interface ShoppingSession {
     storeId: string | null;
     purchased: readonly LoggedPurchase[];
+    unavailable: readonly UnavailableEntry[];
 }
 
 // One visit to one store. Memory only: it survives leaving the In Store page,
 // and a reload, Change store or another store empties it.
-const EMPTY: ShoppingSession = { storeId: null, purchased: [] };
+const EMPTY: ShoppingSession = { storeId: null, purchased: [], unavailable: [] };
 let session: ShoppingSession = EMPTY;
 let nextSeq = 0;
 const listeners: Set<() => void> = new Set();
@@ -51,7 +59,7 @@ export function useSession(): ShoppingSession {
 // Continue the session for the same store; otherwise start an empty one.
 export function enterSession(storeId: string): void {
     if (session.storeId !== storeId) {
-        set({ storeId, purchased: [] });
+        set({ storeId, purchased: [], unavailable: [] });
     }
 }
 
@@ -69,6 +77,14 @@ export function logPurchase(entry: PurchaseEntry): LoggedPurchase {
 
 export function unlogPurchase(id: string): void {
     set({ ...session, purchased: session.purchased.filter((entry) => entry.id !== id) });
+}
+
+export function markUnavailable(entry: UnavailableEntry): void {
+    set({ ...session, unavailable: [...session.unavailable.filter((existing) => existing.itemId !== entry.itemId), entry] });
+}
+
+export function unmarkUnavailable(itemId: string): void {
+    set({ ...session, unavailable: session.unavailable.filter((entry) => entry.itemId !== itemId) });
 }
 
 // Put an entry back where it was, after a refused undo.

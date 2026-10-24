@@ -1,8 +1,8 @@
-import { ArrowLeft, ShoppingBasket } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowLeft, PackageX, ShoppingBasket } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useUp } from "../app/history";
 
-export type Sidebar = "purchased";
+export type Sidebar = "purchased" | "unavailable";
 
 interface InStoreMenuProps {
     sidebar: Sidebar | null;
@@ -15,14 +15,28 @@ const control = "flex h-full flex-1 flex-col items-center justify-center gap-1 t
 // height and safe-area padding as the navigation, so the toast sits above it.
 export function InStoreMenu({ sidebar, onSidebar }: InStoreMenuProps) {
     const up = useUp("/shop");
-    const purchasedButton = useRef<HTMLButtonElement>(null);
+    const buttons = useRef<Record<Sidebar, HTMLButtonElement | null>>({ purchased: null, unavailable: null });
     const opened = useRef<Sidebar | null>(null);
 
     // Closing a sidebar returns focus to the button that opened it.
     useEffect(() => {
-        if (sidebar === null && opened.current === "purchased") purchasedButton.current?.focus();
+        if (sidebar === null && opened.current) buttons.current[opened.current]?.focus();
         opened.current = sidebar;
     }, [sidebar]);
+
+    const toggle = (kind: Sidebar) => onSidebar(sidebar === kind ? null : kind);
+    const sidebarButton = (kind: Sidebar, label: string, icon: ReactNode) => (
+        <button
+            ref={(element) => { buttons.current[kind] = element; }}
+            type="button"
+            aria-expanded={sidebar === kind}
+            onClick={() => toggle(kind)}
+            className={`${control} ${sidebar === kind ? "text-ink" : "text-ink-muted"}`}
+        >
+            {icon}
+            {label}
+        </button>
+    );
 
     return (
         <nav
@@ -34,16 +48,8 @@ export function InStoreMenu({ sidebar, onSidebar }: InStoreMenuProps) {
                     <ArrowLeft aria-hidden="true" />
                     Back to Shop
                 </button>
-                <button
-                    ref={purchasedButton}
-                    type="button"
-                    aria-expanded={sidebar === "purchased"}
-                    onClick={() => onSidebar(sidebar === "purchased" ? null : "purchased")}
-                    className={`${control} ${sidebar === "purchased" ? "text-ink" : "text-ink-muted"}`}
-                >
-                    <ShoppingBasket aria-hidden="true" />
-                    Purchased
-                </button>
+                {sidebarButton("purchased", "Purchased", <ShoppingBasket aria-hidden="true" />)}
+                {sidebarButton("unavailable", "Unavailable", <PackageX aria-hidden="true" />)}
             </div>
         </nav>
     );

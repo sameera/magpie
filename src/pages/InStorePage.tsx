@@ -4,7 +4,10 @@ import { useNavigate, useParams } from "react-router";
 import { useHouseholdId, useServices } from "../app/session";
 import { readItemNow } from "../data/itemNow";
 import { setTripPath } from "../app/tripStore";
-import { enterSession, endSession, getSession, logPurchase, restorePurchase, unlogPurchase } from "../app/shoppingSession";
+import {
+    enterSession, endSession, getSession, logPurchase, markUnavailable as logUnavailable, restorePurchase, unlogPurchase,
+    unmarkUnavailable, useSession,
+} from "../app/shoppingSession";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useCategories, useList, useStore } from "../data/hooks";
@@ -14,6 +17,7 @@ import { walkingOrder, zoneOf, type Item } from "../data/model";
 import { QuantityBadge } from "../components/QuantityBadge";
 import { InStoreMenu, type Sidebar } from "./InStoreMenu";
 import { PurchasedSidebar } from "./PurchasedSidebar";
+import { UnavailableSidebar } from "./UnavailableSidebar";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
@@ -26,6 +30,7 @@ export function InStorePage() {
         <>
             <InStoreBody />
             {sidebar === "purchased" && <PurchasedSidebar storeId={storeId} onClose={close} />}
+            {sidebar === "unavailable" && <UnavailableSidebar storeId={storeId} onClose={close} />}
             <InStoreMenu sidebar={sidebar} onSidebar={setSidebar} />
         </>
     );
@@ -42,10 +47,10 @@ function InStoreBody() {
     const { data } = useServices();
     const [refusal, setRefusal] = useState("");
     const [confirmation, setConfirmation] = useState<{ item: Item; id: string; action: "purchase" | "unavailable" } | null>(null);
-    const [unavailable, setUnavailable] = useState<Set<string>>(() => new Set());
+    const session = useSession();
+    const unavailable = new Set(session.storeId === storeId ? session.unavailable.map((entry) => entry.itemId) : []);
     useEffect(() => {
         enterSession(storeId);
-        setUnavailable(new Set());
         setConfirmation(null);
     }, [storeId]);
     useEffect(() => {
@@ -91,7 +96,7 @@ function InStoreBody() {
 
     const markUnavailable = (item: Item) => {
         setRefusal("");
-        setUnavailable(current => new Set([...current, item.id]));
+        logUnavailable({ itemId: item.id, name: item.name, quantity: item.quantityNeeded });
         setConfirmation({ item, id: crypto.randomUUID(), action: "unavailable" });
     };
 
@@ -101,11 +106,7 @@ function InStoreBody() {
         setConfirmation(null);
         setRefusal("");
         if (action === "unavailable") {
-            setUnavailable(current => {
-                const next = new Set(current);
-                next.delete(item.id);
-                return next;
-            });
+            unmarkUnavailable(item.id);
             return;
         }
         const logged = getSession().purchased.find((entry) => entry.id === id);

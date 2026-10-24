@@ -23,6 +23,67 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Shop purchases", () => {
+    it("confirms a purchase without opening a dialog and undoes its inventory changes", async () => {
+        const services = new FakeServices();
+        stock(services).quantityRemaining = 3;
+        renderApp(["/shop/s1"], services);
+        swipe(row("Milk"));
+        expect(screen.getByRole("status")).toHaveTextContent("Milk purchased");
+        expect(screen.queryByRole("dialog")).toBeNull();
+        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
+        expect(within(list()).getByText("Milk")).toBeInTheDocument();
+        expect(stock(services)).toMatchObject({ onList: true, quantityRemaining: 3, purchaseCount: 0 });
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    });
+
+    it("restores earlier purchase metadata and preserves edits made after picking", async () => {
+        const services = new FakeServices();
+        const previousDate = new Date("2026-09-01");
+        Object.assign(stock(services), { purchaseCount: 4, lastPurchaseId: "earlier", lastPurchasedAt: previousDate });
+        renderApp(["/shop/s1"], services);
+        swipe(row("Milk"));
+        stock(services).note = "Changed by another shopper";
+        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
+        expect(stock(services)).toMatchObject({ purchaseCount: 4, lastPurchaseId: "earlier", lastPurchasedAt: previousDate, note: "Changed by another shopper" });
+    });
+
+    it("reports a refused undo", async () => {
+        const services = new FakeServices();
+        renderApp(["/shop/s1"], services);
+        swipe(row("Milk"));
+        services.saveBehavior = "refuse";
+        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be undone");
+        expect(stock(services).onList).toBe(false);
+    });
+
+    it("shows only the latest purchase and gives it a fresh twenty seconds", () => {
+        vi.useFakeTimers();
+        try {
+            renderApp(["/shop/s1"], new FakeServices());
+            swipe(row("Milk"));
+            act(() => vi.advanceTimersByTime(4000));
+            swipe(row("Bread"));
+            act(() => vi.advanceTimersByTime(5000));
+            expect(screen.getByRole("status")).toHaveTextContent("Bread purchased");
+            act(() => vi.advanceTimersByTime(5000));
+            expect(screen.getByRole("status")).toHaveTextContent("Bread purchased");
+            act(() => vi.advanceTimersByTime(9999));
+            expect(screen.getByRole("status")).toHaveTextContent("Bread purchased");
+            act(() => vi.advanceTimersByTime(1));
+            expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+        } finally { vi.useRealTimers(); }
+    });
+
+    it("offers Undo immediately offline and restores stock while writes remain pending", () => {
+        const services = new FakeServices();
+        services.saveBehavior = "hang";
+        renderApp(["/shop/s2"], services);
+        fireEvent.click(screen.getByRole("checkbox", { name: "Pick Milk" }));
+        fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+        expect(stock(services)).toMatchObject({ onList: true, quantityRemaining: 0, purchaseCount: 0 });
+    });
+
     it("buys the listed quantity on a right swipe and retains it in Inventory", async () => {
         const services = new FakeServices();
         stock(services).quantityRemaining = 3;
@@ -86,6 +147,7 @@ describe("Shop purchases", () => {
         swipe(row("Milk"));
         expect(await screen.findByRole("alert")).toHaveTextContent("Milk could not be recorded as purchased. It is still on the list.");
         expect(stock(services)).toMatchObject({ onList: true, quantityRemaining: 0 });
+        expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
         services.saveBehavior = "accept";
         swipe(row("Milk"));
         expect(stock(services).quantityRemaining).toBe(2);

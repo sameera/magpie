@@ -104,12 +104,15 @@ export const categoryConverter: FirestoreDataConverter<Category> = {
     fromFirestore: (snap: QueryDocumentSnapshot) => ({ id: snap.id, name: String(snap.get("name") ?? "") }),
 };
 
-// households/{householdId}/purchases/{purchaseId}: immutable purchase history.
+// households/{householdId}/purchases/{purchaseId}: purchase history; undo marks an entry voided.
 export interface Purchase {
     id: string;
     itemId: string;
     amount: number;
     purchasedAt: Date;
+    previousLastPurchaseId?: string | null;
+    previousLastPurchasedAt?: Date | null;
+    voided?: boolean;
 }
 
 export const purchaseConverter: FirestoreDataConverter<Purchase> = {

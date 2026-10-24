@@ -64,7 +64,10 @@ export interface DataService {
     // Resolves once the server accepts the write; rejects if it is refused,
     // including a second purchase of an item already off the list. Callers do not
     // wait for it.
-    recordPurchase(householdId: string, itemId: string, amount: number): Promise<void>;
+    recordPurchase(householdId: string, itemId: string, amount: number, undo?: { id: string; previous: Item }): Promise<void>;
+    // Atomically voids this purchase and restores its previous totals and listing.
+    // Rules require the matching, latest purchase; other members' edits are kept.
+    undoPurchase(householdId: string, previous: Item, purchaseId: string): Promise<void>;
     // Writes the custom category under its key, so saving again is the same write.
     // The caller has checked the name. Resolves once the server accepts the write;
     // rejects if it is refused. Callers do not wait for it.

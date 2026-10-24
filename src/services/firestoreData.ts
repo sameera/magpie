@@ -49,16 +49,31 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             run("setOnList", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { onList })),
         setCategory: (householdId, itemId, category) =>
             run("setCategory", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { category })),
-        recordPurchase: (householdId, itemId, amount) => run("recordPurchase", { householdId, itemId }, () => {
-            const entry = doc(collection(db, "households", householdId, "purchases").withConverter(purchaseConverter));
+        recordPurchase: (householdId, itemId, amount, undo) => run("recordPurchase", { householdId, itemId }, () => {
+            const entry = doc(collection(db, "households", householdId, "purchases").withConverter(purchaseConverter), ...(undo ? [undo.id] : []));
             const batch = writeBatch(db);
-            batch.set(entry, { id: entry.id, itemId, amount, purchasedAt: serverTimestamp() });
+            batch.set(entry, { id: entry.id, itemId, amount, purchasedAt: serverTimestamp(), ...(undo ? {
+                previousLastPurchaseId: undo.previous.lastPurchaseId ?? null,
+                previousLastPurchasedAt: undo.previous.lastPurchasedAt ?? null,
+            } : {}) });
             batch.update(doc(items(householdId), itemId), {
                 onList: false,
                 quantityRemaining: increment(amount),
                 purchaseCount: increment(1),
                 lastPurchasedAt: serverTimestamp(),
                 lastPurchaseId: entry.id,
+            });
+            return batch.commit();
+        }),
+        undoPurchase: (householdId, previous, purchaseId) => run("undoPurchase", { householdId, itemId: previous.id }, () => {
+            const batch = writeBatch(db);
+            batch.update(doc(collection(db, "households", householdId, "purchases").withConverter(purchaseConverter), purchaseId), { voided: true });
+            batch.update(doc(items(householdId), previous.id), {
+                onList: true,
+                quantityRemaining: increment(-previous.quantityNeeded),
+                purchaseCount: increment(-1),
+                lastPurchaseId: previous.lastPurchaseId ?? null,
+                lastPurchasedAt: previous.lastPurchasedAt ?? null,
             });
             return batch.commit();
         }),

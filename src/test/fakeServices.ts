@@ -210,7 +210,7 @@ export class FakeServices implements Services {
                 this.itemsChanged(householdId);
             }),
         // Like the rules, refuses a purchase of an item that is not on the list.
-        recordPurchase: (householdId, itemId, amount) => {
+        recordPurchase: (householdId, itemId, amount, undo) => {
             if (!this.household(householdId).items.some(existing => existing.id === itemId && existing.onList)) {
                 return Promise.reject(new Error("permission-denied"));
             }
@@ -219,8 +219,22 @@ export class FakeServices implements Services {
                 household.items = household.items.map(existing =>
                     existing.id === itemId ? {
                         ...existing, onList: false, quantityRemaining: existing.quantityRemaining + amount,
-                        purchaseCount: (existing.purchaseCount ?? 0) + 1, lastPurchasedAt: new Date(),
+                        purchaseCount: (existing.purchaseCount ?? 0) + 1, lastPurchasedAt: new Date(), lastPurchaseId: undo?.id ?? "purchase",
                     } : existing);
+                this.itemsChanged(householdId);
+            });
+        },
+        undoPurchase: (householdId, previous, purchaseId) => {
+            if (!this.household(householdId).items.some(item => item.id === previous.id && !item.onList && item.lastPurchaseId === purchaseId)) {
+                return Promise.reject(new Error("permission-denied"));
+            }
+            return this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.map(item => item.id === previous.id ? {
+                    ...item, onList: true, quantityRemaining: item.quantityRemaining - previous.quantityNeeded,
+                    purchaseCount: (item.purchaseCount ?? 0) - 1,
+                    lastPurchaseId: previous.lastPurchaseId ?? null, lastPurchasedAt: previous.lastPurchasedAt ?? null,
+                } : item);
                 this.itemsChanged(householdId);
             });
         },

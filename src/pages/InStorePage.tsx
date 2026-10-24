@@ -24,6 +24,12 @@ export function InStorePage() {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const [refusal, setRefusal] = useState("");
+    const [confirmation, setConfirmation] = useState<{ item: Item; id: string } | null>(null);
+    useEffect(() => {
+        if (!confirmation) return;
+        const timer = setTimeout(() => setConfirmation(null), 10000);
+        return () => clearTimeout(timer);
+    }, [confirmation]);
     const found: boolean = store.status === "ready";
 
     useEffect(() => {
@@ -46,11 +52,25 @@ export function InStorePage() {
 
     const purchase = (item: Item) => {
         setRefusal("");
+        const id = crypto.randomUUID();
+        setConfirmation({ item, id });
         // Local snapshots advance the trip immediately, including offline.
-        data.recordPurchase(householdId, item.id, item.quantityNeeded).catch(async (error: unknown) => {
+        data.recordPurchase(householdId, item.id, item.quantityNeeded, { id, previous: item }).catch(async (error: unknown) => {
             console.error("Shop purchase failed", error);
             const now = await readItemNow(data, householdId, item.id);
+            setConfirmation(current => current?.id === id ? null : current);
             if (now?.onList) setRefusal(`${item.name} could not be recorded as purchased. It is still on the list.`);
+        });
+    };
+
+    const undoPurchase = () => {
+        if (!confirmation) return;
+        const { item, id } = confirmation;
+        setConfirmation(null);
+        setRefusal("");
+        data.undoPurchase(householdId, item, id).catch((error: unknown) => {
+            console.error("Shop undo failed", error);
+            setRefusal(`${item.name} could not be undone. Check the list before trying again.`);
         });
     };
 
@@ -100,6 +120,16 @@ export function InStorePage() {
                         Dismiss
                     </button>
                 </p>
+            )}
+            {confirmation && (
+                <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-10">
+                    <p role="status" className="flex items-center gap-2 rounded-md bg-surface/60 p-3 text-body shadow-float">
+                        <span className="min-w-0 flex-1 break-words">{confirmation.item.name} purchased</span>
+                        <button type="button" onClick={undoPurchase} className="h-tap-cart shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                            Undo
+                        </button>
+                    </p>
+                </div>
             )}
             <ul aria-label="List in walking order" className="flex flex-col gap-6">
                 {listGroups(items, "appearance", customCategories).map(({ slug, title, items }) => (

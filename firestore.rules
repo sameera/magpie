@@ -49,9 +49,31 @@ service cloud.firestore {
                     && request.resource.data.map == null;
             }
 
+            // Undo changes only the latest purchase, in a batch with its voided
+            // history entry. Previous metadata was verified when it was recorded.
+            function validPurchaseUndo(itemId, purchaseId) {
+                let itemPath = /databases/$(database)/documents/households/$(householdId)/items/$(itemId);
+                let entryPath = /databases/$(database)/documents/households/$(householdId)/purchases/$(purchaseId);
+                let before = get(itemPath).data;
+                let after = getAfter(itemPath).data;
+                let entry = get(entryPath).data;
+                let voided = getAfter(entryPath).data;
+                return entry.itemId == itemId
+                    && entry.get('voided', false) == false
+                    && voided.voided == true
+                    && voided.diff(entry).affectedKeys().hasOnly(['voided'])
+                    && before.lastPurchaseId == purchaseId
+                    && before.onList == false && after.onList == true
+                    && after.diff(before).affectedKeys().hasOnly(['onList', 'quantityRemaining', 'purchaseCount', 'lastPurchasedAt', 'lastPurchaseId'])
+                    && after.quantityRemaining == before.quantityRemaining - entry.amount
+                    && after.purchaseCount == before.purchaseCount - 1
+                    && after.lastPurchaseId == entry.previousLastPurchaseId
+                    && after.lastPurchasedAt == entry.previousLastPurchasedAt;
+            }
+
             // The household inventory. Photo and quantity remaining are set on
             // create. Photo and legacy places are not changed from the app; quantity
-            // remaining changes only in a purchase (see isPurchase). The category is empty or one
+            // remaining changes only in a purchase or its undo. The category is empty or one
             // of the six zone kinds (also listed in src/data/model.ts) or the key of a
             // custom category of the same household. The legacy
             // per-store placement (`places`) is not on a new item and is frozen
@@ -146,7 +168,8 @@ service cloud.firestore {
 
                 allow update: if isMemberOf(householdId)
                     && validItem(request.resource.data)
-                    && (isEditOrRelist() || isPurchase());
+                    && (isEditOrRelist() || isPurchase()
+                        || validPurchaseUndo(itemId, resource.data.lastPurchaseId));
             }
 
             // Custom categories. A member creates one under its key, the cleaned
@@ -188,7 +211,14 @@ service cloud.firestore {
                     let before = get(itemPath).data;
                     let after = getAfter(itemPath).data;
                     return entry.keys().hasAll(['itemId', 'amount', 'purchasedAt'])
-                        && entry.keys().hasOnly(['itemId', 'amount', 'purchasedAt'])
+                        && entry.keys().hasOnly(['itemId', 'amount', 'purchasedAt', 'previousLastPurchaseId', 'previousLastPurchasedAt'])
+                        && (!entry.keys().hasAny(['previousLastPurchaseId', 'previousLastPurchasedAt'])
+                            || (entry.previousLastPurchaseId == before.get('lastPurchaseId', null)
+                                // Item dates pass through JavaScript Date (millisecond precision).
+                                && (entry.previousLastPurchasedAt == before.get('lastPurchasedAt', null)
+                                    || (entry.previousLastPurchasedAt is timestamp
+                                        && before.lastPurchasedAt is timestamp
+                                        && entry.previousLastPurchasedAt.toMillis() == before.lastPurchasedAt.toMillis()))))
                         && entry.itemId is string
                         && entry.amount is int
                         && entry.amount >= 1 && entry.amount <= 999
@@ -200,7 +230,9 @@ service cloud.firestore {
                         && after.lastPurchaseId == purchaseId;
                 }
                 allow create: if isMemberOf(householdId) && validPurchase();
-                allow update, delete: if false;
+                allow update: if isMemberOf(householdId)
+                    && validPurchaseUndo(resource.data.itemId, purchaseId);
+                allow delete: if false;
             }
 
             match /{document=**} {

@@ -68,10 +68,10 @@ describe("Inventory", () => {
 
     it.each(["browser", "Back to inventory", "Done"])("opens an item's details and returns using %s", async (back) => {
         const { router, services } = renderApp(["/inventory"]);
-        const update = vi.spyOn(services.data, "updateItem");
+        const update = vi.spyOn(services.data, "updateInventoryItem");
         const user = userEvent.setup();
         await user.click(screen.getByRole("link", { name: "Milk" }));
-        expect(router.state.location.pathname).toBe("/items/i1");
+        expect(router.state.location.pathname).toBe("/inventory/items/i1");
         expect(screen.getByRole("textbox", { name: "Name" })).toHaveValue("Milk");
         if (back === "browser") await act(() => router.navigate(-1));
         else await user.click(screen.getByRole("button", { name: back }));

@@ -37,6 +37,7 @@ export const routes: RouteObject[] = [
                             { path: "shop", element: <ShopChoicePage /> },
                             { path: "shop/:storeId", element: <InStorePage /> },
                             { path: "stores", element: <StoresPage /> },
+                            { path: "inventory/items/:itemId", element: <ItemPage inventory /> },
                             { path: "inventory", element: <InventoryPage /> },
                             { path: "stores/:storeId", element: <StorePage /> },
                         ],

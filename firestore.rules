@@ -103,7 +103,11 @@ service cloud.firestore {
                     return unchanged('photoPath')
                         && unchanged('quantityRemaining')
                         && unchanged('places')
-                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['purchaseCount', 'lastPurchasedAt', 'lastPurchaseId']);
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['purchaseCount', 'lastPurchaseId'])
+                        && (unchanged('lastPurchasedAt')
+                            || request.resource.data.get('lastPurchasedAt', null) == null
+                            || (request.resource.data.lastPurchasedAt is timestamp
+                                && request.resource.data.lastPurchasedAt <= request.time));
                 }
 
                 // A purchase takes an item that is on the list off it and adds a

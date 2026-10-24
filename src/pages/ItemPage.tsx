@@ -8,7 +8,7 @@ import { UpButton } from "../app/UpButton";
 import { NotFound } from "../components/NotFound";
 import { useFileUrl, useItem, usePrices, useStores } from "../data/hooks";
 import { PreferredChainField } from "../components/PreferredChainField";
-import { newItem, parseQuantity, zoneKinds, type Item, type ItemFields, type Price, type ZoneKind } from "../data/model";
+import { newItem, parseQuantity, zoneKinds, type Item, type InventoryItemFields, type Price, type ZoneKind } from "../data/model";
 import { PageHeader } from "./PageHeader";
 
 export const QUANTITY_ERROR: string = "Quantity must be a whole number from 1 to 999.";
@@ -17,16 +17,16 @@ const money: Intl.NumberFormat = new Intl.NumberFormat("en-US", { style: "curren
 const day: Intl.DateTimeFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 
 function useItemParent() {
-    const { state } = useLocation();
-    return state?.returnTo === "/inventory"
+    const { state, pathname } = useLocation();
+    return pathname.startsWith("/inventory/") || state?.returnTo === "/inventory"
         ? { path: "/inventory", label: "Back to inventory" }
         : { path: "/", label: "Back to list" };
 }
 
 // One page for a new item (/items/new) and an existing one (/items/<id>).
-export function ItemPage() {
+export function ItemPage({ inventory = false }: { inventory?: boolean }) {
     const { itemId } = useParams();
-    return itemId ? <ExistingItem itemId={itemId} /> : <NewItem />;
+    return itemId ? <ExistingItem itemId={itemId} inventory={inventory} /> : <NewItem />;
 }
 
 function NewItem() {
@@ -43,7 +43,7 @@ function NewItem() {
     );
 }
 
-function ExistingItem({ itemId }: { itemId: string }) {
+function ExistingItem({ itemId, inventory }: { itemId: string; inventory: boolean }) {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const item = useItem(itemId);
@@ -60,7 +60,8 @@ function ExistingItem({ itemId }: { itemId: string }) {
             title={item.value.name}
             item={item.value}
             existing
-            save={(fields) => data.updateItem(householdId, fields)}
+            inventory={inventory}
+            save={(fields) => inventory ? data.updateInventoryItem(householdId, fields) : data.updateItem(householdId, fields)}
         >
             <Prices itemId={item.value.id} />
         </ItemDetails>
@@ -85,14 +86,20 @@ interface Draft {
     note: string;
     category: ZoneKind | "";
     preferredChain: string;
+    onList: boolean;
+    lastPurchaseDate: string;
+}
+
+function dateInput(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function draftOf(item: Item): Draft {
-    return { name: item.name, quantity: String(item.quantityNeeded), note: item.note, category: item.category ?? "", preferredChain: item.preferredChain ?? "" };
+    return { onList: item.onList, lastPurchaseDate: item.lastPurchasedAt ? dateInput(item.lastPurchasedAt) : "", name: item.name, quantity: String(item.quantityNeeded), note: item.note, category: item.category ?? "", preferredChain: item.preferredChain ?? "" };
 }
 
 function sameFields(a: Draft, b: Draft): boolean {
-    return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category && a.preferredChain === b.preferredChain;
+    return a.name === b.name && a.quantity === b.quantity && a.note === b.note && a.category === b.category && a.preferredChain === b.preferredChain && a.onList === b.onList && a.lastPurchaseDate === b.lastPurchaseDate;
 }
 
 // Done writes the draft and waits for the server before returning to its parent. An
@@ -102,12 +109,14 @@ function ItemDetails({
     item,
     save,
     existing = false,
+    inventory = false,
     children,
 }: {
     title: string;
     item: Item;
-    save: (fields: ItemFields) => Promise<void>;
+    save: (fields: InventoryItemFields) => Promise<void>;
     existing?: boolean;
+    inventory?: boolean;
     children?: ReactNode;
 }) {
     const [draft, setDraft] = useState<Draft>(() => draftOf(item));
@@ -149,9 +158,19 @@ function ItemDetails({
             setError("Preferred Chain must be at most 100 characters.");
             return;
         }
+        if (inventory && draft.lastPurchaseDate && draft.lastPurchaseDate > dateInput(new Date())) {
+            setError("Last purchase date cannot be in the future.");
+            return;
+        }
+        const inventoryFields = inventory ? {
+            ...(draft.onList !== item.onList ? { onList: draft.onList } : {}),
+            ...(draft.lastPurchaseDate !== draftOf(item).lastPurchaseDate ? {
+                lastPurchasedAt: draft.lastPurchaseDate ? new Date(`${draft.lastPurchaseDate}T00:00:00`) : null,
+            } : {}),
+        } : {};
         setError("");
         setSaving(true);
-        confirmSave(save({ id: item.id, name, quantityNeeded, note: draft.note, category: draft.category || null, ...(preferredChain ? { preferredChain } : {}) })).then((result) => {
+        confirmSave(save({ ...inventoryFields, id: item.id, name, quantityNeeded, note: draft.note, category: draft.category || null, ...(preferredChain ? { preferredChain } : {}) })).then((result) => {
             if (result === "saved") {
                 finished.current = true;
                 up();
@@ -227,6 +246,16 @@ function ItemDetails({
                 </Field>
                 <PreferredChainField value={draft.preferredChain} onChange={preferredChain => setDraft({ ...draft, preferredChain })}
                     chains={stores.status === "ready" ? stores.value.map(store => store.chain) : []} />
+                {inventory && <>
+                    <label className="flex min-h-tap items-center gap-3 text-body">
+                        <input type="checkbox" checked={draft.onList} onChange={e => setDraft({ ...draft, onList: e.target.checked })} />
+                        On the list
+                    </label>
+                    <Field label="Last purchase date">
+                        <input type="date" className={`${inputClass} min-w-0 w-full`} max={dateInput(new Date())}
+                            value={draft.lastPurchaseDate} onChange={e => setDraft({ ...draft, lastPurchaseDate: e.target.value })} />
+                    </Field>
+                </>}
             </section>
             {children}
         </>

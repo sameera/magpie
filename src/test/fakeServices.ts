@@ -169,6 +169,16 @@ export class FakeServices implements Services {
                 });
                 this.itemsChanged(householdId);
             }),
+        updateInventoryItem: (householdId, fields) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.items = household.items.map(existing => {
+                    if (existing.id !== fields.id) return existing;
+                    const { preferredChain: _old, ...rest } = existing;
+                    return { ...rest, ...fields };
+                });
+                this.itemsChanged(householdId);
+            }),
         setOnList: (householdId, itemId, onList) =>
             this.save(() => {
                 const household = this.household(householdId);

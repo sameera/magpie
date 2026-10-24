@@ -27,6 +27,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
         },
         updateItem: (householdId, { id, name, quantityNeeded, note, category, preferredChain }) =>
             updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField() }),
+        updateInventoryItem: (householdId, { id, name, quantityNeeded, note, category, preferredChain, ...corrections }) =>
+            updateDoc(doc(items(householdId), id), { name, quantityNeeded, note, category, preferredChain: preferredChain ?? deleteField(), ...corrections }),
         setOnList: (householdId, itemId, onList) => updateDoc(doc(items(householdId), itemId), { onList }),
         setCategory: (householdId, itemId, category) => updateDoc(doc(items(householdId), itemId), { category }),
         recordPurchase: (householdId, itemId, amount) => {

@@ -14,22 +14,26 @@ export function InventoryPage() {
     const categories = useCategories();
     const [refusal, setRefusal] = useState("");
     const customCategories = categories.status === "ready" ? categories.value : [];
+    const loading = items.status === "loading" || categories.status === "loading";
+    const unreadable = !loading && (items.status === "missing" || categories.status === "missing");
+    const ready = items.status === "ready" && categories.status === "ready";
     const categoryDrag = useCategoryDrag(items.status === "ready" ? items.value : [], setRefusal);
 
     return (
         <>
             <PageHeader title="Inventory" />
             <AddCategoryForm onRefused={setRefusal} />
-            {items.status === "loading" && <p className="text-body text-ink-muted">Loading inventory…</p>}
-            {items.status === "missing" && <p className="text-body text-ink-muted">The inventory could not be read.</p>}
-            {items.status === "ready" && items.value.length === 0 && customCategories.length === 0 && (
+            {loading && <p className="text-body text-ink-muted">Loading inventory…</p>}
+            {unreadable && <p className="text-body text-ink-muted">The inventory could not be read.</p>}
+            {ready && items.value.length === 0 && (
                 <p className="text-body text-ink-muted">No items yet.</p>
             )}
-            {items.status === "ready" && (items.value.length > 0 || customCategories.length > 0) && (
+            {ready && (items.value.length > 0 || customCategories.length > 0) && (
                 <ul aria-label="Inventory" className="flex flex-col gap-6">
                     {inventoryGroups(items.value, customCategories).map(({ key, title, items }) => (
                         <li key={key}>
                             <h2 id={`inventory-category-${key}`} className="mb-3 text-heading">{title}</h2>
+                            {items.length === 0 && <p className="text-body text-ink-muted">0 items</p>}
                             <ul aria-labelledby={`inventory-category-${key}`} className="flex flex-col gap-3">
                                 {items.map(item => (
                                     <CategoryDragRow key={item.id} item={item} {...categoryDrag.rowActions(item)}>

@@ -7,3 +7,8 @@
 - **Choice:** #116 renders each custom category as a heading after the built-ins; sorting, "0 items" and loading/unreadable handling are left to #117.
 - **Why:** #116's "another member sees it" criterion needs a heading; D7 gives the rest to #117.
 - **Refuted alternative:** Build all of D7 in #116.
+
+## 2026-10-23 — Inventory gates on both reads
+- **Choice:** Inventory shows loading or unreadable if either the items or the categories read is loading or unreadable.
+- **Why:** D7 treats the categories read like the items read, so "No items yet." never shows on a partial read.
+- **Refuted alternative:** Render items while categories load, adding custom headings later.

@@ -38,7 +38,8 @@ export interface InventoryGroup {
 // category, then "No category" when it has items.
 export function inventoryGroups(items: Item[], categories: Category[]): InventoryGroup[] {
     const groups = listGroups(items).map(({ category, items }) => ({ key: category ?? "none", title: categoryName(category), items }));
-    const custom = categories.map(({ id, name }) => ({ key: `custom-${id}`, title: name, items: [] as Item[] }));
+    const ordered = [...categories].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    const custom = ordered.map(({ id, name }) => ({ key: `custom-${id}`, title: name, items: [] as Item[] }));
     const unplaced = groups.filter(({ key }) => key === "none");
     return [...groups.filter(({ key }) => key !== "none"), ...custom, ...unplaced];
 }

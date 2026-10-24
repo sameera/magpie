@@ -1,12 +1,12 @@
-import { zoneKinds, type StoreMapData, type Zone } from "../data/model";
+import type { StoreMapData, Zone } from "../data/model";
 import { MIN_ZONE_SIZE } from "./zoneGeometry";
 
 export function addDraftZone(map: StoreMapData): StoreMapData {
     const index = map.zones.length;
     const zone: Zone = {
         id: crypto.randomUUID(),
-        label: `Zone ${index + 1}`,
-        kind: zoneKinds[index % zoneKinds.length],
+        label: "Produce",
+        kind: "produce",
         order: map.zones.reduce((highest, zone) => Math.max(highest, zone.order), -1) + 1,
         x: 4 + (index % 2) * 48,
         y: 4 + Math.floor(index / 2) * 18,

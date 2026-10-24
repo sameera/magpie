@@ -1,13 +1,9 @@
 import { Check, MapPin } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useHouseholdId, useServices } from "../app/session";
 import { readItemNow } from "../data/itemNow";
 import { setTripPath } from "../app/tripStore";
-import {
-    enterSession, endSession, getSession, logPurchase, markUnavailable as logUnavailable, restorePurchase, unlogPurchase,
-    unmarkUnavailable, useSession,
-} from "../app/shoppingSession";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useCategories, useList, useStore } from "../data/hooks";
@@ -15,28 +11,10 @@ import { listGroups } from "../data/categoryGroups";
 import { chainFilter } from "../data/chainFilter";
 import { walkingOrder, zoneOf, type Item } from "../data/model";
 import { QuantityBadge } from "../components/QuantityBadge";
-import { InStoreMenu, type Sidebar } from "./InStoreMenu";
-import { PurchasedSidebar } from "./PurchasedSidebar";
-import { UnavailableSidebar } from "./UnavailableSidebar";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
 export function InStorePage() {
-    const { storeId = "" } = useParams();
-    const [sidebar, setSidebar] = useState<Sidebar | null>(null);
-    useEffect(() => setSidebar(null), [storeId]);
-    const close = useCallback(() => setSidebar(null), []);
-    return (
-        <>
-            <InStoreBody />
-            {sidebar === "purchased" && <PurchasedSidebar storeId={storeId} onClose={close} />}
-            {sidebar === "unavailable" && <UnavailableSidebar storeId={storeId} onClose={close} />}
-            <InStoreMenu sidebar={sidebar} onSidebar={setSidebar} />
-        </>
-    );
-}
-
-function InStoreBody() {
     const { storeId = "" } = useParams();
     const store = useStore(storeId);
     const list = useList();
@@ -46,16 +24,10 @@ function InStoreBody() {
     const householdId = useHouseholdId();
     const { data } = useServices();
     const [refusal, setRefusal] = useState("");
-    const [confirmation, setConfirmation] = useState<{ item: Item; id: string; action: "purchase" | "unavailable" } | null>(null);
-    const session = useSession();
-    const unavailable = new Set(session.storeId === storeId ? session.unavailable.map((entry) => entry.itemId) : []);
-    useEffect(() => {
-        enterSession(storeId);
-        setConfirmation(null);
-    }, [storeId]);
+    const [confirmation, setConfirmation] = useState<{ item: Item; id: string } | null>(null);
     useEffect(() => {
         if (!confirmation) return;
-        const timer = setTimeout(() => setConfirmation(null), 5000);
+        const timer = setTimeout(() => setConfirmation(null), 10000);
         return () => clearTimeout(timer);
     }, [confirmation]);
     const found: boolean = store.status === "ready";
@@ -74,7 +46,6 @@ function InStoreBody() {
     }
 
     const changeStore = () => {
-        endSession();
         const state: ShopChoiceState = { switching: true };
         navigate("/shop", { replace: true, state });
     };
@@ -82,44 +53,29 @@ function InStoreBody() {
     const purchase = (item: Item) => {
         setRefusal("");
         const id = crypto.randomUUID();
-        setConfirmation({ item, id, action: "purchase" });
-        logPurchase({ id, itemId: item.id, name: item.name, amount: item.quantityNeeded });
+        setConfirmation({ item, id });
         // Local snapshots advance the trip immediately, including offline.
         data.recordPurchase(householdId, item.id, item.quantityNeeded, { id, previous: item }).catch(async (error: unknown) => {
             console.error("Shop purchase failed", error);
-            unlogPurchase(id);
             const now = await readItemNow(data, householdId, item.id);
             setConfirmation(current => current?.id === id ? null : current);
             if (now?.onList) setRefusal(`${item.name} could not be recorded as purchased. It is still on the list.`);
         });
     };
 
-    const markUnavailable = (item: Item) => {
-        setRefusal("");
-        logUnavailable({ itemId: item.id, name: item.name, quantity: item.quantityNeeded });
-        setConfirmation({ item, id: crypto.randomUUID(), action: "unavailable" });
-    };
-
-    const undoAction = () => {
+    const undoPurchase = () => {
         if (!confirmation) return;
-        const { item, id, action } = confirmation;
+        const { item, id } = confirmation;
         setConfirmation(null);
         setRefusal("");
-        if (action === "unavailable") {
-            unmarkUnavailable(item.id);
-            return;
-        }
-        const logged = getSession().purchased.find((entry) => entry.id === id);
-        unlogPurchase(id);
         data.undoPurchase(householdId, item, id).catch((error: unknown) => {
             console.error("Shop undo failed", error);
-            if (logged) restorePurchase(logged);
             setRefusal(`${item.name} could not be undone. Check the list before trying again.`);
         });
     };
 
     const { shown, hiddenCount } = chainFilter(list.status === "ready" ? list.value : [], store.value);
-    const items = walkingOrder(shown.filter(item => !unavailable.has(item.id)), store.value);
+    const items = walkingOrder(shown, store.value);
     const next = items[0];
     const nextZone = next ? zoneOf(next, store.value) : undefined;
 
@@ -144,35 +100,35 @@ function InStoreBody() {
                 {hiddenCount} {hiddenCount === 1 ? "item for other chains is" : "items for other chains are"} not shown.
             </p>}
             {next ? (
-                <NextUp
-                    key={next.id}
-                    item={next}
-                    count={items.length}
-                    zone={nextZone?.label}
-                    onPurchase={() => purchase(next)}
-                    onUnavailable={() => markUnavailable(next)}
-                />
+                <section aria-label="Next up" className="mb-6 rounded-lg bg-trinket p-5 text-on-trinket">
+                    <p className="text-label uppercase">
+                        Next up · 1 of {items.length}
+                    </p>
+                    <p className="font-display text-title">{next.name}</p>
+                    <p className="flex items-center gap-1 text-body">
+                        <MapPin aria-hidden="true" className="size-4" />
+                        {nextZone?.label ?? "No zone in this store yet"}
+                    </p>
+                </section>
             ) : hiddenCount === 0 && (
                 <p className="mb-6 text-body text-ink-muted">Nothing on the list.</p>
             )}
-            {(refusal || confirmation) && (
-                <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-40 flex flex-col gap-2">
-                    {refusal && (
-                        <p role="alert" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
-                            <span className="flex-1">{refusal}</span>
-                            <button type="button" onClick={() => setRefusal("")} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
-                                Dismiss
-                            </button>
-                        </p>
-                    )}
-                    {confirmation && (
-                        <p role="status" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body shadow-float">
-                            <span className="min-w-0 flex-1">{confirmation.item.name} {confirmation.action === "purchase" ? "purchased" : "unavailable"}</span>
-                            <button type="button" onClick={undoAction} className="h-tap shrink-0 rounded-md px-3 text-button text-sheen-ink">
-                                Undo
-                            </button>
-                        </p>
-                    )}
+            {refusal && (
+                <p role="alert" className="mb-4 flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger">
+                    <span className="flex-1">{refusal}</span>
+                    <button type="button" onClick={() => setRefusal("")} className="h-tap rounded-md px-3 text-button text-sheen-ink">
+                        Dismiss
+                    </button>
+                </p>
+            )}
+            {confirmation && (
+                <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-10">
+                    <p role="status" className="flex items-center gap-2 rounded-md bg-surface/60 p-3 text-body shadow-float">
+                        <span className="min-w-0 flex-1 break-words">{confirmation.item.name} purchased</span>
+                        <button type="button" onClick={undoPurchase} className="h-tap-cart shrink-0 rounded-md px-3 text-button text-sheen-ink">
+                            Undo
+                        </button>
+                    </p>
                 </div>
             )}
             <ul aria-label="List in walking order" className="flex flex-col gap-6">
@@ -186,7 +142,6 @@ function InStoreBody() {
                                     item={item}
                                     zone={zoneOf(item, store.value)?.label}
                                     onPurchase={() => purchase(item)}
-                                    onUnavailable={() => markUnavailable(item)}
                                 />
                             ))}
                         </ul>
@@ -197,22 +152,17 @@ function InStoreBody() {
     );
 }
 
-interface ShopSwipeActions {
-    onPurchase: () => void;
-    onUnavailable: () => void;
-}
-
-// Share the reveal and gesture threshold between Next up and the walking list.
-function useShopSwipe({ onPurchase, onUnavailable }: ShopSwipeActions) {
+// Match List's gesture threshold, with a right swipe buying the listed quantity.
+function ShopRow({ item, zone, onPurchase }: { item: Item; zone?: string; onPurchase: () => void }) {
     const drag = useRef<{ x: number; y: number; axis: "x" | "y" | null } | null>(null);
     const dragged = useRef(false);
     const [offset, setOffset] = useState(0);
-    const start = (event: PointerEvent<HTMLElement>) => {
+    const start = (event: PointerEvent<HTMLLIElement>) => {
         dragged.current = false;
         if (!event.isPrimary || (event.pointerType === "mouse" && event.button !== 0)) return;
         drag.current = { x: event.clientX, y: event.clientY, axis: null };
     };
-    const move = (event: PointerEvent<HTMLElement>) => {
+    const move = (event: PointerEvent<HTMLLIElement>) => {
         const state = drag.current;
         if (!state) return;
         const dx = event.clientX - state.x;
@@ -224,71 +174,28 @@ function useShopSwipe({ onPurchase, onUnavailable }: ShopSwipeActions) {
                 event.currentTarget.setPointerCapture?.(event.pointerId);
             }
         }
-        if (state.axis === "x") setOffset(dx);
+        if (state.axis === "x") setOffset(Math.max(0, dx));
     };
-    const end = (event: PointerEvent<HTMLElement>) => {
+    const end = (event: PointerEvent<HTMLLIElement>) => {
         const state = drag.current;
         drag.current = null;
         setOffset(0);
         if (state?.axis !== "x") return;
         const dx = event.clientX - state.x;
         const width = event.currentTarget.getBoundingClientRect().width;
-        if (width > 0 && Math.abs(dx) >= width / 3 && Math.abs(dx) > Math.abs(event.clientY - state.y)) {
-            if (dx > 0) onPurchase();
-            else onUnavailable();
-        }
+        if (width > 0 && dx >= width / 3 && dx > Math.abs(event.clientY - state.y)) onPurchase();
     };
 
-    return {
-        offset,
-        dragged,
-        handlers: {
-            onPointerDown: start,
-            onPointerMove: move,
-            onPointerUp: end,
-            onPointerCancel: () => { drag.current = null; setOffset(0); },
-        },
-    };
-}
-
-function SwipeReveal({ offset }: { offset: number }) {
-    if (!offset) return null;
-    return (
-        <div className={`pointer-events-none absolute inset-0 flex items-center px-4 text-button ${offset > 0 ? "bg-sheen text-on-sheen" : "justify-end bg-danger text-surface"}`}>
-            {offset > 0 ? "Purchase" : "Unavailable"}
-        </div>
-    );
-}
-
-function NextUp({ item, count, zone, ...actions }: ShopSwipeActions & { item: Item; count: number; zone?: string }) {
-    const { offset, handlers } = useShopSwipe(actions);
-    return (
-        <section aria-label="Next up" className="relative mb-6 overflow-x-clip rounded-lg touch-pan-y" {...handlers}>
-            <SwipeReveal offset={offset} />
-            <div className="relative rounded-lg bg-trinket p-5 text-on-trinket" style={offset ? { transform: `translateX(${offset}px)` } : undefined}>
-                <p className="text-label uppercase">Next up · 1 of {count}</p>
-                <p className="font-display text-title">{item.name}</p>
-                <p className="flex items-center gap-1 text-body">
-                    <MapPin aria-hidden="true" className="size-4" />
-                    {zone ?? "No zone in this store yet"}
-                </p>
-            </div>
-        </section>
-    );
-}
-
-function ShopRow({ item, zone, ...actions }: ShopSwipeActions & { item: Item; zone?: string }) {
-    const { offset, dragged, handlers } = useShopSwipe(actions);
     return (
         <li
-            className="relative overflow-x-clip rounded-md touch-pan-y"
-            {...handlers}
+            className="touch-pan-y"
+            style={offset ? { transform: `translateX(${offset}px)` } : undefined}
+            onPointerDown={start}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={() => { drag.current = null; setOffset(0); }}
         >
-            <SwipeReveal offset={offset} />
-            <div
-                className="relative flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker"
-                style={offset ? { transform: `translateX(${offset}px)` } : undefined}
-            >
+            <div className="flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker">
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-2">
                         <span className="min-w-0 break-words text-item">{item.name}</span>
@@ -302,7 +209,7 @@ function ShopRow({ item, zone, ...actions }: ShopSwipeActions & { item: Item; zo
                     aria-checked={false}
                     aria-label={`Pick ${item.name}`}
                     onClick={(event) => {
-                        if (!dragged.current || event.detail === 0) actions.onPurchase();
+                        if (!dragged.current || event.detail === 0) onPurchase();
                         dragged.current = false;
                     }}
                     className="flex size-tap-cart shrink-0 items-center justify-center rounded-md text-sheen-ink"

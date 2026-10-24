@@ -23,119 +23,6 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Shop purchases", () => {
-    it.each([100, -100])("swipes Next up (%s), advances the list offline and offers Undo", (dx) => {
-        const services = new FakeServices();
-        services.saveBehavior = "hang";
-        renderApp(["/shop/s1"], services);
-        const next = () => screen.getByRole("region", { name: "Next up" });
-        expect(within(next()).getByText("Bread")).toBeInTheDocument();
-        swipe(next(), dx);
-        expect(within(next()).getByText("Milk")).toBeInTheDocument();
-        expect(within(list()).queryByText("Bread")).toBeNull();
-        expect(screen.getByRole("status")).toHaveTextContent(dx > 0 ? "Bread purchased" : "Bread unavailable");
-        const bread = services.households.get("h1")!.items.find(item => item.name === "Bread")!;
-        expect(bread).toMatchObject({ onList: dx < 0, quantityRemaining: dx > 0 ? 1 : 0 });
-        fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-        expect(within(next()).getByText("Bread")).toBeInTheDocument();
-        expect(within(list()).getByText("Bread")).toBeInTheDocument();
-        expect(services.households.get("h1")!.items.find(item => item.name === "Bread")).toMatchObject({ onList: true, quantityRemaining: 0 });
-    });
-
-    it("reveals both Next up actions during a gesture and clears the reveal on cancel", () => {
-        renderApp(["/shop/s1"], new FakeServices());
-        const target = screen.getByRole("region", { name: "Next up" });
-        const pointer = { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 150, clientY: 40 };
-        fireEvent.pointerDown(target, pointer);
-        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
-        expect(within(target).getByText("Purchase")).toBeVisible();
-        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
-        expect(within(target).queryByText("Purchase")).toBeNull();
-        expect(within(target).getByText("Unavailable")).toBeVisible();
-        fireEvent.pointerCancel(target, pointer);
-        expect(within(target).queryByText("Unavailable")).toBeNull();
-        expect(within(target).getByText("Bread")).toBeInTheDocument();
-        expect(screen.queryByRole("status")).toBeNull();
-    });
-
-    it.each([[99, 0, false], [-99, 0, false], [100, 150, false], [-100, 150, false], [150, 0, true], [-150, 0, true]])(
-        "ignores short, vertical and cancelled Next up gestures (%s, %s, %s)", (dx, dy, cancel) => {
-            renderApp(["/shop/s1"], new FakeServices());
-            const target = screen.getByRole("region", { name: "Next up" });
-            swipe(target, dx, dy, cancel);
-            expect(within(target).getByText("Bread")).toBeInTheDocument();
-            expect(screen.queryByRole("status")).toBeNull();
-        },
-    );
-
-    it("reveals Purchase while swiping right and hides it when the gesture ends", () => {
-        const services = new FakeServices();
-        renderApp(["/shop/s1"], services);
-        const target = row("Milk");
-        const pointer = { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 150, clientY: 40 };
-        expect(within(target).queryByText("Purchase")).toBeNull();
-        fireEvent.pointerDown(target, pointer);
-        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
-        expect(within(target).getByText("Purchase")).toBeVisible();
-        expect(stock(services).onList).toBe(true);
-        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
-        expect(within(target).queryByText("Purchase")).toBeNull();
-        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
-        fireEvent.pointerCancel(target, pointer);
-        expect(within(target).queryByText("Purchase")).toBeNull();
-        swipe(target, 60);
-        expect(within(target).queryByText("Purchase")).toBeNull();
-        expect(stock(services).onList).toBe(true);
-    });
-
-    it("reveals Unavailable while swiping left without changing the item until release", () => {
-        const services = new FakeServices();
-        renderApp(["/shop/s1"], services);
-        const target = row("Milk");
-        const pointer = { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 150, clientY: 40 };
-        fireEvent.pointerDown(target, pointer);
-        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
-        expect(within(target).getByText("Unavailable")).toBeVisible();
-        expect(within(list()).getByText("Milk")).toBeInTheDocument();
-        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
-        expect(within(target).queryByText("Unavailable")).toBeNull();
-        expect(within(target).getByText("Purchase")).toBeVisible();
-        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
-        fireEvent.pointerCancel(target, pointer);
-        expect(within(target).queryByText("Unavailable")).toBeNull();
-        expect(screen.queryByRole("status")).toBeNull();
-    });
-
-    it("hides an unavailable item only from Shop and Undo restores its walking position", async () => {
-        const services = new FakeServices();
-        const purchase = vi.spyOn(services.data, "recordPurchase");
-        const { router } = renderApp(["/shop/s1"], services);
-        swipe(row("Bread"), -100);
-        expect(within(list()).queryByText("Bread")).toBeNull();
-        expect(within(screen.getByRole("region", { name: "Next up" })).getByText("Milk")).toBeInTheDocument();
-        expect(screen.getByRole("status")).toHaveTextContent("Bread unavailable");
-        expect(purchase).not.toHaveBeenCalled();
-        expect(services.households.get("h1")!.items.find(item => item.name === "Bread")).toMatchObject({ onList: true, quantityRemaining: 0 });
-        await userEvent.setup().click(screen.getByRole("button", { name: "Undo" }));
-        expect(within(screen.getByRole("region", { name: "Next up" })).getByText("Bread")).toBeInTheDocument();
-        expect(screen.queryByRole("status")).toBeNull();
-        swipe(row("Bread"), -100);
-        await act(() => router.navigate("/"));
-        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Bread")).toBeInTheDocument();
-    });
-
-    it("replaces purchase Undo with unavailable Undo without undoing the purchase", () => {
-        const services = new FakeServices();
-        renderApp(["/shop/s1"], services);
-        swipe(row("Milk"));
-        swipe(row("Bread"), -100);
-        expect(screen.getAllByRole("status")).toHaveLength(1);
-        expect(screen.getByRole("status")).toHaveTextContent("Bread unavailable");
-        expect(screen.getByText("Nothing on the list.")).toBeInTheDocument();
-        fireEvent.click(screen.getByRole("button", { name: "Undo" }));
-        expect(within(list()).getByText("Bread")).toBeInTheDocument();
-        expect(stock(services)).toMatchObject({ onList: false, quantityRemaining: 2 });
-    });
-
     it("confirms a purchase without opening a dialog and undoes its inventory changes", async () => {
         const services = new FakeServices();
         stock(services).quantityRemaining = 3;
@@ -170,14 +57,18 @@ describe("Shop purchases", () => {
         expect(stock(services).onList).toBe(false);
     });
 
-    it("shows only the latest action and gives it a fresh five seconds", () => {
+    it("shows only the latest purchase and gives it a fresh twenty seconds", () => {
         vi.useFakeTimers();
         try {
             renderApp(["/shop/s1"], new FakeServices());
             swipe(row("Milk"));
             act(() => vi.advanceTimersByTime(4000));
             swipe(row("Bread"));
-            act(() => vi.advanceTimersByTime(4999));
+            act(() => vi.advanceTimersByTime(5000));
+            expect(screen.getByRole("status")).toHaveTextContent("Bread purchased");
+            act(() => vi.advanceTimersByTime(5000));
+            expect(screen.getByRole("status")).toHaveTextContent("Bread purchased");
+            act(() => vi.advanceTimersByTime(9999));
             expect(screen.getByRole("status")).toHaveTextContent("Bread purchased");
             act(() => vi.advanceTimersByTime(1));
             expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
@@ -216,8 +107,8 @@ describe("Shop purchases", () => {
         expect(screen.queryByRole("alert")).toBeNull();
     });
 
-    it.each([[99, 0, false], [-99, 0, false], [100, 150, false], [-100, 150, false], [150, 0, true], [-150, 0, true]])(
-        "ignores short, vertical and cancelled gestures (%s, %s, %s)", (dx, dy, cancel) => {
+    it.each([[99, 0, false], [-150, 0, false], [100, 150, false], [150, 0, true]])(
+        "ignores short, left, vertical and cancelled gestures (%s, %s, %s)", (dx, dy, cancel) => {
             const services = new FakeServices();
             renderApp(["/shop/s1"], services);
             swipe(row("Milk"), dx, dy, cancel);

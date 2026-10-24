@@ -12,7 +12,7 @@ it("closes order gaps while keeping survivor geometry and appends a distinct las
     expect(removed.zones).toEqual([{ ...map.zones[0], order: 0 }, { ...map.zones[2], order: 1 }]);
     const added = addDraftZone(removed);
     expect(added.zones.slice(0, 2)).toEqual(removed.zones);
-    expect(added.zones[2].order).toBe(2);
+    expect(added.zones[2]).toMatchObject({ order: 2, label: "Produce", kind: "produce" });
     expect(map.zones.map(zone => zone.id)).not.toContain(added.zones[2].id);
     const again = addDraftZone(removeDraftZone(added, added.zones[2].id));
     expect(again.zones[2].id).not.toBe(added.zones[2].id);

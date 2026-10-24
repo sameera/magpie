@@ -49,10 +49,11 @@ describe("data failure diagnostics", () => {
         ["setCategory", () => data.setCategory("h1", "i1", "dairy")],
         ["recordPurchase", () => data.recordPurchase("h1", "i1", 2)],
         ["createStore", () => data.createStore("h1", { id: "s1", name: "Private store", chain: "Costco" })],
+        ["saveStoreMap", () => data.saveStoreMap("h1", "s1", { width: 100, height: 60, zones: [], scanPath: null })],
     ] as const)("logs %s with the original error and household context, then still rejects", async (operation, run) => {
         await expect(run()).rejects.toBe(failure);
         expectDiagnostic(operation, { householdId: "h1" });
-        if (operation === "createStore") expectDiagnostic(operation, { storeId: "s1" });
+        if (operation === "createStore" || operation === "saveStoreMap") expectDiagnostic(operation, { storeId: "s1" });
         else if (operation === "addItems") expectDiagnostic(operation, { itemIds: ["i1", "i2"] });
         else if (operation === "createItems") expectDiagnostic(operation, { itemIds: ["i1"] });
         else expectDiagnostic(operation, { itemId: "i1" });
@@ -82,6 +83,13 @@ describe("data failure diagnostics", () => {
     it("logs storage download failures with the file path and preserves the rejection", async () => {
         await expect(data.fileUrl("households/h1/items/i1.jpg")).rejects.toBe(failure);
         expectDiagnostic("fileUrl", { path: "households/h1/items/i1.jpg" });
+    });
+
+    it("saves a store map as the map field alone, at the store's path", async () => {
+        const map = { width: 100, height: 60, zones: [], scanPath: null };
+        sdk.write.mockResolvedValueOnce(undefined);
+        await data.saveStoreMap("h1", "s1", map);
+        expect(sdk.write).toHaveBeenCalledWith(expect.objectContaining({ path: "households/h1/stores/s1" }), { map });
     });
 
     it("does not log successful writes", async () => {

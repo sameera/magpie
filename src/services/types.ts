@@ -1,4 +1,4 @@
-import type { Category, Item, ItemFields, InventoryItemFields, ListedItem, Price, Store } from "../data/model";
+import type { Category, Item, ItemFields, InventoryItemFields, ListedItem, Price, Store, StoreMapData } from "../data/model";
 
 export interface AuthUser {
     uid: string;
@@ -26,6 +26,10 @@ export interface DataService {
     // Writes under the given ID, so saving again overwrites the same store.
     // Resolves once the server accepts the write; rejects if it is refused.
     createStore(householdId: string, store: Pick<Store, "id" | "name" | "chain">): Promise<void>;
+    // Replaces the store's map and changes nothing else on the store, so saving
+    // again is the same write. Rules keep the stored scan path. Resolves once the
+    // server accepts the write; rejects if it is refused.
+    saveStoreMap(householdId: string, storeId: string, map: StoreMapData): Promise<void>;
     // Saves a new item onto the list, initializing its typical purchase quantity
     // from quantityNeeded, with no photo and quantity remaining 0,
     // under the given ID so saving again overwrites the same item. Resolves once the

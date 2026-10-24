@@ -53,7 +53,7 @@ describe("Inventory", () => {
         expect(screen.queryByText("No items yet.")).toBeNull();
     });
 
-    it.each(["/", "/shop", "/stores", "/stores/s1", "/items/i1", "/inventory"])("opens from More on %s and closes the menu", async (path) => {
+    it.each(["/", "/shop", "/shop/s1", "/stores", "/stores/s1", "/items/i1", "/inventory"])("opens from More on %s and closes the menu", async (path) => {
         const { router } = renderApp([path]);
         const user = userEvent.setup();
         await user.click(screen.getByRole("button", { name: "More" }));

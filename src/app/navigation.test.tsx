@@ -34,8 +34,8 @@ describe("main navigation", () => {
     });
 
     it("marks the area after a reload of a deeper page", async () => {
-        renderApp(["/stores/s1"]);
-        expect(within(mainNav()).getByRole("button", { name: /More/ })).toHaveAttribute("aria-current", "page");
+        renderApp(["/shop/s1"]);
+        expect(within(mainNav()).getByRole("link", { name: /Shop/ })).toHaveAttribute("aria-current", "page");
     });
 
     it("reaches Stores from the menu and marks the menu entry", async () => {

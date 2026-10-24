@@ -9,3 +9,4 @@ Replace the bottom menu on the In Store page with shopping controls, and add sid
 ## Epics
 
 - **In-store contextual menu with purchased and unavailable sidebars** — [#123](https://github.com/sameera/magpie/issues/123)
+- **Adjust quantities from the in-store sidebars** — [#127](https://github.com/sameera/magpie/issues/127)

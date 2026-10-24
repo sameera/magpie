@@ -1,8 +1,8 @@
 ---
 title: Household Data Writes
 aliases: [saving household data, household writes, write rules, all-or-nothing write]
-touches: [household-data-reads, household-membership, add-store-sheet, item-save, add-items-drawer, category-drop-tray, custom-categories]
-last_updated_by: "#115"
+touches: [household-data-reads, household-membership, add-store-sheet, item-save, add-items-drawer, category-drop-tray]
+last_updated_by: "#90"
 status: active
 verification: verified
 ---
@@ -13,7 +13,7 @@ The Add store sheet, the Item page and the List page's add drawer save household
 
 ## How It Works
 
-The Add store sheet creates a store, the Item page creates and updates items, and the List page's add drawer creates new items and puts existing items back on the list in one all-or-nothing write. The security rules let a member create stores, create items, create custom categories and update items in their own household. They refuse every other write to household data from the app. The drawer uses the item create and update rules the Item page uses, so no new kind of write opens. A category drop on the List page changes only the item's category, to none, one of the six kinds or a custom category. The item update rule already allows that change and refuses it from signed-out users, non-members and other households.
+The Add store sheet creates a store, the Item page creates and updates items, and the List page's add drawer creates new items and puts existing items back on the list in one all-or-nothing write. The security rules let a member create stores, create items and update items in their own household. They refuse every other write to household data from the app. The drawer uses the item create and update rules the Item page uses, so no new kind of write opens. A category drop on the List page changes only the item's category, to none or one of the six kinds. The item update rule already allows that change and refuses it from signed-out users, non-members and other households.
 
 The drop is sent without waiting, and the phone's own copy shows it at once. Each other screen picks its record IDs before the first try, so saving again after an unconfirmed save overwrites the same records. Each waits up to 8 seconds for the server to confirm. A refused or unconfirmed save keeps the typed values on the screen and shows an error. The pages show a saved store or item through their live reads.
 
@@ -22,7 +22,7 @@ The drop is sent without waiting, and the phone's own copy shows it at once. Eac
 1. ~~Only the Add store sheet, the Item page and the List page's add drawer save household data, and the security rules refuse every other write from the app.~~ Superseded by 4.
 2. Saving again after an unconfirmed save overwrites the same records instead of adding new ones.
 3. A new item from the add drawer is on the list, has quantity remaining 0, and has no note, photo or category. An item the drawer puts back on the list changes only its list flag and quantity needed.
-4. The security rules let a member only create stores, create items, create custom categories and update items in their own household, and refuse every other write from the app. A category drop on the List page is an item update that changes only the category.
+4. The security rules let a member only create stores, create items and update items in their own household, and refuse every other write from the app. A category drop on the List page is an item update that changes only the category.
 
 ## Integration Points
 
@@ -31,7 +31,6 @@ The drop is sent without waiting, and the phone's own copy shows it at once. Eac
 - [add-store-sheet](add-store-sheet.md) — the sheet is one of the screens that save, and it creates a store.
 - [item-save](item-save.md) — the Item page creates and updates one item at a time.
 - [add-items-drawer](add-items-drawer.md) — the drawer creates new items and re-lists existing ones in one all-or-nothing write.
-- [custom-categories](custom-categories.md) — a member may create a custom category, which is never changed or deleted.
 - [category-drop-tray](category-drop-tray.md) — a drop on the List or Inventory page updates only the item's category, under the existing item update rule.
 
 ## Decision Log
@@ -51,7 +50,3 @@ A drop on a category in the List page's drop tray now updates one item, changing
 ### 2026-10-19 — #90 — Reciprocal link from category-drop-tray
 
 The category drop moved to category-drop-tray, which both the List and Inventory pages use. This page now links to it in place of list-category-groups. The rule is unchanged.
-
-### 2026-10-24 — #115 — Reciprocal link from custom-categories
-
-The new custom-categories page records a write this page did not list: a member creates a custom category under the household, and the rules accept no change or delete of it. The page now lists that create in its summary of allowed writes and its fourth invariant. A category drop or an item save may now carry a custom category, which the rules accept only when that category exists in the same household.

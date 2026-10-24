@@ -60,7 +60,7 @@ describe("zone gestures in the editor", () => {
         expect(rect()).toBeInTheDocument();
         await userEvent.click(within(dialog).getByRole("button", { name: "Remove zone" }));
         expect(screen.queryByRole("button", { name: "Move Bakery" })).toBeNull();
-        expect(within(screen.getByRole("region", { name: "Zone labels" })).queryByDisplayValue("Bakery")).toBeNull();
+        expect(within(screen.getByRole("region", { name: "Zone categories" })).queryByRole("combobox", { name: "Walking place of Bakery" })).toBeNull();
         expect(screen.queryByRole("button", { name: /Resize/ })).toBeNull();
         expect(screen.queryByRole("button", { name: "Remove Bakery" })).toBeNull();
         expect(rect("z-dairy")).toHaveAttribute("x", "50");
@@ -132,7 +132,7 @@ describe("zone gestures in the editor", () => {
         expect(rect()).toHaveAttribute("x", "50");
         expect(rect()).toHaveAttribute("y", "30");
         pointer(target, "Up", 1000, 1000);
-        expect(within(screen.getByRole("region", { name: "Zone labels" })).getByLabelText("Zone 1")).toHaveValue("Bakery");
+        expect(within(screen.getByRole("region", { name: "Zone categories" })).getByRole("combobox", { name: "Category of zone 1" })).toHaveValue(kind ?? "");
         expect(rect()).toHaveAttribute("width", "50");
         expect(rect()).toHaveAttribute("height", "30");
         expect(services.households.get("h1")!.stores[0]).toEqual(original);

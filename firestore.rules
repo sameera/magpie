@@ -24,9 +24,8 @@ service cloud.firestore {
             allow read: if isMemberOf(householdId);
             allow write: if false;
 
-            // A member may create a store and create, update or delete items.
-            // Store edits are limited to same-content save retries; prices
-            // are not written from the app.
+            // A member may create a store, save its map, and create, update or
+            // delete items. Store renames and price writes are not allowed.
             function validName(data) {
                 return data.name is string
                     && data.name.matches('.*[^\\s].*')
@@ -42,11 +41,33 @@ service cloud.firestore {
                     && request.resource.data.chain.size() <= 100
                     && request.resource.data.map == null;
 
+                // A map is a map of width, height, zones and scanPath. Rules cannot
+                // loop over the zones, so only their count is capped; the app writes
+                // their shape. The scan path is set outside the app (Storage writes
+                // are denied), so a save keeps the stored one.
+                function validMap(data, stored) {
+                    return data is map
+                        && data.keys().hasAll(['width', 'height', 'zones', 'scanPath'])
+                        && data.keys().hasOnly(['width', 'height', 'zones', 'scanPath'])
+                        && data.width is number && data.width > 0 && data.width <= 10000
+                        && data.height is number && data.height > 0 && data.height <= 10000
+                        && data.zones is list && data.zones.size() <= 50
+                        && data.scanPath == (stored is map ? stored.get('scanPath', null) : null);
+                }
+
                 // Retrying a save that already landed writes the same store again.
                 allow update: if isMemberOf(householdId)
                     && request.resource.data == resource.data
                     && request.resource.data.keys().hasOnly(['name', 'chain', 'map'])
                     && request.resource.data.map == null;
+
+                // Saving a map changes only `map`, from nothing or an earlier map to a
+                // valid one. Name and chain stay as stored. Saving the same map
+                // again (a retry) changes nothing further.
+                allow update: if isMemberOf(householdId)
+                    && request.resource.data.keys().hasOnly(['name', 'chain', 'map'])
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['map'])
+                    && validMap(request.resource.data.map, resource.data.map);
             }
 
             // Undo changes only the latest purchase, in a batch with its voided

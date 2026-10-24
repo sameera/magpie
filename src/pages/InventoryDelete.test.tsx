@@ -23,7 +23,7 @@ it("requires confirmation, lets Cancel and Escape preserve the item, and deletes
     expect(services.households.get("h1")!.items).toEqual(before.items.filter(item => item.id !== "i1"));
     expect(services.households.get("h1")!.prices).toEqual(before.prices);
     expect(screen.queryByRole("link", { name: /Milk/ })).toBeNull();
-    expect(screen.getByRole("link", { name: /Bread/ })).toBeVisible();
+    expect(await screen.findByRole("link", { name: /Bread/ })).toBeVisible();
 });
 
 it("shows a refused delete and allows retry", async () => {

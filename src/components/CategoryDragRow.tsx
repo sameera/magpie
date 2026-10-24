@@ -108,7 +108,8 @@ export function CategoryDragRow({ item, lifted, onDragStart, onDragMove, onDrop,
     return (
         <li
             ref={row}
-            className={`relative overflow-x-clip rounded-md cursor-pointer touch-pan-y select-none [-webkit-touch-callout:none] ${lifted ? "opacity-40" : ""}`}
+            className={`relative cursor-pointer touch-pan-y select-none [-webkit-touch-callout:none] ${lifted ? "opacity-40" : ""}`}
+            style={offset ? { transform: `translateX(${offset}px)` } : undefined}
             onPointerDown={start}
             onPointerMove={move}
             onPointerUp={end}
@@ -122,15 +123,7 @@ export function CategoryDragRow({ item, lifted, onDragStart, onDragMove, onDrop,
             }}
             onContextMenu={(e) => e.preventDefault()}
         >
-            {offset < 0 && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-end rounded-md bg-danger px-4 text-button text-surface">
-                    Remove
-                </div>
-            )}
-            <div
-                className="relative flex min-h-18 items-stretch rounded-md bg-surface shadow-sticker"
-                style={offset ? { transform: `translateX(${offset}px)` } : undefined}
-            >
+            <div className="flex min-h-18 items-stretch rounded-md bg-surface shadow-sticker">
                 <button
                     type="button"
                     aria-label={`Move ${item.name} to a category`}

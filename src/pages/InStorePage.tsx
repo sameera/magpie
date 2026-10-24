@@ -1,9 +1,10 @@
 import { Check, MapPin } from "lucide-react";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useHouseholdId, useServices } from "../app/session";
 import { readItemNow } from "../data/itemNow";
 import { setTripPath } from "../app/tripStore";
+import { enterSession, endSession, getSession, logPurchase, restorePurchase, unlogPurchase } from "../app/shoppingSession";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useCategories, useList, useStore } from "../data/hooks";
@@ -11,15 +12,21 @@ import { listGroups } from "../data/categoryGroups";
 import { chainFilter } from "../data/chainFilter";
 import { walkingOrder, zoneOf, type Item } from "../data/model";
 import { QuantityBadge } from "../components/QuantityBadge";
-import { InStoreMenu } from "./InStoreMenu";
+import { InStoreMenu, type Sidebar } from "./InStoreMenu";
+import { PurchasedSidebar } from "./PurchasedSidebar";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
 export function InStorePage() {
+    const { storeId = "" } = useParams();
+    const [sidebar, setSidebar] = useState<Sidebar | null>(null);
+    useEffect(() => setSidebar(null), [storeId]);
+    const close = useCallback(() => setSidebar(null), []);
     return (
         <>
             <InStoreBody />
-            <InStoreMenu />
+            {sidebar === "purchased" && <PurchasedSidebar storeId={storeId} onClose={close} />}
+            <InStoreMenu sidebar={sidebar} onSidebar={setSidebar} />
         </>
     );
 }
@@ -37,6 +44,7 @@ function InStoreBody() {
     const [confirmation, setConfirmation] = useState<{ item: Item; id: string; action: "purchase" | "unavailable" } | null>(null);
     const [unavailable, setUnavailable] = useState<Set<string>>(() => new Set());
     useEffect(() => {
+        enterSession(storeId);
         setUnavailable(new Set());
         setConfirmation(null);
     }, [storeId]);
@@ -61,6 +69,7 @@ function InStoreBody() {
     }
 
     const changeStore = () => {
+        endSession();
         const state: ShopChoiceState = { switching: true };
         navigate("/shop", { replace: true, state });
     };
@@ -69,9 +78,11 @@ function InStoreBody() {
         setRefusal("");
         const id = crypto.randomUUID();
         setConfirmation({ item, id, action: "purchase" });
+        logPurchase({ id, itemId: item.id, name: item.name, amount: item.quantityNeeded });
         // Local snapshots advance the trip immediately, including offline.
         data.recordPurchase(householdId, item.id, item.quantityNeeded, { id, previous: item }).catch(async (error: unknown) => {
             console.error("Shop purchase failed", error);
+            unlogPurchase(id);
             const now = await readItemNow(data, householdId, item.id);
             setConfirmation(current => current?.id === id ? null : current);
             if (now?.onList) setRefusal(`${item.name} could not be recorded as purchased. It is still on the list.`);
@@ -97,8 +108,11 @@ function InStoreBody() {
             });
             return;
         }
+        const logged = getSession().purchased.find((entry) => entry.id === id);
+        unlogPurchase(id);
         data.undoPurchase(householdId, item, id).catch((error: unknown) => {
             console.error("Shop undo failed", error);
+            if (logged) restorePurchase(logged);
             setRefusal(`${item.name} could not be undone. Check the list before trying again.`);
         });
     };
@@ -141,7 +155,7 @@ function InStoreBody() {
                 <p className="mb-6 text-body text-ink-muted">Nothing on the list.</p>
             )}
             {(refusal || confirmation) && (
-                <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-10 flex flex-col gap-2">
+                <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-40 flex flex-col gap-2">
                     {refusal && (
                         <p role="alert" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
                             <span className="flex-1">{refusal}</span>

@@ -313,3 +313,15 @@
         }
     }
 }
+
+/* In Store sidebars slide in from the right. */
+@keyframes sidebar-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .sidebar-in {
+        animation: sidebar-in var(--duration-sheet) ease-out;
+    }
+}

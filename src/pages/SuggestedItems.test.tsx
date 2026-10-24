@@ -20,16 +20,64 @@ describe("Suggested items", () => {
         );
         renderApp(["/"], services);
         const section = screen.getByRole("region", { name: "Suggested" });
-        expect(suggestions().getAllByRole("link").map(link => link.textContent)).toEqual(["Frequent", "Apples", "Bananas", "Older"]);
+        expect(suggestions().getAllByRole("button", { name: /^Add .+ to list$/ }).map(link => link.textContent)).toEqual(["Frequent", "Apples", "Bananas", "Older"]);
         const list = screen.getByRole("list", { name: "Shopping list" });
         expect(list.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-        expect(suggestions().queryByRole("button")).toBeNull();
+        expect(suggestions().getAllByRole("button")).toHaveLength(8);
+    });
+    it("uses the shopping list quantity badge for typical quantities and omits single quantities", () => {
+        const services = new FakeServices();
+        services.households.get("h1")!.items.push(
+            { ...bought("jam", "Jam"), quantityNeeded: 9, typicalPurchaseQuantity: 3 },
+            bought("legacy", "Legacy"),
+        );
+        renderApp(["/"], services);
+        expect(suggestions().getByLabelText("Quantity 3")).toHaveTextContent("x3");
+        expect(suggestions().queryByText("(3)")).toBeNull();
+        expect(suggestions().queryByText("(1)")).toBeNull();
+        expect(suggestions().queryByLabelText("Quantity 1")).toBeNull();
+    });
+    it("adds a suggestion with its typical quantity and preserves purchase history", async () => {
+        const services = new FakeServices();
+        const item = { ...bought("jam", "Jam", 2), quantityNeeded: 9, typicalPurchaseQuantity: 3 };
+        services.households.get("h1")!.items.push(item);
+        const { router } = renderApp(["/"], services);
+        await userEvent.setup().click(suggestions().getByRole("button", { name: "Add Jam to list" }));
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByText("Jam")).toBeInTheDocument();
+        expect(screen.queryByRole("region", { name: "Suggested" })).toBeNull();
+        expect(within(screen.getByRole("list", { name: "Shopping list" })).getByLabelText("Quantity 3")).toHaveTextContent("x3");
+        expect(services.households.get("h1")!.items.at(-1)).toEqual({ ...item, onList: true, quantityNeeded: 3 });
+        expect(router.state.location.pathname).toBe("/");
+    });
+    it("hides a suggestion for this visit without changing the item and fills its place", async () => {
+        const services = new FakeServices();
+        const items = Array.from({ length: 11 }, (_, i) => bought(`i${i}`, `Item ${i}`, 11 - i));
+        services.households.get("h1")!.items.push(...items);
+        const add = vi.spyOn(services.data, "addItems");
+        const { router } = renderApp(["/"], services);
+        await userEvent.setup().click(suggestions().getByRole("button", { name: "Hide Item 0 suggestion" }));
+        expect(add).not.toHaveBeenCalled();
+        expect(suggestions().queryByText("Item 0")).toBeNull();
+        expect(suggestions().getByText("Item 10")).toBeInTheDocument();
+        expect(suggestions().getAllByRole("button", { name: /^Add .+ to list$/ })).toHaveLength(10);
+        expect(services.households.get("h1")!.items.slice(-11)).toEqual(items);
+        expect(router.state.location.pathname).toBe("/");
+    });
+    it("reports a refused suggestion add and keeps it available", async () => {
+        const services = new FakeServices();
+        services.households.get("h1")!.items.push(bought("jam", "Jam"));
+        vi.spyOn(services.data, "addItems").mockRejectedValue(new Error("denied"));
+        vi.spyOn(console, "error").mockImplementation(() => undefined);
+        renderApp(["/"], services);
+        await userEvent.setup().click(suggestions().getByRole("button", { name: "Add Jam to list" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("Jam could not be added to the list.");
+        expect(suggestions().getByText("Jam")).toBeInTheDocument();
     });
     it("shows only the top ten after filtering on-list items, even when the list is empty", () => {
         const services = new FakeServices();
         services.households.get("h1")!.items = Array.from({ length: 12 }, (_, i) => bought(`i${i}`, `Item ${i}`, i + 1));
         renderApp(["/"], services);
-        expect(suggestions().getAllByRole("link").map(link => link.textContent)).toEqual(Array.from({ length: 10 }, (_, i) => `Item ${11 - i}`));
+        expect(suggestions().getAllByRole("button", { name: /^Add .+ to list$/ }).map(link => link.textContent)).toEqual(Array.from({ length: 10 }, (_, i) => `Item ${11 - i}`));
         expect(screen.getByText(/Nothing on the list/)).toBeInTheDocument();
     });
     it("hides when nobody has a recorded purchase, including legacy off-list items", () => {
@@ -38,16 +86,27 @@ describe("Suggested items", () => {
         renderApp(["/"], services);
         expect(screen.queryByRole("region", { name: "Suggested" })).toBeNull();
     });
-    it("opens the item page without changing the item or list", async () => {
+    it.each(["name", "quantity", "row", "keyboard"])("adds a suggestion by tapping its %s without navigating", async target => {
         const services = new FakeServices();
-        const item = bought("jam", "Jam", 2);
+        const item = { ...bought("jam", "Jam", 2), typicalPurchaseQuantity: 3 };
         services.households.get("h1")!.items.push(item);
-        const writes = [vi.spyOn(services.data, "setOnList"), vi.spyOn(services.data, "addItems"), vi.spyOn(services.data, "recordPurchase")];
+        const write = vi.spyOn(services.data, "addItems");
         const { router } = renderApp(["/"], services);
-        await userEvent.setup().click(suggestions().getByRole("link", { name: "Jam" }));
-        expect(router.state.location.pathname).toBe("/items/jam");
-        expect(services.households.get("h1")!.items.at(-1)).toEqual(item);
-        writes.forEach(write => expect(write).not.toHaveBeenCalled());
+        const user = userEvent.setup();
+        const row = suggestions().getByRole("button", { name: "Add Jam to list" });
+        expect(row).toContainElement(suggestions().getByText("Jam"));
+        expect(row).toContainElement(suggestions().getByLabelText("Quantity 3"));
+        expect(suggestions().queryByRole("link")).toBeNull();
+        if (target === "keyboard") {
+            row.focus();
+            await user.keyboard("{Enter}");
+        } else {
+            await user.click(target === "name" ? suggestions().getByText("Jam")
+                : target === "quantity" ? suggestions().getByLabelText("Quantity 3") : row);
+        }
+        expect(write).toHaveBeenCalledExactlyOnceWith("h1", [], [{ id: "jam", quantityNeeded: 3 }]);
+        expect(services.households.get("h1")!.items.at(-1)).toEqual({ ...item, onList: true, quantityNeeded: 3 });
+        expect(router.state.location.pathname).toBe("/");
     });
     it("removes a relisted item immediately and shows it again when taken off the list", async () => {
         const services = new FakeServices();
@@ -76,6 +135,6 @@ describe("Suggested items", () => {
         const services = new FakeServices();
         services.households.get("h1")!.items.push(bought("old", "Old"), bought("pending", "Pending", 1, null));
         renderApp(["/"], services);
-        expect(suggestions().getAllByRole("link").map(link => link.textContent)).toEqual(["Pending", "Old"]);
+        expect(suggestions().getAllByRole("button", { name: /^Add .+ to list$/ }).map(link => link.textContent)).toEqual(["Pending", "Old"]);
     });
 });

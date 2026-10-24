@@ -108,7 +108,7 @@ export function CategoryDragRow({ item, lifted, onDragStart, onDragMove, onDrop,
     return (
         <li
             ref={row}
-            className={`relative touch-pan-y select-none [-webkit-touch-callout:none] ${lifted ? "opacity-40" : ""}`}
+            className={`relative cursor-pointer touch-pan-y select-none [-webkit-touch-callout:none] ${lifted ? "opacity-40" : ""}`}
             style={offset ? { transform: `translateX(${offset}px)` } : undefined}
             onPointerDown={start}
             onPointerMove={move}
@@ -140,7 +140,7 @@ export function CategoryDragRow({ item, lifted, onDragStart, onDragMove, onDrop,
                         if (e.key === "Enter" || e.key === " ") dragged.current = false;
                     }}
                     onClick={onChooseCategory}
-                    className="flex min-h-tap w-tap shrink-0 touch-none items-center justify-center rounded-md text-ink-muted"
+                    className="flex min-h-tap w-tap shrink-0 cursor-move touch-none items-center justify-center rounded-md text-ink-muted"
                 >
                     <GripVertical aria-hidden="true" />
                 </button>

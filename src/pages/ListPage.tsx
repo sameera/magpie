@@ -1,4 +1,4 @@
-import { Camera, EllipsisVertical, Minus, Plus, ShoppingBasket, Trash2 } from "lucide-react";
+import { Camera, EllipsisVertical, Minus, Plus, ShoppingBasket, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useScrollMemory } from "../app/scrollMemory";
@@ -24,7 +24,8 @@ export function ListPage() {
     const bought = useBoughtItems();
     const categories = useCategories();
     const customCategories = categories.status === "ready" ? categories.value : [];
-    const suggestions = bought.status === "ready" ? suggestedItems(bought.value) : [];
+    const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(() => new Set());
+    const suggestions = bought.status === "ready" ? suggestedItems(bought.value.filter(item => !hiddenSuggestions.has(item.id))) : [];
     const [adding, setAdding] = useState(false);
     const [menuFor, setMenuFor] = useState<string | null>(null);
     const [undo, setUndo] = useState<Item | null>(null);
@@ -76,6 +77,12 @@ export function ListPage() {
         setUndo(null);
         setRefusal("");
         sendOnList(item, data.setOnList(householdId, item.id, true), true, `${item.name} could not be put back on the list.`);
+    };
+    const addSuggestion = (item: Item) => {
+        setRefusal("");
+        const quantityNeeded = item.typicalPurchaseQuantity ?? 1;
+        send(item, data.addItems(householdId, [], [{ id: item.id, quantityNeeded }]),
+            now => now.onList, () => `${item.name} could not be added to the list.`);
     };
     const purchase = (item: Item, amount: number) => {
         setRefusal("");
@@ -132,10 +139,17 @@ export function ListPage() {
                     <h2 id="suggested-heading" className="mb-3 text-heading">Suggested</h2>
                     <ul className="flex flex-col gap-3">
                         {suggestions.map(item => (
-                            <li key={item.id}>
-                                <Link to={`/items/${item.id}`} className="flex min-h-18 items-center rounded-md bg-surface p-3 text-item shadow-sticker">
-                                    {item.name}
-                                </Link>
+                            <li key={item.id} className="relative cursor-pointer rounded-md bg-surface shadow-sticker">
+                                <button type="button" aria-label={`Add ${item.name} to list`} onClick={() => addSuggestion(item)}
+                                    className="flex min-h-18 w-full cursor-pointer items-center gap-2 rounded-md p-3 pr-tap text-left">
+                                    <span className="min-w-0 break-words text-item">{item.name}</span>
+                                    <QuantityBadge quantity={item.typicalPurchaseQuantity ?? 1} />
+                                </button>
+                                <button type="button" aria-label={`Hide ${item.name} suggestion`}
+                                    onClick={() => setHiddenSuggestions(hidden => new Set([...hidden, item.id]))}
+                                    className="absolute top-1/2 right-0 flex size-tap -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-ink-muted">
+                                    <X aria-hidden="true" className="size-4" />
+                                </button>
                             </li>
                         ))}
                     </ul>
@@ -234,7 +248,7 @@ function ListRow({
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
                 onClick={onToggleMenu}
-                className="flex w-tap shrink-0 items-center justify-center rounded-md text-ink-muted"
+                className="flex w-tap shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-muted"
             >
                 <EllipsisVertical aria-hidden="true" />
             </button>

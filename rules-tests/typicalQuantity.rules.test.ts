@@ -63,3 +63,26 @@ it.each([null, "stranger", "other"])("denies read, create and update for outside
     await assertFails(setDoc(doc(db, "households/h1/items/new"), { ...stored, typicalPurchaseQuantity: 2 }));
     await assertFails(updateDoc(doc(db, path), { typicalPurchaseQuantity: 2 }));
 });
+
+// The List page's + action relists an existing suggestion at its typical quantity.
+it.each(["alex", null, "stranger", "other"])("checks suggestion relisting access for %s", async uid => {
+    const suggestion = { ...stored, onList: false, typicalPurchaseQuantity: 3, purchaseCount: 2 };
+    await env.withSecurityRulesDisabled(async ctx => { await setDoc(doc(ctx.firestore(), path), suggestion); });
+    const app = initializeApp({ projectId: "demo-magpie-typical" }, `suggestion-${uid}`);
+    try {
+        const db = (uid === null ? env.unauthenticatedContext() : env.authenticatedContext(uid)).firestore() as unknown as Firestore;
+        const data = createFirestoreData(db, getStorage(app));
+        const write = data.addItems("h1", [], [{ id: "milk", quantityNeeded: 3 }]);
+        if (uid === "alex") {
+            await assertSucceeds(write);
+            expect((await getDoc(doc(db, path))).data()).toEqual({ ...suggestion, onList: true, quantityNeeded: 3 });
+        } else {
+            await assertFails(write);
+        }
+    } finally { await deleteApp(app); }
+});
+
+it.each([0, 1000, 1.5])("denies relisting a suggestion with invalid quantity %s", async quantityNeeded => {
+    const db = env.authenticatedContext("alex").firestore();
+    await assertFails(updateDoc(doc(db, path), { onList: true, quantityNeeded }));
+});

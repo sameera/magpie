@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useHouseholdId, useServices } from "../app/session";
-import type { Item, Price, Store } from "./model";
+import type { Category, Item, Price, Store } from "./model";
 import { useWatched } from "./watch";
 import type { Watched } from "../services/types";
 
@@ -21,6 +21,13 @@ export function useItems(): Watched<Item[]> {
     const householdId = useHouseholdId();
     const { data } = useServices();
     return useWatched(`items/${householdId}`, (listener) => data.watchItems(householdId, listener));
+}
+
+// The household's custom categories.
+export function useCategories(): Watched<Category[]> {
+    const householdId = useHouseholdId();
+    const { data } = useServices();
+    return useWatched(`categories/${householdId}`, (listener) => data.watchCategories(householdId, listener));
 }
 
 export function useItem(itemId: string): Watched<Item> {

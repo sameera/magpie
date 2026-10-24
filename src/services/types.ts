@@ -1,4 +1,4 @@
-import type { Item, ItemFields, InventoryItemFields, ListedItem, Price, Store, ZoneKind } from "../data/model";
+import type { Category, Item, ItemFields, InventoryItemFields, ListedItem, Price, Store, ZoneKind } from "../data/model";
 
 export interface AuthUser {
     uid: string;
@@ -65,6 +65,12 @@ export interface DataService {
     // including a second purchase of an item already off the list. Callers do not
     // wait for it.
     recordPurchase(householdId: string, itemId: string, amount: number): Promise<void>;
+    // Writes the custom category under its key, so saving again is the same write.
+    // The caller has checked the name. Resolves once the server accepts the write;
+    // rejects if it is refused. Callers do not wait for it.
+    createCategory(householdId: string, category: Category): Promise<void>;
+    // The household's custom categories, sorted by name.
+    watchCategories(householdId: string, listener: (categories: Watched<Category[]>) => void): Unsubscribe;
     watchList(householdId: string, listener: (list: Watched<Item[]>) => void): Unsubscribe;
     // All items with at least one recorded purchase, including items on the list.
     watchBoughtItems(householdId: string, listener: (items: Watched<Item[]>) => void): Unsubscribe;

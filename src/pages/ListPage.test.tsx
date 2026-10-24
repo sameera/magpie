@@ -24,7 +24,7 @@ describe("List page", () => {
 
     it("reads only the signed-in member's household", () => {
         const services = new FakeServices();
-        services.households.set("h2", { items: [], stores: [], prices: [] });
+        services.households.set("h2", { items: [], stores: [], prices: [], categories: [] });
         renderApp(["/"], services);
         expect(new Set(services.reads)).toEqual(new Set(["h1"]));
     });
@@ -37,7 +37,7 @@ describe("List page", () => {
 
     it("says so when the list is empty", () => {
         const services = new FakeServices();
-        services.households.set("h1", { items: [], stores: [], prices: [] });
+        services.households.set("h1", { items: [], stores: [], prices: [], categories: [] });
         renderApp(["/"], services);
         expect(screen.getByText("Nothing on the list. Tap + to add the first thing.")).toBeInTheDocument();
     });

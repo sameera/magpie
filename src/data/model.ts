@@ -89,6 +89,19 @@ export const itemConverter: FirestoreDataConverter<Item> = {
     }),
 };
 
+// households/{householdId}/categories/{key}: a custom category. Created once,
+// never changed or deleted. The key is the cleaned name in lower case. A custom
+// category places no item in a store.
+export interface Category {
+    id: string;
+    name: string;
+}
+
+export const categoryConverter: FirestoreDataConverter<Category> = {
+    toFirestore: ({ id: _id, ...category }: Category) => category,
+    fromFirestore: (snap: QueryDocumentSnapshot) => ({ id: snap.id, name: String(snap.get("name") ?? "") }),
+};
+
 // households/{householdId}/purchases/{purchaseId}: immutable purchase history.
 export interface Purchase {
     id: string;

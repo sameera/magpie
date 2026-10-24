@@ -1,5 +1,5 @@
 import { deleteField, increment, serverTimestamp, setDoc, updateDoc, writeBatch, collection, doc, onSnapshot, query, where, type Firestore } from "firebase/firestore";
-import { itemConverter, newItem, priceConverter, purchaseConverter, storeConverter, type Item, type Price, type Store } from "../data/model";
+import { categoryConverter, itemConverter, newItem, priceConverter, purchaseConverter, storeConverter, type Category, type Item, type Price, type Store } from "../data/model";
 import { getDownloadURL, ref, type FirebaseStorage } from "firebase/storage";
 import { loggedOperation, logError } from "./errors";
 import type { DataService } from "./types";
@@ -11,6 +11,8 @@ function byName(a: { name: string }, b: { name: string }): number {
 export function createFirestoreData(db: Firestore, storage: FirebaseStorage): DataService {
     const items = (householdId: string) => collection(db, "households", householdId, "items").withConverter(itemConverter);
     const stores = (householdId: string) => collection(db, "households", householdId, "stores").withConverter(storeConverter);
+
+    const categories = (householdId: string) => collection(db, "households", householdId, "categories").withConverter(categoryConverter);
 
     const context = { projectId: db.app.options.projectId };
     const run = <T>(operation: string, details: Record<string, unknown>, action: () => Promise<T>) =>
@@ -24,6 +26,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
     return {
         createStore: (householdId, { id, name, chain }) =>
             run("createStore", { householdId, storeId: id }, () => setDoc(doc(stores(householdId), id), { id, name, chain, map: null })),
+        createCategory: (householdId, { id, name }) =>
+            run("createCategory", { householdId, categoryId: id }, () => setDoc(doc(categories(householdId), id), { id, name })),
         createItem: (householdId, item) =>
             run("createItem", { householdId, itemId: item.id }, () => setDoc(doc(items(householdId), item.id), newItem(item))),
         createItems: (householdId, list) => run("createItems", { householdId, itemIds: list.map(({ id }) => id) }, () => {
@@ -58,6 +62,12 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             });
             return batch.commit();
         }),
+        watchCategories: (householdId, listener) =>
+            onSnapshot(
+                categories(householdId),
+                (snap) => listener({ status: "ready", value: snap.docs.map((d): Category => d.data()).sort(byName) }),
+                failedRead("watchCategories", { householdId }, () => listener({ status: "missing" })),
+            ),
         watchList: (householdId, listener) =>
             onSnapshot(
                 query(items(householdId), where("onList", "==", true)),

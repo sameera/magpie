@@ -54,6 +54,9 @@ async function writeTestData(db: Firestore, householdId: string): Promise<void> 
         category: "dairy",
         onList: true,
     });
+    // Custom categories: the empty one is Inventory's "0 items" heading.
+    await household.collection("categories").doc("baby").set({ name: "Baby" });
+    await household.collection("categories").doc("garden").set({ name: "Garden" });
     await household.collection("prices").doc("test-milk-costco").set({
         itemId: "test-milk",
         chain: "Costco",

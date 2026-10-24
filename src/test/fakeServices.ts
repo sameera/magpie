@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { newItem, type Item, type Price, type Store } from "../data/model";
+import { newItem, type Category, type Item, type Price, type Store } from "../data/model";
 import type { AuthUser, DataService, Membership, Services, Watched } from "../services/types";
 
 type Listener<T> = (value: T) => void;
@@ -16,6 +16,7 @@ export interface FakeHousehold {
     items: Item[];
     stores: Store[];
     prices: Price[];
+    categories: Category[];
 }
 
 // In-memory stand-in for Firebase. Tests drive auth and membership through it.
@@ -53,6 +54,7 @@ export class FakeServices implements Services {
                 }),
                 testStore({ id: "s2", name: "Safeway Main St", chain: "Safeway" }),
             ],
+            categories: [],
             prices: [
                 { id: "p1", itemId: "i1", chain: "Costco", amount: 4.29, unit: "2 L", observedAt: new Date("2026-09-01") },
                 { id: "p2", itemId: "i1", chain: "Safeway", amount: 5.49, unit: "2 L", observedAt: new Date("2026-09-20") },
@@ -79,7 +81,7 @@ export class FakeServices implements Services {
 
     private household(householdId: string): FakeHousehold {
         this.reads.push(householdId);
-        return this.households.get(householdId) ?? { items: [], stores: [], prices: [] };
+        return this.households.get(householdId) ?? { items: [], stores: [], prices: [], categories: [] };
     }
 
     private answer<T>(listener: Listener<Watched<T>>, value: T | null | undefined): () => void {
@@ -91,6 +93,8 @@ export class FakeServices implements Services {
 
     private itemsListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
     private boughtListeners = new Map<string, Set<Listener<Watched<Item[]>>>>();
+
+    private categoryListeners = new Map<string, Set<Listener<Watched<Category[]>>>>();
 
     private storeListeners = new Map<string, Set<Listener<Watched<Store[]>>>>();
 
@@ -107,6 +111,18 @@ export class FakeServices implements Services {
         this.listListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.onList(householdId) }));
         this.itemsListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.allItems(householdId) }));
         this.boughtListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: this.allItems(householdId).filter(item => (item.purchaseCount ?? 0) >= 1) }));
+    }
+
+    private categoriesChanged(householdId: string): void {
+        const value = [...this.household(householdId).categories].sort((a, b) => a.name.localeCompare(b.name));
+        this.categoryListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value }));
+    }
+
+    // A category saved by another member, as the server delivers it.
+    landCategory(householdId: string, category: Category): void {
+        const household = this.household(householdId);
+        household.categories = [...household.categories.filter(existing => existing.id !== category.id), category];
+        this.categoriesChanged(householdId);
     }
 
     // What the next saves do: "refuse" rejects them; "hang" never answers, as
@@ -133,6 +149,8 @@ export class FakeServices implements Services {
                 household.stores = [...household.stores.filter(existing => existing.id !== store.id), { ...store, map: null }];
                 this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
             }),
+        createCategory: (householdId, category) =>
+            this.save(() => this.landCategory(householdId, category)),
         createItem: (householdId, item) =>
             this.save(() => {
                 const household = this.household(householdId);
@@ -205,6 +223,13 @@ export class FakeServices implements Services {
                     } : existing);
                 this.itemsChanged(householdId);
             });
+        },
+        watchCategories: (householdId, listener) => {
+            const listeners = this.categoryListeners.get(householdId) ?? new Set();
+            this.categoryListeners.set(householdId, listeners);
+            listeners.add(listener);
+            this.answer(listener, [...this.household(householdId).categories].sort((a, b) => a.name.localeCompare(b.name)));
+            return () => { listeners.delete(listener); };
         },
         watchList: (householdId, listener) => {
             const listeners = this.listListeners.get(householdId) ?? new Set();

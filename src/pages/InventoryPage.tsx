@@ -3,30 +3,34 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { CategoryDragRow } from "../components/CategoryDragRow";
 import { useCategoryDrag } from "../components/CategoryDrag";
-import { useItems } from "../data/hooks";
-import { categoryName, listGroups } from "../data/categoryGroups";
+import { useCategories, useItems } from "../data/hooks";
+import { inventoryGroups } from "../data/categoryGroups";
+import { AddCategoryForm } from "../components/AddCategoryForm";
 import { PageHeader } from "./PageHeader";
 import { PreferredChainText } from "../components/PreferredChainText";
 
 export function InventoryPage() {
     const items = useItems();
+    const categories = useCategories();
     const [refusal, setRefusal] = useState("");
+    const customCategories = categories.status === "ready" ? categories.value : [];
     const categoryDrag = useCategoryDrag(items.status === "ready" ? items.value : [], setRefusal);
 
     return (
         <>
             <PageHeader title="Inventory" />
+            <AddCategoryForm onRefused={setRefusal} />
             {items.status === "loading" && <p className="text-body text-ink-muted">Loading inventory…</p>}
             {items.status === "missing" && <p className="text-body text-ink-muted">The inventory could not be read.</p>}
-            {items.status === "ready" && items.value.length === 0 && (
+            {items.status === "ready" && items.value.length === 0 && customCategories.length === 0 && (
                 <p className="text-body text-ink-muted">No items yet.</p>
             )}
-            {items.status === "ready" && items.value.length > 0 && (
+            {items.status === "ready" && (items.value.length > 0 || customCategories.length > 0) && (
                 <ul aria-label="Inventory" className="flex flex-col gap-6">
-                    {listGroups(items.value).map(({ category, items }) => (
-                        <li key={category ?? "none"}>
-                            <h2 id={`inventory-category-${category ?? "none"}`} className="mb-3 text-heading">{categoryName(category)}</h2>
-                            <ul aria-labelledby={`inventory-category-${category ?? "none"}`} className="flex flex-col gap-3">
+                    {inventoryGroups(items.value, customCategories).map(({ key, title, items }) => (
+                        <li key={key}>
+                            <h2 id={`inventory-category-${key}`} className="mb-3 text-heading">{title}</h2>
+                            <ul aria-labelledby={`inventory-category-${key}`} className="flex flex-col gap-3">
                                 {items.map(item => (
                                     <CategoryDragRow key={item.id} item={item} {...categoryDrag.rowActions(item)}>
                                         <Link

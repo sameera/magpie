@@ -142,6 +142,38 @@ service cloud.firestore {
                     && (isEditOrRelist() || isPurchase());
             }
 
+            // Custom categories. A member creates one under its key, the cleaned
+            // name in lower case (see src/data/categoryName.ts). It is never
+            // renamed or deleted; only a write of exactly what is stored is accepted,
+            // so a retry, or the other member's identical offline save, is not an error.
+            match /categories/{categoryId} {
+                function reservedKeys() {
+                    return ['produce', 'dairy', 'bakery', 'meat', 'frozen', 'pantry', 'no category'];
+                }
+
+                function validCategoryRecord(data) {
+                    return data.keys().hasAll(['name'])
+                        && data.keys().hasOnly(['name'])
+                        && data.name is string
+                        && data.name.size() >= 1
+                        && data.name.size() <= 40
+                        && data.name.matches('.*[\\p{L}\\p{N}].*')
+                        && !data.name.matches('.*/.*')
+                        && !data.name.matches('.*[^\\S ].*')
+                        && !data.name.matches(' .*|.* |.*  .*')
+                        // The rules lower-case ASCII only, so no capital outside ASCII.
+                        && !data.name.matches('.*([^\\P{Lu}A-Z]|\\p{Lt}|\\p{Nl}).*')
+                        && categoryId == data.name.lower()
+                        && !(categoryId in reservedKeys());
+                }
+
+                allow create: if isMemberOf(householdId) && validCategoryRecord(request.resource.data);
+                allow update: if isMemberOf(householdId)
+                    && request.resource.data == resource.data
+                    && validCategoryRecord(request.resource.data);
+                allow delete: if false;
+            }
+
             match /purchases/{purchaseId} {
                 function validPurchase() {
                     let entry = request.resource.data;

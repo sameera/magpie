@@ -1,4 +1,4 @@
-import { zoneKinds, type Item, type ZoneKind } from "./model";
+import { zoneKinds, type Category, type Item, type ZoneKind } from "./model";
 
 // One category heading and the items under it.
 // `category` is null for the "No category" group.
@@ -25,4 +25,20 @@ export function listGroups(items: Item[], order: "category" | "appearance" = "ca
     return order === "appearance"
         ? groups.sort((a, b) => items.indexOf(a.items[0]) - items.indexOf(b.items[0]))
         : groups;
+}
+
+// One Inventory heading: a built-in category, a custom category or "No category".
+export interface InventoryGroup {
+    key: string;
+    title: string;
+    items: Item[];
+}
+
+// Inventory's headings: the built-in categories that have items, every custom
+// category, then "No category" when it has items.
+export function inventoryGroups(items: Item[], categories: Category[]): InventoryGroup[] {
+    const groups = listGroups(items).map(({ category, items }) => ({ key: category ?? "none", title: categoryName(category), items }));
+    const custom = categories.map(({ id, name }) => ({ key: `custom-${id}`, title: name, items: [] as Item[] }));
+    const unplaced = groups.filter(({ key }) => key === "none");
+    return [...groups.filter(({ key }) => key !== "none"), ...custom, ...unplaced];
 }

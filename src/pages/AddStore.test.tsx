@@ -16,7 +16,7 @@ describe("Add store chains", () => {
     it("offers distinct household chains by case-insensitive substring", async () => {
         const services = new FakeServices();
         services.households.get("h1")!.stores.push(testStore({ id: "s3", name: "Other Costco", chain: "Costco" }));
-        services.households.set("h2", { items: [], prices: [], stores: [testStore({ id: "s9", name: "Other", chain: "Tesco" })] });
+        services.households.set("h2", { items: [], prices: [], categories: [], stores: [testStore({ id: "s9", name: "Other", chain: "Tesco" })] });
         const { user } = await open(services);
         await user.type(screen.getByRole("combobox", { name: "Store Chain" }), "tCo");
         const options = within(screen.getByRole("listbox")).getAllByRole("option");

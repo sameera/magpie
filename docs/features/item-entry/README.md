@@ -11,3 +11,4 @@ Add items to the shopping list quickly, from one typed text box.
 - **Add items to the list from one text box** — [#27](https://github.com/sameera/magpie/issues/27)
 - **Advanced item form and category placement** — [#31](https://github.com/sameera/magpie/issues/31)
 - **Type-ahead suggestions in the add box** — [#41](https://github.com/sameera/magpie/issues/41)
+- **Typical purchase quantity for items** — [#110](https://github.com/sameera/magpie/issues/110)

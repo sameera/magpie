@@ -1,8 +1,8 @@
 ---
 title: Item Page
 aliases: [item, new item, add item, item details, item prices]
-touches: [page-paths, back-navigation, household-data-reads, item-save, item-category, inventory-page]
-last_updated_by: "#55"
+touches: [page-paths, back-navigation, household-data-reads, item-save, item-category, inventory-page, custom-categories]
+last_updated_by: "#115"
 status: active
 verification: verified
 ---
@@ -15,7 +15,7 @@ One Item page serves both a new item and an existing item, each at its own path.
 
 Only a saved link opens the Item page at its "new" path. Choosing an item on the list opens the Item page at a path that carries that item's ID.
 
-The page holds the item's name, quantity needed, note and photo. It also holds the item's category, which places the item in each store. For an existing item, the page reads these details and the item's recorded prices. Each price belongs to a store chain and carries the date it was observed. A new item has no prices to show.
+The page holds the item's name, quantity needed, note and photo. It also holds the item's category, built-in or custom. For an existing item, the page reads these details and the item's recorded prices. Each price belongs to a store chain and carries the date it was observed. A new item has no prices to show.
 
 Finishing uses the up control to its parent page, List or Inventory. The List page then restores the scroll position it had. Done saves the item, then finishes. A new item goes on the list with no photo. An edit writes only the name, quantity, note and category, so the list flag, photo and any old per-store placement stay as stored. Done with no changes writes nothing, and leaving with unsaved changes asks to confirm.
 
@@ -35,7 +35,8 @@ Finishing uses the up control to its parent page, List or Inventory. The List pa
 - [back-navigation](back-navigation.md) — finishing uses the up control to List, and the List restores its scroll position.
 - [household-data-reads](household-data-reads.md) — the page reads an existing item's details and prices, and shows "not found" when the item is missing.
 - [item-save](item-save.md) — Done on this page runs the save, and a confirmed save finishes the page with the up control to List.
-- [item-category](item-category.md) — the page sets or clears the item's category, which places the item in each store.
+- [item-category](item-category.md) — the page sets or clears the item's category, which places the item in each store when it is a built-in category.
+- [custom-categories](custom-categories.md) — the category chooser lists the household's custom categories after the built-in ones.
 - [inventory-page](inventory-page.md) — an item opened from Inventory finishes back on Inventory, and a saved link or the list finishes on List.
 
 ## Decision Log
@@ -63,3 +64,7 @@ The add drawer's Add with details button is removed, so no control in the app op
 ### 2026-10-16 — #55 — An item opened from Inventory finishes on Inventory
 
 Choosing a name on the Inventory page opens the same Item page, and finishing returns to Inventory. The page reads the return destination from the link that opened it. Without that hint, as with a saved link or the list, the parent stays List. Invariants 2 to 4 are unchanged. The refuted alternative was to leave finishing on List. It lost because Back and Done would then disagree with the back action, which returns to Inventory.
+
+### 2026-10-24 — #115 — The category may be a custom category
+
+The Item page held a category that was none or one of the six built-in categories, and said that category places the item in each store. The category can now also be one of the household's custom categories. The chooser lists the built-in categories, then the custom ones alphabetically, then "No category". Choosing a custom category uses the same save as choosing a built-in one, so no new write exists. The sentence that the category places the item in each store left this page, because only a built-in category does and item-category states that rule. The page had no room under the word cap for both statements. The refuted alternative was to keep "No category" first in the chooser only. It lost because the chooser and the drop tray should list categories in one order.

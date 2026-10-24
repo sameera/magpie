@@ -9,3 +9,4 @@
 | [Store Map Editor](store-map-editor/README.md) | Shape a store map's zones directly on a full-height canvas: move, resize and remove them. |
 | [Item Categories](item-categories/README.md) | Group shopping-list items by category, and change an item's category by dragging it. |
 | [Preferred Chain](preferred-chain/README.md) | Give each item an optional Preferred Chain, hide other-chain items while shopping, and show the chain as a badge on the List and Inventory pages. |
+| [Inventory Item Editing](inventory-item-editing/README.md) | Edit an item's details, including its last purchase date, from a fuller editor on the Inventory page. |

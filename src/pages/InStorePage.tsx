@@ -188,14 +188,21 @@ function ShopRow({ item, zone, onPurchase }: { item: Item; zone?: string; onPurc
 
     return (
         <li
-            className="touch-pan-y"
-            style={offset ? { transform: `translateX(${offset}px)` } : undefined}
+            className="relative overflow-x-clip rounded-md touch-pan-y"
             onPointerDown={start}
             onPointerMove={move}
             onPointerUp={end}
             onPointerCancel={() => { drag.current = null; setOffset(0); }}
         >
-            <div className="flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker">
+            {offset > 0 && (
+                <div className="pointer-events-none absolute inset-0 flex items-center rounded-md bg-sheen px-4 text-button text-on-sheen">
+                    Purchase
+                </div>
+            )}
+            <div
+                className="relative flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker"
+                style={offset ? { transform: `translateX(${offset}px)` } : undefined}
+            >
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-2">
                         <span className="min-w-0 break-words text-item">{item.name}</span>

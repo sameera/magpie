@@ -23,6 +23,26 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("Shop purchases", () => {
+    it("reveals Purchase while swiping right and hides it when the gesture ends", () => {
+        const services = new FakeServices();
+        renderApp(["/shop/s1"], services);
+        const target = row("Milk");
+        const pointer = { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 150, clientY: 40 };
+        expect(within(target).queryByText("Purchase")).toBeNull();
+        fireEvent.pointerDown(target, pointer);
+        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
+        expect(within(target).getByText("Purchase")).toBeVisible();
+        expect(stock(services).onList).toBe(true);
+        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
+        expect(within(target).queryByText("Purchase")).toBeNull();
+        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
+        fireEvent.pointerCancel(target, pointer);
+        expect(within(target).queryByText("Purchase")).toBeNull();
+        swipe(target, 60);
+        expect(within(target).queryByText("Purchase")).toBeNull();
+        expect(stock(services).onList).toBe(true);
+    });
+
     it("confirms a purchase without opening a dialog and undoes its inventory changes", async () => {
         const services = new FakeServices();
         stock(services).quantityRemaining = 3;

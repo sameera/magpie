@@ -491,6 +491,27 @@ describe("List row actions", () => {
         expect(within(screen.getByRole("listbox", { name: "Matching items" })).getByRole("option", { name: /Milk/ })).toBeInTheDocument();
     });
 
+    it("reveals Remove while swiping left and hides it when the gesture ends", () => {
+        rowWidth();
+        const services = new FakeServices();
+        renderApp(["/"], services);
+        const target = rowOf("Milk");
+        const pointer = { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 150, clientY: 40 };
+        expect(within(target).queryByText("Remove")).toBeNull();
+        fireEvent.pointerDown(target, pointer);
+        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
+        expect(within(target).getByText("Remove")).toBeVisible();
+        expect(items(services).find(item => item.id === "i1")?.onList).toBe(true);
+        fireEvent.pointerMove(target, { ...pointer, clientX: 210 });
+        expect(within(target).queryByText("Remove")).toBeNull();
+        fireEvent.pointerMove(target, { ...pointer, clientX: 90 });
+        fireEvent.pointerCancel(target, pointer);
+        expect(within(target).queryByText("Remove")).toBeNull();
+        drag(target, -60);
+        expect(within(target).queryByText("Remove")).toBeNull();
+        expect(items(services).find(item => item.id === "i1")?.onList).toBe(true);
+    });
+
     it("removes an item swiped left past a third of the row, then offers Undo", async () => {
         rowWidth();
         const services = new FakeServices();

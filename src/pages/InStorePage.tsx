@@ -11,10 +11,20 @@ import { listGroups } from "../data/categoryGroups";
 import { chainFilter } from "../data/chainFilter";
 import { walkingOrder, zoneOf, type Item } from "../data/model";
 import { QuantityBadge } from "../components/QuantityBadge";
+import { InStoreMenu } from "./InStoreMenu";
 import { PageHeader } from "./PageHeader";
 import type { ShopChoiceState } from "./ShopChoicePage";
 
 export function InStorePage() {
+    return (
+        <>
+            <InStoreBody />
+            <InStoreMenu />
+        </>
+    );
+}
+
+function InStoreBody() {
     const { storeId = "" } = useParams();
     const store = useStore(storeId);
     const list = useList();

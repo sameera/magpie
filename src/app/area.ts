@@ -14,3 +14,8 @@ export function areaForPath(pathname: string): Area | null {
     }
     return null;
 }
+
+// One store's In Store page, which draws its own bottom menu.
+export function isInStorePath(pathname: string): boolean {
+    return pathname.startsWith("/shop/");
+}

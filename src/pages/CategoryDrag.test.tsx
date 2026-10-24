@@ -193,7 +193,7 @@ describe("Inventory hold and drop", () => {
         fireEvent.click(link);
         expect(router.state.location.pathname).toBe("/inventory");
         fireEvent.click(link);
-        expect(router.state.location.pathname).toBe("/items/i1");
+        expect(router.state.location.pathname).toBe("/inventory/items/i1");
         expect(router.state.location.state).toMatchObject({ returnTo: "/inventory" });
     });
 });

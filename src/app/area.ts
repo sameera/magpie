@@ -9,7 +9,7 @@ export function areaForPath(pathname: string): Area | null {
     if (pathname === "/shop" || pathname.startsWith("/shop/")) {
         return "shop";
     }
-    if (pathname === "/stores" || pathname.startsWith("/stores/") || pathname === "/inventory" || pathname === "/inventory/") {
+    if (pathname === "/stores" || pathname.startsWith("/stores/") || pathname === "/inventory" || pathname.startsWith("/inventory/")) {
         return "more";
     }
     return null;

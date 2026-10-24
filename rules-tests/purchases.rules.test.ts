@@ -131,7 +131,7 @@ describe("purchase history integrity", () => {
         await assertSucceeds(updateDoc(doc(db, itemPath), { onList: true, quantityNeeded: 4 }));
         // A server timestamp can equal the stored time in a fast emulator run,
         // making the write an allowed same-content retry. Guarantee a change.
-        const changedTime = new Timestamp(bought.lastPurchasedAt.seconds + 1, bought.lastPurchasedAt.nanoseconds);
+        const changedTime = new Timestamp(bought.lastPurchasedAt.seconds + 86400, bought.lastPurchasedAt.nanoseconds);
         await assertSucceeds(updateDoc(doc(db, itemPath), { lastPurchasedAt: bought.lastPurchasedAt }));
         for (const patch of [{ purchaseCount: 0 }, { purchaseCount: 2 }, { lastPurchaseId: "p2" }, { lastPurchasedAt: changedTime }]) {
             await assertFails(updateDoc(doc(db, itemPath), patch));
@@ -139,15 +139,15 @@ describe("purchase history integrity", () => {
         await assertFails(setDoc(doc(db, "households/h1/items/new"), { ...newItem, quantityRemaining: 0, purchaseCount: 1 }));
         await assertSucceeds(setDoc(doc(db, "households/h1/items/new"), { ...newItem, quantityRemaining: 0, purchaseCount: 0 }));
     });
-    it("refuses a server timestamp that changes the stored purchase time", async () => {
+    it("allows correcting a purchase time without changing purchase totals", async () => {
         await env.withSecurityRulesDisabled(async ctx => {
             await updateDoc(doc(ctx.firestore(), itemPath), {
                 purchaseCount: 1, lastPurchaseId: "p1", lastPurchasedAt: Timestamp.fromMillis(1),
             });
         });
         const db = member();
-        await assertFails(updateDoc(doc(db, itemPath), { lastPurchasedAt: serverTimestamp() }));
-        expect((await getDoc(doc(db, itemPath))).get("lastPurchasedAt")).toEqual(Timestamp.fromMillis(1));
+        await assertSucceeds(updateDoc(doc(db, itemPath), { lastPurchasedAt: serverTimestamp() }));
+        expect((await getDoc(doc(db, itemPath))).data()).toMatchObject({ purchaseCount: 1, lastPurchaseId: "p1" });
     });
     it("denies history reads, queries, purchases, updates and deletes to every outsider", async () => {
         for (const ctx of [env.unauthenticatedContext(), env.authenticatedContext("stranger"), env.authenticatedContext("other")]) {

@@ -41,6 +41,9 @@ export interface Item {
 // The item fields the app writes.
 export type ItemFields = Pick<Item, "id" | "name" | "quantityNeeded" | "note" | "category" | "preferredChain">;
 
+// Inventory corrections leave purchase history and totals unchanged.
+export type InventoryItemFields = ItemFields & Partial<Pick<Item, "onList" | "lastPurchasedAt">>;
+
 // An existing item put back on the list with a new quantity needed.
 export type ListedItem = Pick<Item, "id" | "quantityNeeded">;
 

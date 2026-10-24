@@ -30,7 +30,7 @@ export function InventoryPage() {
                                 {items.map(item => (
                                     <CategoryDragRow key={item.id} item={item} {...categoryDrag.rowActions(item)}>
                                         <Link
-                                            to={`/items/${item.id}`}
+                                            to={`/inventory/items/${item.id}`}
                                             state={{ returnTo: "/inventory" }}
                                             draggable={false}
                                             className="flex min-h-tap-cart min-w-0 flex-1 items-center gap-3 px-3 py-3"

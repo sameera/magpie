@@ -1,4 +1,4 @@
-import type { Item, ItemFields, ListedItem, Price, Store, ZoneKind } from "../data/model";
+import type { Item, ItemFields, InventoryItemFields, ListedItem, Price, Store, ZoneKind } from "../data/model";
 
 export interface AuthUser {
     uid: string;
@@ -43,6 +43,9 @@ export interface DataService {
     // list, its photo and quantity remaining as stored. Resolves once the
     // server accepts the write.
     updateItem(householdId: string, item: ItemFields): Promise<void>;
+    // Saves Inventory details and optional list/date corrections atomically.
+    // Does not change purchase history, purchase count, stock or photo.
+    updateInventoryItem(householdId: string, item: InventoryItemFields): Promise<void>;
     // Takes the item off the list, or puts it back, changing nothing else: not its
     // list quantity, inventory or any other detail. Resolves once the server
     // accepts the write; rejects if it is refused. Callers do not wait for it.

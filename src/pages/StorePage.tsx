@@ -27,7 +27,7 @@ export function StorePage() {
             <p className="-mt-4 mb-6 text-caption text-ink-muted">{chain}</p>
             <section aria-label="Map" className="mb-6 flex flex-col gap-4">
                 {map ? (
-                    <StoreMap map={map} label={`Map of ${name}`} scanUrl={scanUrl} />
+                    <StoreMap map={map} label={`Map of ${name}`} scanUrl={scanUrl} fitZones />
                 ) : (
                     <p className="rounded-lg bg-surface-sunken p-4 text-body text-ink-muted">This store has no map yet.</p>
                 )}

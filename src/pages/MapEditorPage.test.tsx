@@ -1,6 +1,6 @@
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { routes } from "../app/routes";
 import { renderApp } from "../test/renderApp";
 import { FakeServices } from "../test/fakeServices";
@@ -38,7 +38,7 @@ describe("Map editor page", () => {
         const header = heading.closest("header")!;
         expect(within(header).getByText("Costco Kirkland map")).toBeInTheDocument();
         expect(within(header).getByText(/^2 zones/)).toBeInTheDocument();
-        expect(within(header).getByText("Saving maps is coming soon.")).toBeInTheDocument();
+        expect(within(header).queryByText(/coming soon/)).toBeNull();
     });
 
     it("keeps the map tools in one bar that shows the current mode", async () => {
@@ -113,8 +113,66 @@ describe("Map editor page", () => {
             expect(dot).toHaveAttribute("aria-pressed", "true");
             expect(screen.queryByRole("button", { name: /Remove|Resize|Add entrance|Add checkout/i })).toBeNull();
         }
-        expect(screen.getByText("Saving maps is coming soon.")).toBeInTheDocument();
         expect(services.households.get("h1")!.stores[0]).toEqual(original);
+    });
+
+    it("saves the edited zones and returns to the Store page, leaving name and chain alone", async () => {
+        const user = userEvent.setup();
+        const services = new FakeServices();
+        const { router } = renderApp(["/stores/s1"], services);
+        await act(() => router.navigate("/stores/s1/map"));
+        await screen.findByRole("heading", { name: "Edit map" });
+        await user.selectOptions(screen.getByRole("combobox", { name: "Category of zone 1" }), "frozen");
+        await user.click(screen.getByRole("button", { name: "Add zone" }));
+        await user.click(screen.getByRole("button", { name: "Save map" }));
+        await screen.findByRole("heading", { name: "Costco Kirkland" });
+        expect(router.state.location.pathname).toBe("/stores/s1");
+        const saved = services.households.get("h1")!.stores[0];
+        expect(saved).toMatchObject({ name: "Costco Kirkland", chain: "Costco" });
+        expect(saved.map!.zones.map(zone => zone.kind)).toEqual(["frozen", "dairy", "produce"]);
+        expect(saved.map!.zones.map(zone => zone.order)).toEqual([0, 1, 2]);
+        expect(saved.map!.scanPath).toBeNull();
+        expect(Object.keys(saved.map!).sort()).toEqual(["height", "scanPath", "width", "zones"]);
+    });
+
+    it("saves a first map for a store that has none", async () => {
+        const user = userEvent.setup();
+        const services = new FakeServices();
+        renderApp(["/stores/s2/map"], services);
+        await screen.findByRole("heading", { name: "Edit map" });
+        await user.click(screen.getByRole("button", { name: "Save map" }));
+        await vi.waitFor(() => expect(services.households.get("h1")!.stores[1].map?.zones).toHaveLength(1));
+    });
+
+    it("stays open with the edits and an alert when the save is refused, then saves on retry", async () => {
+        const user = userEvent.setup();
+        const services = new FakeServices();
+        const report = vi.spyOn(console, "error").mockImplementation(() => {});
+        const save = vi.spyOn(services.data, "saveStoreMap").mockRejectedValueOnce(new Error("denied"));
+        renderApp(["/stores/s1/map"], services);
+        await screen.findByRole("heading", { name: "Edit map" });
+        await user.click(screen.getByRole("button", { name: "Add zone" }));
+        await user.click(screen.getByRole("button", { name: "Save map" }));
+        expect(await screen.findByRole("alert")).toHaveTextContent("The map could not be saved");
+        report.mockRestore();
+        expect(screen.getByRole("heading", { name: "Edit map" })).toBeInTheDocument();
+        expect(screen.getByRole("combobox", { name: "Category of zone 3" })).toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Save map" }));
+        await vi.waitFor(() => expect(services.households.get("h1")!.stores[0].map!.zones).toHaveLength(3));
+        expect(save).toHaveBeenCalledTimes(2);
+        expect(save.mock.calls[1][1]).toBe("s1");
+    });
+
+    it("disables Save map while a save is waiting, so it is not sent twice", async () => {
+        const user = userEvent.setup();
+        const services = new FakeServices();
+        services.saveBehavior = "hang";
+        const save = vi.spyOn(services.data, "saveStoreMap");
+        renderApp(["/stores/s1/map"], services);
+        await screen.findByRole("heading", { name: "Edit map" });
+        await user.click(screen.getByRole("button", { name: "Save map" }));
+        expect(screen.getByRole("button", { name: "Saving…" })).toBeDisabled();
+        expect(save).toHaveBeenCalledTimes(1);
     });
 
     it("returns to the same store's Store page when left", async () => {

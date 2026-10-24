@@ -26,6 +26,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
     return {
         createStore: (householdId, { id, name, chain }) =>
             run("createStore", { householdId, storeId: id }, () => setDoc(doc(stores(householdId), id), { id, name, chain, map: null })),
+        saveStoreMap: (householdId, storeId, map) =>
+            run("saveStoreMap", { householdId, storeId }, () => updateDoc(doc(stores(householdId), storeId), { map })),
         createCategory: (householdId, { id, name }) =>
             run("createCategory", { householdId, categoryId: id }, () => setDoc(doc(categories(householdId), id), { id, name })),
         createItem: (householdId, item) =>

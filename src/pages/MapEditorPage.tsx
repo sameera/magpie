@@ -2,6 +2,9 @@ import { Image as ImageIcon, Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { UpButton } from "../app/UpButton";
+import { useUp } from "../app/history";
+import { confirmSave, REFUSED_MESSAGE, UNCONFIRMED_MESSAGE } from "../app/saveWait";
+import { useHouseholdId, useServices } from "../app/session";
 import { NotFound } from "../components/NotFound";
 import { StoreMap } from "../components/StoreMap";
 import { useFileUrl, useStore } from "../data/hooks";
@@ -43,7 +46,8 @@ export function MapEditorPage() {
     );
 }
 
-// Drafts stay in the editor: saving maps comes with the Maps feature epic.
+// The draft stays in the editor until Save map; a confirmed save returns to the Store page.
+// The entrance and checkout dots are not part of the stored map yet.
 function Editor({ store, parent }: { store: Store; parent: string }) {
     const [mode, setMode] = useState<Mode>(store.map ? "category" : "sketch");
     const [map, setMap] = useState<StoreMapData>(() => store.map ? normalizeDraftOrder(store.map) : addDraftZone(emptyMap));
@@ -56,6 +60,11 @@ function Editor({ store, parent }: { store: Store; parent: string }) {
     const savedScanUrl = useFileUrl(store.map?.scanPath ?? null);
     const scanUrl = scanFileUrl ?? savedScanUrl;
     const canvas = useRef<HTMLDivElement>(null);
+    const householdId = useHouseholdId();
+    const { data } = useServices();
+    const leave = useUp(parent);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
     const fitted = useRef(false);
 
     // Fit only the first measurable canvas. Keyboard/rotation changes rescale
@@ -106,12 +115,29 @@ function Editor({ store, parent }: { store: Store; parent: string }) {
         </button>
     );
     const count = map.zones.length;
+    // Saving again writes the same map to the same store, so a retry cannot duplicate it.
+    const save = () => {
+        if (saving) return;
+        setError("");
+        setSaving(true);
+        const { width, height, zones, scanPath } = { ...map, scanPath: store.map?.scanPath ?? null };
+        confirmSave(data.saveStoreMap(householdId, store.id, { width, height, zones, scanPath })).then(result => {
+            if (result === "saved") { leave(); return; }
+            setSaving(false);
+            setError(`The map ${result === "refused" ? REFUSED_MESSAGE : UNCONFIRMED_MESSAGE}`);
+        });
+    };
 
     return (
         <>
-            <EditorHeader parent={parent} storeName={store.name}>
-                {count} {count === 1 ? "zone" : "zones"} · <span>Saving maps is coming soon.</span>
+            <EditorHeader parent={parent} storeName={store.name}
+                action={<button type="button" disabled={saving} onClick={save}
+                    className="inline-flex h-tap shrink-0 items-center justify-center rounded-md bg-sheen px-4 text-button text-on-sheen shadow-press disabled:opacity-60">
+                    {saving ? "Saving…" : "Save map"}
+                </button>}>
+                {count} {count === 1 ? "zone" : "zones"}
             </EditorHeader>
+            {error && <p role="alert" className="mx-auto w-full max-w-[560px] px-4 pb-2 text-caption text-danger">{error}</p>}
             <div className="mx-auto flex min-h-0 w-full max-w-[560px] flex-1 flex-col gap-3 px-4 pb-3 [@media(max-height:480px)]:gap-1">
                 <div className="relative min-h-[80px] flex-1 rounded-lg bg-surface-sunken bg-[radial-gradient(circle,var(--canvas-dot)_1.2px,transparent_1.6px)] [background-size:20px_20px]">
                     <div ref={canvas} className="absolute inset-8 [&>svg]:h-full [&>svg]:w-full [&>svg]:bg-transparent">
@@ -199,7 +225,7 @@ function ToolIcon({ children }: { children: ReactNode }) {
 }
 
 // Before the store loads, only the way back shows.
-function EditorHeader({ parent, storeName, children }: { parent: string; storeName?: string; children?: ReactNode }) {
+function EditorHeader({ parent, storeName, action, children }: { parent: string; storeName?: string; action?: ReactNode; children?: ReactNode }) {
     return (
         <header className="flex shrink-0 items-center gap-1 pt-[calc(10px+env(safe-area-inset-top))] pr-2 pb-2.5 pl-1">
             <UpButton to={parent} label="Close map editor" />
@@ -208,6 +234,7 @@ function EditorHeader({ parent, storeName, children }: { parent: string; storeNa
                 <h1 className="font-display text-title">Edit map</h1>
                 <p className="text-caption text-ink-muted">{children}</p>
             </div>}
+            {storeName && action}
         </header>
     );
 }

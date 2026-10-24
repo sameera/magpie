@@ -149,6 +149,12 @@ export class FakeServices implements Services {
                 household.stores = [...household.stores.filter(existing => existing.id !== store.id), { ...store, map: null }];
                 this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
             }),
+        saveStoreMap: (householdId, storeId, map) =>
+            this.save(() => {
+                const household = this.household(householdId);
+                household.stores = household.stores.map(store => store.id === storeId ? { ...store, map: structuredClone(map) } : store);
+                this.storeListeners.get(householdId)?.forEach(listener => listener({ status: "ready", value: household.stores }));
+            }),
         createCategory: (householdId, category) =>
             this.save(() => this.landCategory(householdId, category)),
         createItem: (householdId, item) =>

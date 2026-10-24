@@ -124,7 +124,8 @@ describe("creating stores", () => {
         await assertSucceeds(setDoc(ref, store));
         await assertSucceeds(setDoc(ref, store));
         await assertFails(setDoc(ref, { ...store, name: "Renamed" }));
-        await assertFails(updateDoc(ref, { map: { width: 1, height: 1, zones: [], scanPath: null } }));
+        await assertFails(updateDoc(ref, { chain: "Changed" }));
+        await assertFails(updateDoc(ref, { map: { width: 1, height: 1, zones: [] } }));
     });
     it("accepts an empty chain and refuses blank or over-long names", async () => {
         const db = env.authenticatedContext("alex").firestore();

@@ -41,14 +41,31 @@ service cloud.firestore {
                     && request.resource.data.chain.size() <= 100
                     && request.resource.data.map == null;
 
-                // A map is a map of width, height, zones and scanPath. Rules cannot
+                // A map is a map of width, height, zones, scanPath and, optionally, the entrance and checkout dots. Rules cannot
                 // loop over the zones, so only their count is capped; the app writes
                 // their shape. The scan path is set outside the app (Storage writes
                 // are denied), so a save keeps the stored one.
+                function validDot(dot) {
+                    return dot is map
+                        && dot.keys().hasAll(['x', 'y', 'width', 'height'])
+                        && dot.keys().hasOnly(['x', 'y', 'width', 'height'])
+                        && dot.x is number && dot.y is number
+                        && dot.width is number && dot.width > 0
+                        && dot.height is number && dot.height > 0;
+                }
+
+                // The entrance and checkout dots come together, or not at all.
+                function validDots(data) {
+                    return (!data.keys().hasAny(['entrance', 'checkout']))
+                        || (data.keys().hasAll(['entrance', 'checkout'])
+                            && validDot(data.entrance) && validDot(data.checkout));
+                }
+
                 function validMap(data, stored) {
                     return data is map
                         && data.keys().hasAll(['width', 'height', 'zones', 'scanPath'])
-                        && data.keys().hasOnly(['width', 'height', 'zones', 'scanPath'])
+                        && data.keys().hasOnly(['width', 'height', 'zones', 'scanPath', 'entrance', 'checkout'])
+                        && validDots(data)
                         && data.width is number && data.width > 0 && data.width <= 10000
                         && data.height is number && data.height > 0 && data.height <= 10000
                         && data.zones is list && data.zones.size() <= 50

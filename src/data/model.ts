@@ -138,12 +138,23 @@ export interface Zone {
     height: number;
 }
 
+// The entrance ("IN") or checkout ("PAY") marker of a store map, in map units.
+export interface MapDot {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
 export interface StoreMapData {
     width: number;
     height: number;
     zones: Zone[];
     // Cloud Storage path of a scanned map, drawn under the zones.
     scanPath: string | null;
+    // Absent on a map saved before the markers were stored.
+    entrance?: MapDot;
+    checkout?: MapDot;
 }
 
 // households/{householdId}/stores/{storeId}
@@ -170,6 +181,15 @@ function toZone(value: unknown, index: number): Zone {
     };
 }
 
+function toDot(value: unknown): MapDot | undefined {
+    const d = (value ?? {}) as Record<string, unknown>;
+    const nums = [d.x, d.y, d.width, d.height];
+    if (!nums.every(n => typeof n === "number")) {
+        return undefined;
+    }
+    return { x: d.x as number, y: d.y as number, width: d.width as number, height: d.height as number };
+}
+
 function toStoreMap(value: unknown): StoreMapData | null {
     if (!value || typeof value !== "object") {
         return null;
@@ -180,6 +200,8 @@ function toStoreMap(value: unknown): StoreMapData | null {
         height: typeof m.height === "number" ? m.height : 100,
         zones: Array.isArray(m.zones) ? m.zones.map(toZone) : [],
         scanPath: typeof m.scanPath === "string" ? m.scanPath : null,
+        ...(toDot(m.entrance) && { entrance: toDot(m.entrance) }),
+        ...(toDot(m.checkout) && { checkout: toDot(m.checkout) }),
     };
 }
 

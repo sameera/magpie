@@ -1,4 +1,4 @@
-import { act, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { routes } from "../app/routes";
@@ -132,7 +132,38 @@ describe("Map editor page", () => {
         expect(saved.map!.zones.map(zone => zone.kind)).toEqual(["frozen", "dairy", "produce"]);
         expect(saved.map!.zones.map(zone => zone.order)).toEqual([0, 1, 2]);
         expect(saved.map!.scanPath).toBeNull();
-        expect(Object.keys(saved.map!).sort()).toEqual(["height", "scanPath", "width", "zones"]);
+        expect(Object.keys(saved.map!).sort()).toEqual(["checkout", "entrance", "height", "scanPath", "width", "zones"]);
+    });
+
+    it("saves the entrance and checkout dots and shows them moved on reopening", async () => {
+        class TestPointerEvent extends MouseEvent {
+            pointerId: number;
+            constructor(type: string, init: PointerEventInit = {}) { super(type, init); this.pointerId = init.pointerId ?? 1; }
+        }
+        vi.stubGlobal("PointerEvent", TestPointerEvent);
+        vi.spyOn(SVGSVGElement.prototype, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0, right: 200, bottom: 120, width: 200, height: 120, toJSON() {} });
+        const user = userEvent.setup();
+        const services = new FakeServices();
+        const first = renderApp(["/stores/s1/map"], services);
+        const entrance = await screen.findByRole("button", { name: "Entrance" });
+        const x = () => Number(screen.getByRole("button", { name: "Entrance" }).querySelectorAll("rect")[1].getAttribute("x"));
+        const before = x();
+        fireEvent.pointerDown(entrance, { pointerId: 1, button: 0, clientX: 20, clientY: 20 });
+        fireEvent.pointerMove(entrance, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+        fireEvent.pointerUp(entrance, { pointerId: 1, button: 0, clientX: 10, clientY: 10 });
+        const moved = x();
+        expect(moved).not.toBe(before);
+        await user.click(screen.getByRole("button", { name: "Save map" }));
+        await vi.waitFor(() => expect(services.households.get("h1")!.stores[0].map!.entrance).toBeDefined());
+        const map = services.households.get("h1")!.stores[0].map!;
+        expect(map.entrance!.x).toBeLessThan(5);
+        expect(map.checkout).toMatchObject({ width: expect.any(Number), height: expect.any(Number) });
+        first.unmount();
+        renderApp(["/stores/s1/map"], services);
+        await screen.findByRole("button", { name: "Entrance" });
+        expect(x()).toBe(moved);
+        vi.restoreAllMocks();
+        vi.unstubAllGlobals();
     });
 
     it("saves a first map for a store that has none", async () => {

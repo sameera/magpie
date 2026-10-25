@@ -83,6 +83,23 @@ describe("what a map save cannot change", () => {
     });
 });
 
+describe("entrance and checkout dots", () => {
+    const dot = { x: 5, y: 47, width: 14, height: 8 };
+    const save = (value: unknown) => updateDoc(at(as("alex"), "mapped"), { map: value });
+    it("accepts a map with both dots, or with neither", async () => {
+        await assertSucceeds(save(map({ entrance: dot, checkout: { ...dot, x: 81 } })));
+        await assertSucceeds(save(map()));
+    });
+    it("refuses one dot without the other, and malformed dots", async () => {
+        await assertFails(save(map({ entrance: dot })));
+        await assertFails(save(map({ entrance: dot, checkout: null })));
+        await assertFails(save(map({ entrance: dot, checkout: { ...dot, extra: 1 } })));
+        await assertFails(save(map({ entrance: dot, checkout: { x: 1, y: 1, width: 1 } })));
+        await assertFails(save(map({ entrance: dot, checkout: { ...dot, width: "14" } })));
+        await assertFails(save(map({ entrance: dot, checkout: { ...dot, width: 0 } })));
+    });
+});
+
 describe("invalid maps", () => {
     const save = (value: unknown) => updateDoc(at(as("alex"), "empty"), { map: value });
     it("refuses a map that is not a map, or has missing or extra keys", async () => {

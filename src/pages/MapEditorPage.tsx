@@ -13,7 +13,7 @@ import { categoryName } from "../data/categoryGroups";
 import { ZoneEditingLayer } from "./ZoneEditingLayer";
 import { addDraftZone, moveDraftPlace, normalizeDraftOrder, removeDraftZone } from "./zoneDraft";
 import { RemoveZoneSheet } from "./RemoveZoneSheet";
-import { defaultDots } from "./editorDots";
+import { initialDots } from "./editorDots";
 
 type Mode = "sketch" | "category";
 
@@ -47,11 +47,10 @@ export function MapEditorPage() {
 }
 
 // The draft stays in the editor until Save map; a confirmed save returns to the Store page.
-// The entrance and checkout dots are not part of the stored map yet.
 function Editor({ store, parent }: { store: Store; parent: string }) {
     const [mode, setMode] = useState<Mode>(store.map ? "category" : "sketch");
     const [map, setMap] = useState<StoreMapData>(() => store.map ? normalizeDraftOrder(store.map) : addDraftZone(emptyMap));
-    const [dots, setDots] = useState(() => defaultDots(store.map ?? emptyMap));
+    const [dots, setDots] = useState(() => initialDots(store.map ?? emptyMap));
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDot, setSelectedDot] = useState<"entrance" | "checkout" | null>(null);
     const [confirmRemoval, setConfirmRemoval] = useState(false);
@@ -121,7 +120,7 @@ function Editor({ store, parent }: { store: Store; parent: string }) {
         setError("");
         setSaving(true);
         const { width, height, zones, scanPath } = { ...map, scanPath: store.map?.scanPath ?? null };
-        confirmSave(data.saveStoreMap(householdId, store.id, { width, height, zones, scanPath })).then(result => {
+        confirmSave(data.saveStoreMap(householdId, store.id, { width, height, zones, scanPath, entrance: dots.entrance, checkout: dots.checkout })).then(result => {
             if (result === "saved") { leave(); return; }
             setSaving(false);
             setError(`The map ${result === "refused" ? REFUSED_MESSAGE : UNCONFIRMED_MESSAGE}`);

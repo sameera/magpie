@@ -15,6 +15,8 @@ Product context, personas, and priorities: [docs/product/context.md](docs/produc
 
 Package manager is pnpm; local backend is the Firebase Emulator Suite.
 
+Environment files are gitignored and are not copied into new worktrees. Before starting Vite or building in a new worktree, copy the configured `.env.development.local` and `.env.production` from your existing checkout, or create them using `.env.example` and the project's Firebase web config. An empty API key causes `auth/invalid-api-key` at startup. Restart Vite after changing environment files; rebuild when using `pnpm preview`, since the Firebase config is embedded at build time.
+
 - `pnpm dev` — Vite dev server
 - `pnpm build` — type-check and production build (PWA)
 - `pnpm run deploy` — build, test security rules (needs Java 21+), and deploy Hosting and Firestore rules to `awzmlist` (Storage rules are not deployed until the bucket is created in the console), the project configured in `.env.production` and the `.firebaserc` `prod` alias. Use `run` because pnpm reserves `deploy` for its built-in workspace command.

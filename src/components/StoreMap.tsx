@@ -15,14 +15,24 @@ interface StoreMapProps {
     // Zone to mark as "next".
     nextZoneId?: string;
     scanUrl?: string | null;
+    fitZones?: boolean;
 }
 
-export function StoreMap({ map, label, nextZoneId, scanUrl }: StoreMapProps) {
+export function StoreMap({ map, label, nextZoneId, scanUrl, fitZones = false }: StoreMapProps) {
+    let top = 0;
+    let height = map.height;
+    if (fitZones && map.zones.length > 0) {
+        // Keep the horizontal scale and leave room for the zone outlines.
+        top = Math.min(...map.zones.map(zone => zone.y)) - 2;
+        const bottom = Math.max(...map.zones.map(zone => zone.y + zone.height)) + 2;
+        height = bottom - top;
+    }
+
     return (
         <svg
             role="img"
             aria-label={label}
-            viewBox={`0 0 ${map.width} ${map.height}`}
+            viewBox={`0 ${top} ${map.width} ${height}`}
             className="w-full rounded-lg bg-surface-sunken"
         >
             {scanUrl && <image href={scanUrl} width={map.width} height={map.height} opacity={0.35} />}

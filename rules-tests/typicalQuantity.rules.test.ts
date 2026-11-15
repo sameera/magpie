@@ -86,3 +86,21 @@ it.each([0, 1000, 1.5])("denies relisting a suggestion with invalid quantity %s"
     const db = env.authenticatedContext("alex").firestore();
     await assertFails(updateDoc(doc(db, path), { onList: true, quantityNeeded }));
 });
+
+it("lets a member change only the list quantity within 1 to 999 and denies others", async () => {
+    const app = initializeApp({ projectId: "demo-magpie-typical" }, "setqty");
+    try {
+        const data = createFirestoreData(env.authenticatedContext("alex").firestore() as unknown as Firestore, getStorage(app));
+        await assertSucceeds(data.setQuantityNeeded("h1", "milk", 999));
+        await assertSucceeds(data.setQuantityNeeded("h1", "milk", 1));
+        await assertFails(data.setQuantityNeeded("h1", "milk", 0));
+        await assertFails(data.setQuantityNeeded("h1", "milk", 1000));
+        await assertFails(data.setQuantityNeeded("h1", "milk", 1.5));
+        for (const uid of ["other", "stranger"]) {
+            const outsider = createFirestoreData(env.authenticatedContext(uid).firestore() as unknown as Firestore, getStorage(app));
+            await assertFails(outsider.setQuantityNeeded("h1", "milk", 3));
+        }
+        const signedOut = createFirestoreData(env.unauthenticatedContext().firestore() as unknown as Firestore, getStorage(app));
+        await assertFails(signedOut.setQuantityNeeded("h1", "milk", 3));
+    } finally { await deleteApp(app); }
+});

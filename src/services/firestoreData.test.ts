@@ -46,6 +46,7 @@ describe("data failure diagnostics", () => {
         ["updateItem", () => data.updateItem("h1", fields)],
         ["updateInventoryItem", () => data.updateInventoryItem("h1", { ...fields, typicalPurchaseQuantity: 2 })],
         ["setOnList", () => data.setOnList("h1", "i1", true)],
+        ["setQuantityNeeded", () => data.setQuantityNeeded("h1", "i1", 3)],
         ["setCategory", () => data.setCategory("h1", "i1", "dairy")],
         ["recordPurchase", () => data.recordPurchase("h1", "i1", 2)],
         ["createStore", () => data.createStore("h1", { id: "s1", name: "Private store", chain: "Costco" })],

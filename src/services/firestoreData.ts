@@ -51,6 +51,8 @@ export function createFirestoreData(db: Firestore, storage: FirebaseStorage): Da
             run("deleteItem", { householdId, itemId }, () => deleteDoc(doc(items(householdId), itemId))),
         setOnList: (householdId, itemId, onList) =>
             run("setOnList", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { onList })),
+        setQuantityNeeded: (householdId, itemId, quantityNeeded) =>
+            run("setQuantityNeeded", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { quantityNeeded })),
         setCategory: (householdId, itemId, category) =>
             run("setCategory", { householdId, itemId }, () => updateDoc(doc(items(householdId), itemId), { category })),
         recordPurchase: (householdId, itemId, amount, undo) => run("recordPurchase", { householdId, itemId }, () => {

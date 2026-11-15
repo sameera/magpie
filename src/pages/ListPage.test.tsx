@@ -62,7 +62,7 @@ describe("List page", () => {
             renderApp(["/"], household(new FakeServices()));
             expect(headings()).toEqual(["Produce", "Dairy", "Bakery", "No category"]);
             expect(group("Produce").getByText("Apples")).toBeInTheDocument();
-            expect(group("Dairy").getAllByRole("link").map((link) => link.textContent)).toEqual([
+            expect(group("Dairy").getAllByRole("button", { name: /^Actions for/ }).map((button) => button.textContent)).toEqual([
                 expect.stringContaining("Butter"),
                 expect.stringContaining("Milk"),
             ]);
@@ -95,10 +95,17 @@ describe("List page", () => {
         });
     });
 
-    it("opens the Item page for the chosen item", async () => {
+    it("opens the Item page from the menu button of the chosen item", async () => {
         const { router } = renderApp(["/"]);
-        await userEvent.setup().click(screen.getByRole("link", { name: /Milk/ }));
+        await userEvent.setup().click(screen.getByRole("link", { name: "Edit Milk" }));
         expect(router.state.location.pathname).toBe("/items/i1");
+    });
+
+    it("opens the actions menu, not the Item page, when the row is tapped", async () => {
+        const { router } = renderApp(["/"]);
+        await userEvent.setup().click(screen.getByRole("button", { name: "Actions for Milk" }));
+        expect(screen.getByRole("menu", { name: "Actions for Milk" })).toBeInTheDocument();
+        expect(router.state.location.pathname).toBe("/");
     });
 
     it("keeps its scroll position when the user comes back from an item", async () => {
@@ -418,7 +425,7 @@ describe("List row actions", () => {
     it("gives each row a button for its actions next to the link to the item page", () => {
         renderApp(["/"]);
         const row = within(rowOf("Milk"));
-        expect(row.getByRole("link", { name: /Milk/ })).toBeInTheDocument();
+        expect(row.getByRole("link", { name: "Edit Milk" })).toBeInTheDocument();
         const button = row.getByRole("button", { name: "Actions for Milk" });
         expect(button).toHaveAttribute("aria-haspopup", "menu");
         expect(button.closest("a")).toBeNull();
@@ -456,9 +463,9 @@ describe("List row actions", () => {
         expect(within(menu("Jam")).getByRole("button", { name: "Decrease list quantity" })).toBeDisabled();
     });
 
-    it("still opens the item page from the rest of the row", async () => {
+    it("opens the item page from the menu button of any row", async () => {
         const { router } = renderApp(["/"]);
-        await userEvent.setup().click(screen.getByRole("link", { name: /Bread/ }));
+        await userEvent.setup().click(screen.getByRole("link", { name: "Edit Bread" }));
         expect(router.state.location.pathname).toBe("/items/i2");
     });
 

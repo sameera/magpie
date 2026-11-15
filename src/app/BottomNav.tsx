@@ -52,7 +52,7 @@ export function BottomNav({ shopTarget }: { shopTarget: string }) {
                         <TabIcon active={area === "list"}>
                             <List aria-hidden="true" />
                         </TabIcon>
-                        List
+                        Make List
                     </Link>
                     <Link
                         to={shopTarget}

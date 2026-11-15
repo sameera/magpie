@@ -13,9 +13,9 @@ it.each(["/", "/inventory"])("shows only tagged rows' stored chain on %s, with n
     const list = vi.spyOn(services.data, "watchList");
     const bought = vi.spyOn(services.data, "watchBoughtItems");
     renderApp([path], services);
-    expect(within(screen.getByRole("link", { name: /Milk/ })).getByText("Unmatched chain")).toBeInTheDocument();
+    expect(within(screen.getByRole(path === "/" ? "button" : "link", { name: path === "/" ? /^Actions for Milk/ : /Milk/ })).getByText("Unmatched chain")).toBeInTheDocument();
     expect(screen.getAllByText("Unmatched chain")).toHaveLength(1);
-    expect(within(screen.getByRole("link", { name: /Bread/ })).queryByText("Unmatched chain")).toBeNull();
+    expect(within(screen.getByRole(path === "/" ? "button" : "link", { name: path === "/" ? /^Actions for Bread/ : /Bread/ })).queryByText("Unmatched chain")).toBeNull();
     expect(stores).not.toHaveBeenCalled(); expect(prices).not.toHaveBeenCalled(); expect(item).not.toHaveBeenCalled();
     // List's mounted add drawer already reads inventory, even while closed.
     expect(all).toHaveBeenCalledTimes(1);

@@ -19,11 +19,11 @@ it.each(["/", "/inventory"])("shows the preferred store as secondary text on %s"
     const services = new FakeServices();
     services.households.get("h1")!.items[0].preferredChain = "Costco";
     renderApp([path], services);
-    const milk = screen.getByRole("link", { name: /Milk/ });
+    const milk = screen.getByRole(path === "/" ? "button" : "link", { name: path === "/" ? /^Actions for Milk/ : /Milk/ });
     const store = within(milk).getByText("Costco");
     expect(store).toHaveClass("text-caption", "text-ink-muted");
     expect(store).not.toHaveClass("bg-berry");
-    expect(within(screen.getByRole("link", { name: /Bread/ })).queryByText("Costco")).toBeNull();
+    expect(within(screen.getByRole(path === "/" ? "button" : "link", { name: path === "/" ? /^Actions for Bread/ : /Bread/ })).queryByText("Costco")).toBeNull();
 });
 
 it("omits the preferred store from Shop item rows", () => {

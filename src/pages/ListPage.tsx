@@ -197,8 +197,8 @@ export function ListPage() {
     );
 }
 
-// One List row. The link opens the item page; the button on the right opens the
-// actions menu over the row. A leftward drag past a third of the row removes it.
+// One List row. Tapping the row opens the actions menu over it; the menu button
+// on the right opens the item page. A leftward drag past a third of the row removes it.
 // A finger held still for the hold time starts a drag to the drop tray instead;
 // a finger that moves first swipes or scrolls, so a swipe never starts a drag.
 function ListRow({
@@ -232,10 +232,15 @@ function ListRow({
             onDrop={onDrop} onDragCancel={onDragCancel} onChooseCategory={onChooseCategory}
             onSwipe={onSwipe} disabled={menuOpen}
         >
-            <Link
-                to={`/items/${item.id}`}
+            <button
+                type="button"
+                data-actions-button
+                aria-label={`Actions for ${item.name}`}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={onToggleMenu}
                 draggable={false}
-                className="flex min-w-0 flex-1 items-center gap-3 p-3"
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 p-3 text-left"
             >
                 <span className="flex size-thumb shrink-0 items-center justify-center rounded-sm bg-surface-sunken text-ink-muted">
                     <Camera aria-hidden="true" />
@@ -248,18 +253,15 @@ function ListRow({
                     <PreferredChainText chain={item.preferredChain} />
                     {item.note && <span className="break-words text-caption text-ink-muted">{item.note}</span>}
                 </span>
-            </Link>
-            <button
-                type="button"
-                data-actions-button
-                aria-label={`Actions for ${item.name}`}
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={onToggleMenu}
+            </button>
+            <Link
+                to={`/items/${item.id}`}
+                draggable={false}
+                aria-label={`Edit ${item.name}`}
                 className="flex w-tap shrink-0 cursor-pointer items-center justify-center rounded-md text-ink-muted"
             >
                 <EllipsisVertical aria-hidden="true" />
-            </button>
+            </Link>
             {menuOpen && <RowMenu item={item} onRemove={onRemove} onPurchase={onPurchase} onQuantity={onQuantity} onClose={onCloseMenu} />}
         </CategoryDragRow>
     );

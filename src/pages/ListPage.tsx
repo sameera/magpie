@@ -332,7 +332,7 @@ function RowMenu({
                 </form>
             ) : (
                 <>
-                    <div role="group" aria-label="List quantity" className="flex items-center gap-1">
+                    <div role="group" aria-label="List quantity" className="mr-auto flex items-center gap-1">
                         <button type="button" aria-label="Decrease list quantity" disabled={item.quantityNeeded <= MIN_QUANTITY}
                             onClick={() => onQuantity(item.quantityNeeded - 1)} className={`${choice} disabled:opacity-50`}>
                             <Minus aria-hidden="true" />

@@ -84,6 +84,11 @@ export function ListPage() {
         send(item, data.addItems(householdId, [], [{ id: item.id, quantityNeeded }]),
             now => now.onList, () => `${item.name} could not be added to the list.`);
     };
+    const setQuantity = (item: Item, quantity: number) => {
+        setRefusal("");
+        send(item, data.setQuantityNeeded(householdId, item.id, quantity),
+            now => now.quantityNeeded === quantity, now => `${item.name} quantity could not be changed. It is still ${now.quantityNeeded}.`);
+    };
     const purchase = (item: Item, amount: number) => {
         setRefusal("");
         setMenuFor(null);
@@ -125,6 +130,7 @@ export function ListPage() {
                                             onCloseMenu={() => setMenuFor(null)}
                                             onRemove={() => chooseRemove(item)}
                                             onPurchase={(amount) => purchase(item, amount)}
+                                            onQuantity={(quantity) => setQuantity(item, quantity)}
                                             onSwipe={() => swipeRemove(item)}
                                         />
                                     ))}
@@ -208,6 +214,7 @@ function ListRow({
     onCloseMenu,
     onRemove,
     onPurchase,
+    onQuantity,
     onSwipe,
 }: CategoryRowActions & {
     item: Item;
@@ -216,6 +223,7 @@ function ListRow({
     onCloseMenu: () => void;
     onRemove: () => void;
     onPurchase: (amount: number) => void;
+    onQuantity: (quantity: number) => void;
     onSwipe: () => void;
 }) {
     return (
@@ -252,7 +260,7 @@ function ListRow({
             >
                 <EllipsisVertical aria-hidden="true" />
             </button>
-            {menuOpen && <RowMenu item={item} onRemove={onRemove} onPurchase={onPurchase} onClose={onCloseMenu} />}
+            {menuOpen && <RowMenu item={item} onRemove={onRemove} onPurchase={onPurchase} onQuantity={onQuantity} onClose={onCloseMenu} />}
         </CategoryDragRow>
     );
 }
@@ -263,11 +271,13 @@ function RowMenu({
     item,
     onRemove,
     onPurchase,
+    onQuantity,
     onClose,
 }: {
     item: Item;
     onRemove: () => void;
     onPurchase: (amount: number) => void;
+    onQuantity: (quantity: number) => void;
     onClose: () => void;
 }) {
     const [asking, setAsking] = useState(false);
@@ -322,6 +332,17 @@ function RowMenu({
                 </form>
             ) : (
                 <>
+                    <div role="group" aria-label="List quantity" className="flex items-center gap-1">
+                        <button type="button" aria-label="Decrease list quantity" disabled={item.quantityNeeded <= MIN_QUANTITY}
+                            onClick={() => onQuantity(item.quantityNeeded - 1)} className={`${choice} disabled:opacity-50`}>
+                            <Minus aria-hidden="true" />
+                        </button>
+                        <output aria-label="List quantity value" className="min-w-10 text-center text-body">{item.quantityNeeded}</output>
+                        <button type="button" aria-label="Increase list quantity" disabled={item.quantityNeeded >= MAX_QUANTITY}
+                            onClick={() => onQuantity(item.quantityNeeded + 1)} className={`${choice} disabled:opacity-50`}>
+                            <Plus aria-hidden="true" />
+                        </button>
+                    </div>
                     <button type="button" role="menuitem" autoFocus onClick={onRemove} aria-label="Remove item from list" title="Remove item from list" className={choice}>
                         <Trash2 aria-hidden="true" />
                     </button>

@@ -433,6 +433,29 @@ describe("List row actions", () => {
         expect(router.state.location.pathname).toBe("/");
     });
 
+    it("changes the list quantity from the row menu, one step at a time, keeping the menu open", async () => {
+        const services = new FakeServices();
+        const setQuantity = vi.spyOn(services.data, "setQuantityNeeded");
+        renderApp(["/"], services);
+        const user = userEvent.setup();
+        await user.click(screen.getByRole("button", { name: "Actions for Milk" }));
+        const actions = within(menu("Milk"));
+        expect(actions.getByLabelText("List quantity value")).toHaveTextContent("2");
+        await user.click(actions.getByRole("button", { name: "Increase list quantity" }));
+        expect(setQuantity).toHaveBeenCalledWith("h1", "i1", 3);
+        expect(within(menu("Milk")).getByLabelText("List quantity value")).toHaveTextContent("3");
+        await user.click(within(menu("Milk")).getByRole("button", { name: "Decrease list quantity" }));
+        expect(setQuantity).toHaveBeenLastCalledWith("h1", "i1", 2);
+    });
+
+    it("stops the list quantity spinner at 1", async () => {
+        const services = new FakeServices();
+        services.households.get("h1")!.items.push(testItem({ id: "i9", name: "Jam", quantityNeeded: 1 }));
+        renderApp(["/"], services);
+        await userEvent.setup().click(screen.getByRole("button", { name: "Actions for Jam" }));
+        expect(within(menu("Jam")).getByRole("button", { name: "Decrease list quantity" })).toBeDisabled();
+    });
+
     it("still opens the item page from the rest of the row", async () => {
         const { router } = renderApp(["/"]);
         await userEvent.setup().click(screen.getByRole("link", { name: /Bread/ }));

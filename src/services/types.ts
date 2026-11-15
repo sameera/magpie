@@ -59,6 +59,10 @@ export interface DataService {
     // list quantity, inventory or any other detail. Resolves once the server
     // accepts the write; rejects if it is refused. Callers do not wait for it.
     setOnList(householdId: string, itemId: string, onList: boolean): Promise<void>;
+    // Sets only the item's list quantity, a whole number from 1 to 999, changing
+    // nothing else. Resolves once the server accepts the write; rejects if it is
+    // refused. Callers do not wait for it.
+    setQuantityNeeded(householdId: string, itemId: string, quantityNeeded: number): Promise<void>;
     // Sets only the item's category, to one of the six kinds, the key of a custom
     // category of the household, or null for none, changing nothing else. Resolves once the server accepts the write; rejects
     // if it is refused. Callers do not wait for it.

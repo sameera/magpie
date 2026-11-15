@@ -1,4 +1,4 @@
-import { Check, ChevronDown, MapPin } from "lucide-react";
+import { Check, ChevronDown, GripVertical, MapPin } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useHouseholdId, useServices } from "../app/session";
@@ -9,6 +9,8 @@ import {
     unmarkUnavailable, useSession,
 } from "../app/shoppingSession";
 import { NotFound } from "../components/NotFound";
+import { useCategoryDrag } from "../components/CategoryDrag";
+import type { CategoryRowActions } from "../components/CategoryDragRow";
 import { StoreMap } from "../components/StoreMap";
 import { useCategories, useList, useStore } from "../data/hooks";
 import { listGroups } from "../data/categoryGroups";
@@ -44,6 +46,8 @@ function InStoreBody({ sidebar, onCloseSidebar }: { sidebar: Sidebar | null; onC
     const householdId = useHouseholdId();
     const { data } = useServices();
     const [refusal, setRefusal] = useState("");
+    const categoryDrag = useCategoryDrag(list.status === "ready" ? list.value : [], setRefusal);
+    const dragging = categoryDrag.active;
     const [mapExpanded, setMapExpanded] = useState(false);
     const [confirmation, setConfirmation] = useState<{ item: Item; id: string; action: "purchase" | "unavailable" } | null>(null);
     const session = useSession();
@@ -189,7 +193,7 @@ function InStoreBody({ sidebar, onCloseSidebar }: { sidebar: Sidebar | null; onC
             ) : hiddenCount === 0 && (
                 <p className="mb-6 text-body text-ink-muted">Nothing on the list.</p>
             )}
-            {(refusal || confirmation) && (
+            {!dragging && (refusal || confirmation) && (
                 <div className="fixed right-[max(1rem,calc(50%-280px+1rem))] bottom-[calc(var(--spacing-nav)+env(safe-area-inset-bottom)+1rem)] left-[max(1rem,calc(50%-280px+1rem))] z-40 flex flex-col gap-2">
                     {refusal && (
                         <p role="alert" className="flex items-center gap-2 rounded-md bg-surface p-3 text-body text-danger shadow-float">
@@ -218,6 +222,7 @@ function InStoreBody({ sidebar, onCloseSidebar }: { sidebar: Sidebar | null; onC
                                 <ShopRow
                                     key={item.id}
                                     item={item}
+                                    {...categoryDrag.rowActions(item)}
                                     zone={zoneOf(item, store.value)?.label}
                                     onPurchase={() => purchase(item)}
                                     onUnavailable={() => markUnavailable(item)}
@@ -227,6 +232,7 @@ function InStoreBody({ sidebar, onCloseSidebar }: { sidebar: Sidebar | null; onC
                     </li>
                 ))}
             </ul>
+            {categoryDrag.layer}
         </>
     );
 }
@@ -311,11 +317,13 @@ function NextUp({ item, count, zone, ...actions }: ShopSwipeActions & { item: It
     );
 }
 
-function ShopRow({ item, zone, ...actions }: ShopSwipeActions & { item: Item; zone?: string }) {
+function ShopRow({ item, zone, lifted, onDragStart, onDragMove, onDrop, onDragCancel, onChooseCategory, ...actions }: ShopSwipeActions & CategoryRowActions & { item: Item; zone?: string }) {
     const { offset, dragged, handlers } = useShopSwipe(actions);
+    const handle = useRef<{ x: number; y: number; dragging: boolean } | null>(null);
+    const suppressClick = useRef(false);
     return (
         <li
-            className="relative overflow-x-clip rounded-md touch-pan-y"
+            className={`relative overflow-x-clip rounded-md touch-pan-y ${lifted ? "opacity-40" : ""}`}
             {...handlers}
         >
             <SwipeReveal offset={offset} />
@@ -323,6 +331,48 @@ function ShopRow({ item, zone, ...actions }: ShopSwipeActions & { item: Item; zo
                 className="relative flex min-h-18 items-center rounded-md bg-surface p-3 shadow-sticker"
                 style={offset ? { transform: `translateX(${offset}px)` } : undefined}
             >
+                <button
+                    type="button"
+                    aria-label={`Move ${item.name} to a category`}
+                    data-category-handle={item.id}
+                    onPointerDown={(e) => {
+                        e.stopPropagation();
+                        suppressClick.current = false;
+                        if (!e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
+                        handle.current = { x: e.clientX, y: e.clientY, dragging: false };
+                        e.currentTarget.setPointerCapture?.(e.pointerId);
+                    }}
+                    onPointerMove={(e) => {
+                        const state = handle.current;
+                        if (!state || !e.isPrimary) return;
+                        if (!state.dragging && (e.clientX !== state.x || e.clientY !== state.y)) {
+                            state.dragging = true;
+                            suppressClick.current = true;
+                            onDragStart(e.clientX, e.clientY);
+                        }
+                        if (state.dragging) onDragMove(e.clientX, e.clientY);
+                    }}
+                    onPointerUp={(e) => {
+                        const state = handle.current;
+                        handle.current = null;
+                        if (state?.dragging) onDrop(e.clientX, e.clientY);
+                    }}
+                    onPointerCancel={() => {
+                        const state = handle.current;
+                        handle.current = null;
+                        if (state?.dragging) onDragCancel();
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") suppressClick.current = false;
+                    }}
+                    onClick={() => {
+                        if (suppressClick.current) suppressClick.current = false;
+                        else onChooseCategory();
+                    }}
+                    className="-ml-3 mr-1 flex min-h-tap w-tap shrink-0 cursor-move touch-none items-center justify-center rounded-md text-ink-muted"
+                >
+                    <GripVertical aria-hidden="true" />
+                </button>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-2">
                         <span className="min-w-0 break-words text-item">{item.name}</span>
